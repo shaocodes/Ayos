@@ -189,6 +189,7 @@ class Reading(unittest.TestCase):
 
 FAKE_SHELL = r"""
 import base64, re, sys, time
+sys.stdout.reconfigure(encoding="utf-8")
 for line in sys.stdin:
     m = re.search(r"FromBase64String\('([A-Za-z0-9+/=]+)'\)", line)
     n = re.search(r"<<<AYOS-OK (\d+)>>>", line).group(1)
