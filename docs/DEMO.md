@@ -30,7 +30,7 @@ Everything the team needs for the live pitch: what to check before, what to clic
 | 1:45 | Point at the red dot on the path, then at the green safety line. | "It found the break: DNS. And here is the part we care about most. The model does not get the last word. Plain code checks that the results really show that cause. If the model guesses, it is refused." |
 | 2:15 | Press **Fix it**. Wait for the Fixed stamp and the green light. Reload the website. | "It tells me exactly what it will change, and nothing happens until I approve. It fixed it, then ran the checks again to prove it." |
 | 2:45 | Press **Switch memory off**. Press **Fake proxy**, ask again. This time the model has to choose every check itself. Fix it, then press **Switch memory on**. | "That was with memory. Now I switch memory off, so it knows nothing about this PC. Watch the model investigate from scratch: it picks a check, reads the result, picks the next one. Slower, same answer." |
-| 3:30 | Point at the right-hand panel: model name, speed, "On this PC". Show the results table in the README if there is time. | "This is an open model running through Ollama on this CPU. The model picks from a fixed menu of eleven checks. It never writes a command. We tested the fixes on real Windows machines and measured the model on fourteen faults." |
+| 3:30 | Point at the right-hand panel: model name, speed, "On this PC". Show the results table in the README if there is time. | "This is an open model running through Ollama on this laptop. The model picks from a fixed menu of eleven checks. It never writes a command. We tested the fixes on a real Windows machine and measured four open models on twenty cases." |
 | 4:15 | Back to the green light. | "Who is this for: families, small offices, computer shops, schools, anywhere the person who knows computers is not in the room. It is local because the thing it repairs is the connection itself." |
 
 If you are short on time, cut the 2:45 row. Without memory the model needs three to five thinking steps instead of one, so rehearse it and time it on the demo laptop before you decide to include it.
@@ -51,16 +51,19 @@ A strong extra if you have 30 spare seconds: press **Adapter turned off** instea
 ## Questions you will probably get
 
 **Why do you need a language model if code checks the answer?**
-The code can only confirm a cause. It cannot understand a person. The model reads "ayaw mag-load ng YouTube" and decides where to look, picks checks in a sensible order instead of running all of them, explains the result in the person's own language, and answers follow-up questions. The code is the inspector that keeps the model honest.
+The code can only confirm a cause. It cannot understand a person. The model reads "ayaw mag-load ng YouTube" and decides where to look, picks checks in a sensible order instead of running all of them, explains the result in plain words, and answers follow-up questions. The code is the inspector that keeps the model honest.
 
 **What if the model is wrong?**
-Then it is refused. A cause is accepted only when the check results show it. We measure this: the results table shows "model alone" next to "with safety check".
+Then it is refused, and told why. A cause is accepted only when the check results show it. We measured this on 20 cases: `gemma3:4b` named the right cause first in 17 of them, and with the safety check all 20 final diagnoses were right. The same held for the three other models we tested, including a 0.8 GB one that was right first time in only 12.
 
 **Is it safe to give an AI administrator rights?**
 The model has none. It can only name a check or a cause from a fixed list. The fixes are nine small functions we wrote, each one reversible, and none runs without a click.
 
 **How is this different from the Windows troubleshooter?**
-Microsoft is retiring the built-in troubleshooters. Ayos explains what it found in plain words, in your language, shows the evidence, remembers this PC, and can be asked questions.
+Microsoft is retiring the built-in troubleshooters. Ayos explains what it found in plain words, shows the evidence, remembers this PC, and can be asked questions.
+
+**Did you really build this in one night?**
+Yes, with an AI coding assistant, which the README discloses. The commit history shows it. The part worth asking about is what we learned by measuring: the first numbers were bad, and the fix was a design change, not a bigger model. That story is in the README under "What the first measurement taught us".
 
 **Does it really work offline?**
 Yes. The model and all the logic are on the laptop. The only things that touch the network are the tests of the network.
@@ -69,7 +72,7 @@ Yes. The model and all the logic are on the laptop. The only things that touch t
 The model is one part, used as published. We built the agent loop, the menu of checks, the safety check, the fixes with undo, the memory, the Windows layer, the simulated PC, the evaluation tool and the interface.
 
 **How fast is it?**
-Give the number from your own `selftest.bat` run on the demo laptop. Do not quote a number you did not measure.
+On a 4-thread cloud CPU with no graphics card, a typical diagnosis took about 10 seconds with `gemma3:4b`. That number is in the README with the raw files. For the demo laptop, give the number you saw on it. Do not quote a number you did not measure.
 
 **What is next?**
 More causes (printers, Bluetooth, drivers), a small installer, and a mode for computer shops that keeps a history per customer PC.

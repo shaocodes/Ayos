@@ -25,8 +25,8 @@ def main() -> int:
         if f.endswith(".txt"):  # a notice holds about 4,000 characters, so only the end of each text file is shown
             print(f"::notice title={label} {os.path.basename(f)} (end)::{esc(text[-3800:])}")
     token, repo = os.environ.get("GITHUB_TOKEN"), os.environ.get("GITHUB_REPOSITORY")
-    if not (token and repo and files):
-        return 0
+    if os.environ.get("AYOS_CI_BRANCH") != "1" or not (token and repo and files):
+        return 0  # by default only the notices above are published; set AYOS_CI_BRANCH=1 to also keep the files on a branch
     out = os.path.abspath("ci_branch")
     os.makedirs(out, exist_ok=True)
     for f in files:

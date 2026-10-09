@@ -1,0 +1,25 @@
+Ayos self-test  (read-only, nothing is changed)
+Python 3.12.10 on Windows-2025Server-10.0.26100-SP0
+PC: Windows PC   Administrator: yes
+PowerShell: one PowerShell kept open (start-up took 6.5 s; the checks below reuse it)
+Main adapter: {'name': 'Ethernet 3', 'description': 'Microsoft Hyper-V Network Adapter #3', 'status': 'Up', 'wifi': False}
+
+[ ok ] compare_with_normal         0 ms  No record yet of what this PC looks like when the internet works.
+[ ok ] check_adapters              0 ms  Network adapters: Ethernet 4 (cable): switched on, but it has no network address, so it is not the internet line; Ethernet 3 (cable): connected.
+[ ok ] check_ip_and_router      1244 ms  IP address 10.1.0.11, router 10.1.0.1. The router ignores pings, but traffic passes through it, so it is working.
+[ ok ] check_internet_reach       29 ms  Internet addresses can be reached directly by number, so the line to the internet is working.
+[ ok ] check_dns                 101 ms  DNS servers on 'Ethernet 3': 168.63.129.16 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.
+[ ok ] check_proxy               138 ms  No proxy is set. A test page loads.
+[ ok ] check_hosts                 0 ms  The hosts file has 1 extra entry, and none of them block a website.
+[ ok ] test_website              134 ms  Opening http://www.msftconnecttest.com/connecttest.txt: it loads.
+[ ok ] check_disk                  3 ms  Storage: C: 31.5 GB free of 160.5 GB; D: 236.1 GB free of 236.2 GB. Space is fine.
+[ ok ] check_memory               60 ms  Memory: 13.4 GB free of 16.0 GB. Memory is fine. Biggest users: svchost 1245 MB, MsMpEng 161 MB, explorer 160 MB.
+[ ok ] check_startup              53 ms  3 apps start automatically with Windows: Service Fabric Local Cluster Manager, AzureArcSetup, SecurityHealth.
+
+Snapshot: {'adapters': {'Ethernet 4': 'Up', 'Ethernet 3': 'Up'}, 'dns': {'Ethernet 4': {'servers': [], 'manual': False}, 'Ethernet 3': {'servers': ['168.63.129.16'], 'manual': False}}, 'proxy_enabled': False, 'proxy_server': '', 'hosts_blocked': [], 'gateway': '10.1.0.1'}
+
+Model server at http://127.0.0.1:11434: NOT reachable, or no models installed.
+  Install Ollama from https://ollama.com, then run:  ollama pull gemma3:4b
+
+RESULT: all checks ran.
+Saved to D:\a\Ayos\Ayos\ayos_selftest.txt

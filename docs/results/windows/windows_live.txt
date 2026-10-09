@@ -1,0 +1,82 @@
+Windows live test on Windows-2025Server-10.0.26100-SP0, Python 3.12.10
+Administrator: True
+PowerShell mode: one PowerShell kept open  (first use took 2.5 s)
+PowerShell mode after warm-up: one PowerShell kept open  (a repeat read took 0.02 s)
+Adapters: [{'name': 'Ethernet 4', 'description': 'Microsoft Azure Network Adapter', 'status': 'Up', 'wifi': False}, {'name': 'Ethernet 3', 'description': 'Microsoft Hyper-V Network Adapter #3', 'status': 'Up', 'wifi': False}]
+Main adapter: {'name': 'Ethernet 3', 'description': 'Microsoft Hyper-V Network Adapter #3', 'status': 'Up', 'wifi': False}
+IP: [{'adapter': 'Ethernet 3', 'ipv4': '10.1.0.11', 'gateway': '10.1.0.1'}]
+DNS: [{'adapter': 'Ethernet 4', 'servers': [], 'manual': False}, {'adapter': 'Ethernet 3', 'servers': ['168.63.129.16'], 'manual': False}]
+Proxy: {'enabled': False, 'server': '', 'auto_config_url': ''}
+
+[ ok ] compare_with_normal         0 ms  No record yet of what this PC looks like when the internet works.
+[ ok ] check_adapters              0 ms  Network adapters: Ethernet 4 (cable): switched on, but it has no network address, so it is not the internet line; Ethernet 3 (cable): connected.
+[ ok ] check_ip_and_router      1405 ms  IP address 10.1.0.11, router 10.1.0.1. The router ignores pings, but traffic passes through it, so it is working.
+[ ok ] check_internet_reach       45 ms  Internet addresses can be reached directly by number, so the line to the internet is working.
+[ ok ] check_dns                  12 ms  DNS servers on 'Ethernet 3': 168.63.129.16 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.
+[ ok ] check_proxy               116 ms  No proxy is set. A test page loads.
+[ ok ] check_hosts                 0 ms  The hosts file has 1 extra entry, and none of them block a website.
+[ ok ] test_website              137 ms  Opening http://www.msftconnecttest.com/connecttest.txt: it loads.
+[ ok ] check_disk                  0 ms  Storage: C: 31.5 GB free of 160.5 GB; D: 236.1 GB free of 236.2 GB. Space is fine.
+[ ok ] check_memory               44 ms  Memory: 13.3 GB free of 16.0 GB. Memory is fine. Biggest users: svchost 1244 MB, powershell 213 MB, explorer 160 MB.
+[ ok ] check_startup              11 ms  3 apps start automatically with Windows: Service Fabric Local Cluster Manager, AzureArcSetup, SecurityHealth.
+
+Baseline: {'adapters': {'Ethernet 4': 'Up', 'Ethernet 3': 'Up'}, 'dns': {'Ethernet 4': {'servers': [], 'manual': False}, 'Ethernet 3': {'servers': ['168.63.129.16'], 'manual': False}}, 'proxy_enabled': False, 'proxy_server': '', 'hosts_blocked': [], 'gateway': '10.1.0.1'}
+
+=== proxy_on: "My browser cannot open any website"
+break:   Windows now sends web traffic to a proxy that does not exist (127.0.0.1:9).
+         internet now DOWN (fault took effect)
+check:   compare_with_normal (216 ms) Changed since the internet last worked: Proxy is now ON (127.0.0.1:9); it was off.
+check:   check_proxy (2218 ms) A proxy is turned ON (127.0.0.1:9). Through the proxy a test page FAILS. Without the proxy the same page loads fine.
+cause:   proxy_blocking  fix: Turn the proxy off
+fix:     ok=True verified=True Fixed. I ran the checks again and the problem is gone.
+         again: No proxy is set. A test page loads.
+         again: Opening http://www.msftconnecttest.com/connecttest.txt: it loads.
+result:  PASS  fault took effect=True, cause=proxy_blocking (wanted proxy_blocking), internet back=True, 2.9 s
+restore: Turned the practice proxy off.
+
+=== hosts_block: "I cannot open example.com but other sites work"
+break:   The hosts file now blocks example.com.
+         internet now n/a (one site only)
+         example.com stopped loading: True (after 0.1 s)
+         Windows resolves example.com (A) to: 0.0.0.0
+         Windows resolves example.com (AAAA) to: ::
+check:   compare_with_normal (223 ms) Changed since the internet last worked: New blocked names in the hosts file: example.com, www.example.com.
+check:   check_hosts (2 ms) The hosts file blocks these names by pointing them at a dead address: example.com, www.example.com. That includes example.com.
+cause:   hosts_block  fix: Remove the blocking line from the hosts file
+fix:     ok=True verified=True Fixed. I ran the checks again and the problem is gone.
+         again: The hosts file has 1 extra entry, and none of them block a website.
+         again: Opening http://example.com: it loads.
+result:  PASS  fault took effect=True, cause=hosts_block (wanted hosts_block), internet back=True, 0.4 s
+restore: Nothing needed putting back.
+
+=== wrong_dns: "My internet is not working, websites will not load"
+break:   DNS on 'Ethernet 3' now points to addresses that never answer.
+         internet now DOWN (fault took effect)
+check:   compare_with_normal (203 ms) Changed since the internet last worked: DNS servers on 'Ethernet 3' were 168.63.129.16, now 192.0.2.53, 2001:db8::53 (set manually).
+check:   check_dns (2516 ms) DNS servers on 'Ethernet 3': 192.0.2.53, 2001:db8::53 (set manually). None of them answer. A public DNS server (1.1.1.1) answers when asked directly. Windows CANNOT turn website names into addresses.
+cause:   dns_misconfigured  fix: Set DNS back to automatic
+fix:     ok=True verified=True Fixed. I ran the checks again and the problem is gone.
+         again: DNS servers on 'Ethernet 3': 168.63.129.16 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.
+         again: Opening http://www.msftconnecttest.com/connecttest.txt: it loads.
+result:  PASS  fault took effect=True, cause=dns_misconfigured (wanted dns_misconfigured), internet back=True, 3.1 s
+undo:    True  -> DNS now [{'adapter': 'Ethernet 3', 'servers': ['192.0.2.53', '2001:db8::53'], 'manual': True}]
+restore: Set DNS on 'Ethernet 3' back to automatic.
+
+=== adapter off and on, using the spare adapter 'Ethernet 4'
+off:     status=Disabled; check says: Network adapters: Ethernet 4 (cable): turned OFF in Windows; Ethernet 3 (cable): connected.
+result:  PASS  off=Disabled, listed as disabled=True, back=Up
+
+=== restore_network.ps1 (the emergency reset)
+broken:  DNS manual=['Ethernet 3'], proxy on=True, hosts lines=5
+ps1:     Ayos: putting network settings back...
+ps1:       DNS on 'Ethernet 3' set back to automatic.
+ps1:       Proxy turned off.
+ps1:       Removed practice lines from the hosts file.
+ps1:     Done. If the internet is still down, wait 15 seconds for Wi-Fi to reconnect.
+result:  PASS  everything back to normal=True
+
+=== start_ayos.bat --selftest (the launcher)
+result:  PASS  exit code 0
+
+After the test: internet works = True; DNS = [{'adapter': 'Ethernet 4', 'servers': [], 'manual': False}, {'adapter': 'Ethernet 3', 'servers': ['168.63.129.16'], 'manual': False}]; proxy = {'enabled': False, 'server': '', 'auto_config_url': ''}; hosts = [{'ip': '10.1.0.11', 'names': ['runnervmfi6oq.fxlz2ag0yhde3mfs4ytc0dasva.gx.internal.cloudapp.net', 'runnervmfi6oq'], 'demo': False}]
+RESULT: ALL PASSED

@@ -8,6 +8,8 @@ Built for the AppBuildersPH Hackathon 2026 (theme: Local AI).
 
 **See it without installing anything:** [a replay of recorded sessions, in the real interface](https://shaocodes.github.io/Ayos/). Ayos itself is a Windows program that runs on your own PC, so the page plays back real recorded runs.
 
+![Ayos finds a wrong DNS setting, shows the evidence, and waits for approval](docs/img/diagnosis.png)
+
 ## The problem
 
 When the internet stops working, the tools that could help are on the internet. A cloud AI assistant cannot answer, a search engine cannot be reached, and the family member who "knows computers" is not home. Most of the causes are small settings a technician fixes in a minute: a wrong DNS server, a proxy left on, an adapter switched off, a line in the hosts file.
@@ -17,31 +19,29 @@ A repair assistant has to be local, because the fault it repairs is the connecti
 ## What Ayos does
 
 1. You say what is wrong in your own words, in English or Taglish.
-2. A language model running on your PC decides which check to run, reads the result, and decides again. Each check is shown as it happens.
-3. The model names a cause. **Plain code then checks that the results really show that cause.** If they do not, the conclusion is refused and the model has to look again.
-4. Ayos shows the cause, the evidence, and the exact change it wants to make.
-5. Nothing changes until you press **Fix it**. After the fix, the checks run again to prove it worked. Every fix can be undone.
-6. Ayos remembers what this PC looks like when it works, and what went wrong before. Next time it compares against that first.
+2. **Memory first.** Ayos compares the PC with how it looked the last time the internet worked. If a setting changed, it checks that area at once.
+3. **A language model running on your PC** reads the results. If more is needed, it chooses the next check from a fixed menu, reads the result, and chooses again. You watch its reasoning being written, word by word.
+4. The model names a cause. **Plain code then checks that the results really show that cause.** If they do not, the conclusion is refused, with the reason, and the model has to look again. If proof is missing, the safety check runs the missing checks itself before it decides.
+5. Ayos shows the cause, the evidence, and the exact change it wants to make.
+6. Nothing changes until you press **Fix it**. After the fix, the checks run again to prove it worked. Every fix can be undone.
+7. Ayos remembers what this PC looks like when it works, and what went wrong before.
 
 ```
-  you ──"my internet is not working"──▶  local model (Ollama, on this PC)
-                                              │ picks ONE check from a fixed menu
-                                              ▼
-                                   checks (read-only Python + PowerShell)
-                                              │ result, in plain words
-                                              ▼
-                                   local model reads it, picks again ... names a cause
-                                              │
-                                              ▼
-                              safety check (plain code, not the model):
-                              "do the check results really show this cause?"
-                                   no ──▶ refused, look again
-                                   yes
-                                              ▼
-                              you approve ──▶ one named, reversible fix ──▶ checks run again
-                                              │
-                                              ▼
-                              memory on this PC: what normal looks like, what broke before
+  you ──"ayaw mag-load ng mga website"──┐
+                                        ▼
+        memory: what changed since the internet last worked?  ──▶  check that area
+                                        │
+                                        ▼
+        local model (Ollama, on this PC): read the results
+              not enough yet ──▶ pick ONE check from a fixed menu ──▶ read ──▶ repeat
+              enough ──▶ name the cause, explain it in plain words
+                                        │
+                                        ▼
+        safety check (plain code, not the model): do the results really show this cause?
+              no ──▶ refused, with the reason         proof missing ──▶ run it, judge again
+              yes
+                                        ▼
+        you approve ──▶ one named, reversible fix ──▶ checks run again ──▶ saved to memory
 ```
 
 ## What runs locally
@@ -53,7 +53,8 @@ The only network traffic Ayos makes is the diagnosis itself: it tries to reach a
 ## Why the model cannot break your PC
 
 - The model never writes commands. Each turn it returns one small JSON object that picks from a fixed menu of 11 read-only checks or names one of 14 known causes. The menu is enforced by the model server's structured output, and checked again in code.
-- A cause is only accepted if the check results support it (`ayos/rules.py`, `supports()`). A model that guesses is refused.
+- The menu changes with the evidence. An internet problem is only offered network checks and network causes. Once the results already prove a cause, no more checks are offered: the model has to name it.
+- A cause is only accepted if the check results support it (`ayos/rules.py`, `supports()`). A model that guesses is refused and told why.
 - Fix details (which adapter, which hosts line) come from the check results, never from the model's text.
 - Only 9 fixes exist (`ayos/fixes.py`). Each one states exactly what it changes, needs your approval, and has an undo.
 - The web page talks to a server on `127.0.0.1` only, and every action needs a secret token created at start-up, so a website open in another tab cannot drive Ayos.
@@ -98,7 +99,34 @@ The simulated PC adds eight more that cannot be staged safely on a real machine,
 ## Measured results
 
 <!-- RESULTS -->
-Results are being measured. See the section below after the first full run.
+Measured by GitHub Actions on a 4-thread cloud CPU with no graphics card (x86_64, Linux 6.17.0-1022-azure, measured 2026-10-09). 20 cases on the simulated PC: 12 faults, 2 healthy PCs, and 6 of the same problems said the way people say them, including Taglish. Simulated checks answer instantly, so the times are almost all model time. Speed on another computer will differ; accuracy should be close.
+
+- **Model alone**: the first cause the model named was the right one.
+- **With safety check**: the final diagnosis was right, after plain code checked the model.
+- **With memory**: Ayos has seen this PC healthy before and can compare. This is the normal case.
+
+The first three columns after the model name describe the model; the next three are with memory, the last three without.
+
+| Model | Size | Tokens/s | Model alone | With safety check | Median time | Model alone | With safety check | Median time |
+|---|---|---|---|---|---|---|---|---|
+| `gemma3:1b` | 0.8 GB | 32.0 | 12/20 | 20/20 | 5.3 s | 12/20 | 20/20 | 10.4 s |
+| `gemma3:4b` | 3.3 GB | 14.9 | 17/20 | 20/20 | 15.8 s | 17/20 | 20/20 | 27.1 s |
+| `llama3.2:3b` | 2.0 GB | 12.8 | 14/20 | 20/20 | 12.6 s | 18/20 | 20/20 | 31.6 s |
+| `qwen2.5:3b` | 1.9 GB | 12.8 | 18/20 | 20/20 | 13.2 s | 14/20 | 20/20 | 22.2 s |
+
+In the recorded replay, made on the same kind of machine, the four practice-bench faults took 9.7 to 11.6 seconds each with `gemma3:4b`, from the question to a verified cause.
+
+### What the first measurement taught us
+
+The first time we measured, the small models reasoned correctly and then kept asking for more checks. They almost never named a cause, so the built-in rules had to finish the job:
+
+| Model | Size | Tokens/s | Model alone | With safety check | Median time | Model alone | With safety check | Median time |
+|---|---|---|---|---|---|---|---|---|
+| `gemma3:1b` | 0.8 GB | 16.5 | 0/20 | 18/20 | 38.0 s | 0/20 | 18/20 | 49.0 s |
+| `llama3.2:3b` | 2.0 GB | 16.2 | 1/20 | 20/20 | 37.1 s | 4/20 | 20/20 | 39.0 s |
+| `qwen2.5:3b` | 1.9 GB | 11.2 | 7/20 | 19/20 | 44.6 s | 4/20 | 20/20 | 62.8 s |
+
+So we changed the design, not the model. Once the check results already prove a cause, no more checks are offered and the model has to name it. An internet problem is only offered network checks. When memory shows a setting changed, Ayos looks there first. A refused conclusion comes back with the reason. The table at the top is the same models after those changes. The raw result files for both runs are in `docs/results/`, next to the output of the live test on real Windows.
 <!-- /RESULTS -->
 
 To measure a model on your own computer:
@@ -114,11 +142,17 @@ It reports two scores. **Model alone** is how often the model's own first conclu
 
 ## How it is tested
 
-- `python -m unittest discover -s tests` runs more than 60 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
-- `tests/windows_live_test.py` runs on real Windows as administrator: it breaks a real setting, lets Ayos find and fix it, and checks the internet is back.
+- `python -m unittest discover -s tests` runs 77 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the model client against a stand-in model server, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
+- `tests/windows_live_test.py` runs on real Windows as administrator. It breaks the DNS setting, the proxy and the hosts file for real, lets Ayos find and fix each one, and checks the internet is back. It also switches a network adapter off and on, runs the emergency reset script, and starts Ayos through `start_ayos.bat`.
 - `tests/ui_test.py` drives the whole interface in a browser.
-- GitHub Actions runs the unit tests and the live test on a real Windows machine, builds `Ayos.exe`, and runs real models on a CPU-only machine. See `.github/workflows`.
-- Not covered by automation: the "adapter turned off" fault on real Windows (it would cut the test machine off from its own controller). It is tested by hand and on the simulated PC.
+- GitHub Actions runs all of that on a real Windows machine (`.github/workflows/windows.yml`), runs the unit tests on Python 3.8 to 3.13, builds `Ayos.exe`, and measures real models on a CPU-only machine (`model-eval.yml`).
+- Not covered by automation: the complete "adapter turned off" repair on the PC's only adapter (it would cut the test machine off from its own controller). The switch-off and switch-on commands are tested on a spare adapter, and the complete repair on the simulated PC.
+
+Three things the real Windows machine taught us that the simulated PC could not:
+
+- Starting PowerShell for every check cost one to three seconds each time. Ayos now keeps one PowerShell open, and a diagnosis that took 15 seconds takes 3.
+- Its router ignores pings, like many public Wi-Fi networks. Ayos used to call that a dead router. Now traffic passing through the router counts as proof that it works.
+- It had two adapters switched on and only one with an address. Ayos now picks the adapter that has the router.
 
 ## What is in the box
 
@@ -142,14 +176,16 @@ It reports two scores. **Model alone** is how often the model's own first conclu
 - It diagnoses the 14 causes in `ayos/rules.py`. For anything else it says it could not find a single cause and lists what it checked. It does not guess.
 - It cannot fix a dead router or a provider outage. It tells you that is what it is, so you stop changing settings on a PC that is fine.
 - Model speed depends on the computer. On a laptop with no graphics card a small model takes several seconds per decision.
-- "Learning" here means memory: a saved picture of healthy settings and a history of past problems on this PC. No model is trained or fine-tuned.
+- "Learning" here means memory: a saved picture of healthy settings and a history of past problems on this PC. No model is trained or fine-tuned. Memory can be switched off in the interface.
+- The models understand a problem described in Taglish. The small ones usually reply in English.
+- Proving that nothing is wrong takes the longest, because every check has to pass first.
 - If your browser's secure DNS is set to a specific provider, the browser may keep working when Windows DNS is broken. Ayos checks the Windows setting.
 
 ## Disclosures
 
-**Models.** Any open chat model that Ollama can run. Developed and measured with Google's Gemma 3 (`gemma3:4b`, `gemma3:1b`), plus `qwen2.5:3b` and `llama3.2:3b` for comparison. The models are used as published. No model was trained or fine-tuned for this project.
+**Models.** Any open chat model that Ollama can run. Developed and measured with Google's Gemma 3 (`gemma3:4b`, `gemma3:1b`), Meta's Llama 3.2 (`llama3.2:3b`) and Alibaba's Qwen 2.5 (`qwen2.5:3b`). The models are used as published, each under its own licence. No model was trained or fine-tuned for this project. The default is `gemma3:4b`.
 
-**Frameworks and tools.** Python standard library only for Ayos itself. Ollama serves the model. Windows PowerShell networking cmdlets are used for checks and fixes. Playwright is used in one optional interface test. GitHub Actions runs the tests.
+**Frameworks and tools.** Python standard library only for Ayos itself. Ollama serves the model. Windows PowerShell networking cmdlets are used for checks and fixes. Playwright is used in one optional interface test and for the screenshots. PyInstaller builds `Ayos.exe`. GitHub Actions runs the tests, the measurements and the build.
 
 **External APIs.** None. No cloud AI, no online service.
 
