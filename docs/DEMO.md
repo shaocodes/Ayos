@@ -10,7 +10,9 @@ Everything the team needs for the live pitch: what to check before, what to clic
 4. Run each practice fault once at home, in this order: Fake proxy, Block example.com, Wrong DNS server, Adapter turned off. After each one, ask, press **Fix it**, and check the light goes green.
 5. Copy `restore_network.bat` to the desktop. It is the panic button.
 6. In Chrome or Edge, open Settings and search "secure DNS". Set it to off or to "current service provider". If it points to a named provider, the browser keeps working when Windows DNS is broken and the demo looks like nothing happened.
-7. Plug in the charger at the venue. On battery the model runs slower.
+7. Turn off any VPN and close virtual machine software. Ayos copes with their extra network adapters, but fewer moving parts is safer on stage.
+8. Make sure your Wi-Fi or hotspot is set to connect automatically. After the "Adapter turned off" fix, Windows has to rejoin the network by itself.
+9. Plug in the charger at the venue. On battery the model runs slower.
 
 ## At the venue, before your slot
 
@@ -42,6 +44,7 @@ A strong extra if you have 30 spare seconds: press **Adapter turned off** instea
 | What you see | What to do |
 |---|---|
 | The model is slow | Keep talking through the checks as they appear. That is the point of showing them. |
+| The page looks stuck after the adapter fix | Wait. It keeps trying by itself for 30 seconds while Wi-Fi comes back. If it is still stuck, press F5 and ask again. |
 | "No local language model is running" | Ayos still diagnoses with its built-in rules and says so on screen. Say it out loud: "the model server stopped, and it fell back safely". Then open the Ollama app and ask again. |
 | A fix says it needs administrator rights | Close Ayos and start it with `start_ayos.bat`. |
 | The internet does not come back | Double-click `restore_network.bat` on the desktop. Wait 15 seconds for Wi-Fi. |

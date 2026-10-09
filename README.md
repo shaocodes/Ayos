@@ -142,11 +142,13 @@ It reports two scores. **Model alone** is how often the model's own first conclu
 
 ## How it is tested
 
-- `python -m unittest discover -s tests` runs 77 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the model client against a stand-in model server, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
+- `python -m unittest discover -s tests` runs 88 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the model client against a stand-in model server, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
 - `tests/windows_live_test.py` runs on real Windows as administrator. It breaks the DNS setting, the proxy and the hosts file for real, lets Ayos find and fix each one, and checks the internet is back. It also switches a network adapter off and on, runs the emergency reset script, and starts Ayos through `start_ayos.bat`.
 - `tests/ui_test.py` drives the whole interface in a browser.
 - GitHub Actions runs all of that on a real Windows machine (`.github/workflows/windows.yml`), runs the unit tests on Python 3.8 to 3.13, builds `Ayos.exe`, and measures real models on a CPU-only machine (`model-eval.yml`).
 - Not covered by automation: the complete "adapter turned off" repair on the PC's only adapter (it would cut the test machine off from its own controller). The switch-off and switch-on commands are tested on a spare adapter, and the complete repair on the simulated PC.
+
+- Before the deadline a second reviewer read the code cold, without having seen it written, and wrote failing cases for what it found: a job replayed in the page, a switched-off adapter missed next to a VPN adapter, old hosts-file lines blamed for an unrelated fault. Each one was fixed and has a test (`FoundInReview` in `tests/test_agent.py`).
 
 Three things the real Windows machine taught us that the simulated PC could not:
 
