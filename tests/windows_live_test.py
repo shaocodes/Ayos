@@ -135,6 +135,38 @@ def main() -> int:
             except Exception:
                 say("RESTORE EXCEPTION:\n" + traceback.format_exc())
             wait_internet(pc, want=True, seconds=40)
+    # Switching an adapter off and on. The main adapter is left alone unless --adapter was given (it would
+    # cut a remote test machine off), so the commands are proven on a second adapter when there is one.
+    spare = [a for a in pc.adapters() if a["status"] == "Up" and a["name"] != (primary_adapter(pc) or {}).get("name")]
+    if spare and "--adapter" not in sys.argv:
+        name = spare[0]["name"]
+        say("")
+        say(f"=== adapter off and on, using the spare adapter '{name}'")
+        try:
+            pc.disable_adapter(name)
+            time.sleep(2)
+            off = next((a["status"] for a in pc.adapters() if a["name"] == name), "?")
+            summary, data = run_check("check_adapters", pc, {})
+            say(f"off:     status={off}; check says: {summary}")
+            pc.enable_adapter(name)
+            back = "?"
+            for _ in range(15):
+                time.sleep(2)
+                pc._changed()
+                back = next((a["status"] for a in pc.adapters() if a["name"] == name), "?")
+                if back == "Up":
+                    break
+            good = off == "Disabled" and name in data.get("disabled", []) and back == "Up" and wait_internet(pc, True, 40)
+            say(f"result:  {'PASS' if good else 'FAIL'}  off={off}, listed as disabled={name in data.get('disabled', [])}, back={back}")
+            failed += not good
+        except Exception:
+            failed += 1
+            say("EXCEPTION:\n" + traceback.format_exc())
+            try:
+                pc.enable_adapter(name)
+            except Exception:
+                pass
+
     # The panic button: restore_network.ps1 must undo everything without Python's help.
     say("")
     say("=== restore_network.ps1 (the emergency reset)")
