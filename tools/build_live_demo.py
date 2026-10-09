@@ -133,7 +133,7 @@ REPLAY_JS = r"""
         if (more.length === s.afterPlan.length && s.state === "fixing") {
           const fr = s.after.find((e) => e.type === "fix_result") || {};
           s.state = fr.can_undo ? "fixed" : "done"; if (fr.verified) st.fault = null;
-          st.memory.recent.unshift({ title: s.sc.events.find((e) => e.type === "diagnosis").title, fixed: true, when: "just now", seconds: s.sc.events.find((e) => e.type === "summary").seconds });
+          st.memory.recent.unshift({ title: s.sc.events.find((e) => e.type === "diagnosis").title, fixed: fr.verified === true ? true : null, when: "just now", seconds: s.sc.events.find((e) => e.type === "summary").seconds });
           st.memory.incidents += 1;
         }
       }
@@ -159,7 +159,7 @@ REPLAY_JS = r"""
 BANNER = """
 <div class="replay-note" id="replayNote">
   <b>You are watching a replay.</b> Ayos is a Windows program that runs on your own PC, so it cannot be hosted on a website.
-  This page plays back real sessions, recorded step by step on Ayos' simulated PC with <b>__BRAIN__</b> on __MACHINE__.
+  This page plays back real sessions, recorded step by step on Ayos' simulated PC __HOW__.
   Long waits are shortened here; the times printed in each result are the real ones.
   Pick a fault under <b>Practice bench</b>, then press <b>Check it</b>.
   <a href="https://github.com/shaocodes/Ayos">Code and how to run the real thing</a>
@@ -183,7 +183,11 @@ def build(args) -> int:
     html = html[:start] + "async function api(path, body) { return window.AYOS_REPLAY(path, body); }\n\n" + html[end:]
     data = json.dumps(rec).replace("</", "<\\/")
     html = html.replace('<script>\n"use strict";', "<script>\nwindow.AYOS_RECORDING = " + data + ";\n" + REPLAY_JS + '</script>\n<script>\n"use strict";', 1)
-    banner = BANNER.replace("__BRAIN__", rec["brain"]).replace("__MACHINE__", "a machine with " + rec["machine"].split(", ", 1)[-1] if rec.get("uses_model") else "no language model")
+    if rec.get("uses_model"):
+        how = f"with the open model <b>{rec['model']}</b> running through Ollama on a machine with {rec['machine'].split(', ', 1)[-1]}"
+    else:
+        how = "using Ayos' built-in rules (no language model was running for this recording)"
+    banner = BANNER.replace("__HOW__", how)
     html = html.replace('<header class="top">', banner + '<header class="top">', 1)
     html = html.replace("  @media (prefers-reduced-motion: reduce)", BANNER_CSS + "  @media (prefers-reduced-motion: reduce)", 1)
     html = html.replace("<title>Ayos repair desk</title>", "<title>Ayos: recorded demo</title>", 1)

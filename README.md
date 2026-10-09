@@ -6,6 +6,8 @@
 
 Built for the AppBuildersPH Hackathon 2026 (theme: Local AI).
 
+**See it without installing anything:** [a replay of recorded sessions, in the real interface](https://shaocodes.github.io/Ayos/). Ayos itself is a Windows program that runs on your own PC, so the page plays back real recorded runs.
+
 ## The problem
 
 When the internet stops working, the tools that could help are on the internet. A cloud AI assistant cannot answer, a search engine cannot be reached, and the family member who "knows computers" is not home. Most of the causes are small settings a technician fixes in a minute: a wrong DNS server, a proxy left on, an adapter switched off, a line in the hosts file.
@@ -78,6 +80,8 @@ Options: `python -m ayos --model gemma3:1b` picks a model. `python -m ayos --api
 
 No Python packages need to be installed. Ayos uses only the Python standard library.
 
+**No Python on the PC?** Download `Ayos.exe` from the [Releases page](https://github.com/shaocodes/Ayos/releases). It is built from this repository by GitHub Actions. Windows may show a SmartScreen warning because the file is not signed: choose *More info*, then *Run anyway*.
+
 ## The practice bench
 
 Real faults are hard to produce on demand, so Ayos can create four safe ones on the real PC. Each is a single setting, and each is undone by **Put everything back** or by `restore_network.bat`.
@@ -113,7 +117,8 @@ It reports two scores. **Model alone** is how often the model's own first conclu
 - `python -m unittest discover -s tests` runs more than 60 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
 - `tests/windows_live_test.py` runs on real Windows as administrator: it breaks a real setting, lets Ayos find and fix it, and checks the internet is back.
 - `tests/ui_test.py` drives the whole interface in a browser.
-- GitHub Actions runs the unit tests and the live test on a real Windows machine, and runs real models on a CPU-only machine, on every push. See `.github/workflows`.
+- GitHub Actions runs the unit tests and the live test on a real Windows machine, builds `Ayos.exe`, and runs real models on a CPU-only machine. See `.github/workflows`.
+- Not covered by automation: the "adapter turned off" fault on real Windows (it would cut the test machine off from its own controller). It is tested by hand and on the simulated PC.
 
 ## What is in the box
 
@@ -128,6 +133,8 @@ It reports two scores. **Model alone** is how often the model's own first conclu
 | `ayos/system.py` | Everything that touches the computer: the real Windows layer and the simulated PC. |
 | `ayos/server.py`, `web/index.html` | The local web server and the interface. |
 | `ayos/evalsim.py` | Measures a model on simulated faults. |
+| `tools/build_live_demo.py` | Records sessions and builds the replay page in `docs/`. |
+| `docs/DEMO.md` | The five-minute demo, the checklist, and what to do if something breaks. |
 
 ## Limits, stated plainly
 
