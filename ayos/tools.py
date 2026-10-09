@@ -16,12 +16,20 @@ TEST_URL = "http://www.msftconnecttest.com/connecttest.txt"
 
 
 def primary_adapter(system: System):
-    """The adapter that should carry the internet: an Up one, Wi-Fi first."""
+    """The adapter that carries (or should carry) the internet.
+
+    A connected adapter that has a router address wins; then one with any address; then Wi-Fi.
+    A PC often has a second adapter that is "up" but leads nowhere, and it must not be picked.
+    """
     ads = system.adapters()
-    up = [a for a in ads if a["status"] == "Up"]
-    pool = up or ads
-    pool = sorted(pool, key=lambda a: (not a.get("wifi"),))
-    return pool[0] if pool else None
+    try:
+        cfgs = system.ip_config()
+    except Exception:
+        cfgs = []
+    with_router = {c.get("adapter") for c in cfgs if c.get("gateway")}
+    with_address = {c.get("adapter") for c in cfgs if c.get("ipv4")}
+    ranked = sorted(ads, key=lambda a: (a["status"] != "Up", a["name"] not in with_router, a["name"] not in with_address, not a.get("wifi")))
+    return ranked[0] if ranked else None
 
 
 def find_domain(text: str):
@@ -86,17 +94,33 @@ def compare_with_normal(system: System, ctx: dict):
 
 def check_adapters(system: System, ctx: dict):
     ads = system.adapters()
+    try:
+        addr = {c.get("adapter"): c.get("ipv4") for c in system.ip_config() if c.get("ipv4")}
+    except Exception:
+        addr = {}
     up = [a["name"] for a in ads if a["status"] == "Up"]
     disabled = [a["name"] for a in ads if a["status"] == "Disabled"]
     disconnected = [a["name"] for a in ads if a["status"] not in ("Up", "Disabled")]
+    online = [n for n in up if addr.get(n) and not addr[n].startswith("169.254.")]
+    self_addressed = [n for n in up if addr.get(n, "").startswith("169.254.")]
     parts = []
     for a in ads:
-        note = {"Up": "connected", "Disabled": "turned OFF in Windows"}.get(a["status"], "on but not connected to any network")
+        n = a["name"]
+        if n in online:
+            note = "connected"
+        elif n in self_addressed:
+            note = "connected, but the router gave it no address"
+        elif n in up:
+            note = "switched on, but it has no network address, so it is not the internet line"
+        elif n in disabled:
+            note = "turned OFF in Windows"
+        else:
+            note = "on but not connected to any network"
         kind = "Wi-Fi" if a.get("wifi") else "cable"
-        label = a["name"] if kind.lower() in a["name"].lower() else f"{a['name']} ({kind})"
+        label = n if kind.lower() in n.lower() else f"{n} ({kind})"
         parts.append(f"{label}: {note}")
     summary = "Network adapters: " + "; ".join(parts) + "." if parts else "No network adapter was found."
-    return summary, {"adapters": ads, "up": up, "disabled": disabled, "disconnected": disconnected}
+    return summary, {"adapters": ads, "up": up, "disabled": disabled, "disconnected": disconnected, "online": online, "self_addressed": self_addressed}
 
 
 def check_ip_and_router(system: System, ctx: dict):
@@ -310,7 +334,7 @@ def verdict(name: str, data: dict) -> str:
     if name == "compare_with_normal":
         return "bad" if data.get("changes") else ("ok" if data.get("has_baseline") else "info")
     if name == "check_adapters":
-        return "ok" if data.get("up") else "bad"
+        return "ok" if data.get("online") else "bad"
     if name == "check_ip_and_router":
         return "ok" if data.get("ipv4") and not data.get("apipa") and data.get("router_ok") else "bad"
     if name == "check_internet_reach":

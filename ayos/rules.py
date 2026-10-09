@@ -122,12 +122,17 @@ def supports(cause: str, obs: dict):
     ad, ip, reach = _ok(obs, "check_adapters"), _ok(obs, "check_ip_and_router"), _ok(obs, "check_internet_reach")
     dns, proxy, hosts, web = _ok(obs, "check_dns"), _ok(obs, "check_proxy"), _ok(obs, "check_hosts"), _ok(obs, "test_website")
 
+    # An adapter only counts as working if it has a real address. A second adapter that is switched on
+    # but leads nowhere must not hide the fact that the real one is off.
+    linked = bool(ad and (ad["online"] or ad["self_addressed"]))
+    adapter_off = bool(ad and ad["disabled"] and not linked)
+    not_joined = bool(ad and not ad["disabled"] and ad["disconnected"] and not linked)
     if cause == "adapter_disabled":
-        return (bool(ad and not ad["up"] and ad["disabled"]), None if ad else "check_adapters")
+        return (adapter_off, None if ad else "check_adapters")
     if cause == "wifi_not_connected":
-        return (bool(ad and not ad["up"] and not ad["disabled"]), None if ad else "check_adapters")
+        return (not_joined, None if ad else "check_adapters")
     if cause == "no_ip_address":
-        return (bool(ip and (ip["apipa"] or not ip["ipv4"]) and (not ad or ad["up"])), None if ip else "check_ip_and_router")
+        return (bool(ip and (ip["apipa"] or not ip["ipv4"]) and not adapter_off and not not_joined and (not ad or ad["up"])), None if ip else "check_ip_and_router")
     if cause == "router_unreachable":
         return (bool(ip and ip["ipv4"] and not ip["apipa"] and ip["router_ok"] is False), None if ip else "check_ip_and_router")
     if cause == "isp_outage":

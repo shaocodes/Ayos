@@ -204,6 +204,57 @@ for line in sys.stdin:
 """
 
 
+class PickingTheAdapter(unittest.TestCase):
+    def test_adapter_with_the_router_wins_over_one_that_is_merely_up(self):
+        from ayos.system import FakeSystem
+
+        pc = FakeSystem()
+        idle = {"name": "Ethernet 4", "description": "second port", "status": "Up", "wifi": False}
+        pc.adapters = lambda: [dict(idle), dict(pc.adapter)]
+        self.assertEqual(primary_adapter(pc)["name"], "Wi-Fi")
+        pc.adapter["status"] = "Disabled"  # nothing has an address now: prefer the one still up, then Wi-Fi
+        self.assertEqual(primary_adapter(pc)["name"], "Ethernet 4")
+        pc.adapters = lambda: [dict(pc.adapter), {"name": "Ethernet", "description": "", "status": "Disconnected", "wifi": False}]
+        self.assertEqual(primary_adapter(pc)["name"], "Wi-Fi")
+
+
+class SecondAdapterThatLeadsNowhere(unittest.TestCase):
+    """Seen on a real Windows machine: two adapters 'Up', only one of them with an address."""
+
+    def pc(self):
+        from ayos.system import FakeSystem
+
+        pc = FakeSystem()
+        real = pc.adapters
+        pc.adapters = lambda: [{"name": "Ethernet 4", "description": "second port", "status": "Up", "wifi": False}] + real()
+        return pc
+
+    def diagnose(self, pc, question="my internet is not working"):
+        s = Session("t", question, pc, RuleBrain(), Memory(None), auto_approve=True)
+        s.run()
+        return s
+
+    def test_real_adapter_switched_off_is_still_found(self):
+        pc = self.pc()
+        fixes.apply_fault(pc, "adapter_off")
+        self.assertEqual(pc.adapter["status"], "Disabled")  # the fault hit the real adapter, not the idle one
+        s = self.diagnose(pc, "no internet at all")
+        self.assertEqual(s.cause, "adapter_disabled")
+        self.assertEqual(pc.adapter["status"], "Up")
+
+    def test_dns_fault_is_set_and_found_on_the_real_adapter(self):
+        pc = self.pc()
+        fixes.apply_fault(pc, "wrong_dns")
+        self.assertEqual(pc.calls[0][1], "Wi-Fi")
+        self.assertEqual(self.diagnose(pc).cause, "dns_misconfigured")
+
+    def test_no_address_and_healthy(self):
+        pc = self.pc()
+        pc.ip = "169.254.31.7"
+        self.assertEqual(self.diagnose(pc).cause, "no_ip_address")
+        self.assertEqual(self.diagnose(self.pc()).cause, "no_fault_found")
+
+
 class LongLivedShell(unittest.TestCase):
     """The marker protocol, with a stand-in process playing PowerShell."""
 

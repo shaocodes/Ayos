@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: windows
+  cancel-in-progress: true
+
 jobs:
   windows:
     runs-on: windows-latest

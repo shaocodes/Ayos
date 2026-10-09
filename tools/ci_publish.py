@@ -13,13 +13,17 @@ def esc(text: str) -> str:
 
 
 def main() -> int:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # Windows consoles default to a legacy code page
+    except Exception:
+        pass
     label = sys.argv[1]
     files = [f for pat in sys.argv[2:] for f in sorted(glob.glob(pat))]
     for f in files:
         with open(f, "r", encoding="utf-8", errors="replace") as fh:
             text = fh.read()
-        for i in range(0, min(len(text), 240000), 60000):
-            print(f"::notice title={label} {os.path.basename(f)} part {i // 60000 + 1}::{esc(text[i:i + 60000])}")
+        if f.endswith(".txt"):  # a notice holds about 4,000 characters, so only the end of each text file is shown
+            print(f"::notice title={label} {os.path.basename(f)} (end)::{esc(text[-3800:])}")
     token, repo = os.environ.get("GITHUB_TOKEN"), os.environ.get("GITHUB_REPOSITORY")
     if not (token and repo and files):
         return 0

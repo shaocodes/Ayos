@@ -19,6 +19,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: model-eval
+  cancel-in-progress: true
+
 jobs:
   evaluate:
     runs-on: ubuntu-latest
