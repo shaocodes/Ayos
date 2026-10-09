@@ -1,0 +1,27 @@
+name: Remove temporary result branches
+
+# The CI used to keep its result files on throwaway branches. The files now live in docs/results,
+# so the branches are removed. Runs when this file changes, or by hand.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cleanup.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete ci-results-* branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/ci-results-" --jq '.[].ref' | while read ref; do
+            echo "deleting $ref"
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/${ref}" || true
+          done
