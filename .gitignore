@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+data/
+ayos_selftest.txt
+eval_results.json
+.DS_Store
+node_modules/
