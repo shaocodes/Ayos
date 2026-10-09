@@ -174,6 +174,7 @@ class Session:
         use_rules = self.brain.kind == "rules"
         refused_answer = False
         repeats = 0
+        model_failures = 0
         while not self.cancelled:
             brain = self.rules if use_rules else self.brain
             self.emit("thinking", who="rules" if use_rules else self.brain.kind)
@@ -198,7 +199,12 @@ class Session:
                 self.stats["rule_steps"] += 1
                 if d.get("model_error"):
                     self.stats["model_seconds"] += took
-                    self.emit("note", message=f"The language model did not help on this step ({d['model_error']}). The built-in rules chose instead.")
+                    model_failures += 1
+                    if model_failures >= 2 and not use_rules:
+                        use_rules = True  # stop asking a model that is not answering
+                        self.emit("note", message=f"The language model is not answering ({d['model_error']}). The built-in rules are finishing this job.")
+                    else:
+                        self.emit("note", message=f"The language model did not help on this step ({d['model_error']}). The built-in rules chose instead.")
             action = d["action"]
 
             if action in CHECKS:

@@ -107,7 +107,12 @@ class EveryFault(unittest.TestCase):
                 self.assertEqual(run(pc, question).cause, cause)
         pc = FakeSystem()
         pc.router_pings = False
-        pc.isp_up = False  # nothing answers at all: blame the nearest thing, the router
+        pc.isp_up = False  # the router ignores pings but answers on its own ports: the outage is beyond it
+        s = run(pc, "no internet")
+        self.assertEqual(s.cause, "isp_outage")
+        self.assertIn("answers on its own ports", s.summaries["check_ip_and_router"])
+        pc = FakeSystem()
+        pc.router_up = False  # nothing answers at all: blame the nearest thing, the router
         self.assertEqual(run(pc, "no internet").cause, "router_unreachable")
 
     def test_healthy_pc_reports_no_fault(self):
@@ -116,6 +121,123 @@ class EveryFault(unittest.TestCase):
         self.assertNotIn("fix_start", types(s))
         s = run(FakeSystem(), "my laptop is slow")
         self.assertEqual(s.cause, "pc_looks_healthy")
+
+
+def with_extra_adapter(pc, name, ipv4, status="Up"):
+    """Give the simulated PC a second adapter that leads nowhere: a VPN, a virtual machine, a dock."""
+    real_ads, real_ip = pc.adapters, pc.ip_config
+    pc.adapters = lambda: [{"name": name, "description": "extra", "status": status, "wifi": False}] + real_ads()
+    pc.ip_config = lambda: ([{"adapter": name, "ipv4": ipv4, "gateway": None}] if status == "Up" and ipv4 else []) + real_ip()
+    return pc
+
+
+class FoundInReview(unittest.TestCase):
+    """Cases a second reviewer found by reading the code. Each one failed before it was fixed."""
+
+    def test_adapter_off_is_found_next_to_a_vpn_or_virtual_adapter(self):
+        for ipv4 in ("192.168.56.1", "169.254.80.3"):  # an address of its own, or a self-given one
+            with self.subTest(extra=ipv4):
+                pc = with_extra_adapter(FakeSystem(), "VirtualBox Host-Only", ipv4)
+                mem = Memory(None)
+                mem.set_baseline(snapshot(pc))
+                sim.apply(pc, "adapter_off")
+                self.assertEqual(pc.adapter["status"], "Disabled")
+                s = run(pc, "I have no internet at all", memory=mem)
+                self.assertEqual(s.cause, "adapter_disabled")
+                self.assertEqual(pc.adapter["status"], "Up")
+                pc2 = with_extra_adapter(FakeSystem(), "VirtualBox Host-Only", ipv4)
+                sim.apply(pc2, "adapter_off")
+                self.assertEqual(run(pc2, "I have no internet at all").cause, "adapter_disabled")  # also without memory
+
+    def test_the_adapter_that_was_on_is_the_one_turned_back_on(self):
+        pc = with_extra_adapter(FakeSystem(), "Ethernet", None, status="Disabled")  # a port the owner keeps off
+        mem = Memory(None)
+        mem.set_baseline(snapshot(pc))
+        sim.apply(pc, "adapter_off")
+        s = run(pc, "no internet", memory=mem)
+        self.assertEqual(s.fix_args["adapter"], "Wi-Fi")
+        self.assertEqual(pc.adapter["status"], "Up")
+        pc = with_extra_adapter(FakeSystem(), "Ethernet", None, status="Disabled")
+        sim.apply(pc, "adapter_off")
+        self.assertEqual(run(pc, "no internet").fix_args["adapter"], "Wi-Fi")  # without memory: Wi-Fi before cable
+
+    def test_a_port_the_owner_keeps_off_is_not_blamed_for_a_missing_address(self):
+        pc = with_extra_adapter(FakeSystem(), "Ethernet", None, status="Disabled")
+        mem = Memory(None)
+        mem.set_baseline(snapshot(pc))
+        sim.apply(pc, "no_ip")
+        self.assertEqual(run(pc, "connected but no internet", memory=mem).cause, "no_ip_address")
+
+    def test_old_blocking_lines_in_the_hosts_file_are_not_the_fault(self):
+        def pc_with_adblock():
+            pc = FakeSystem()
+            pc.hosts.append({"ip": "0.0.0.0", "names": ["ads.tracker.net"], "demo": False})
+            return pc
+
+        pc = pc_with_adblock()
+        mem = Memory(None)
+        mem.set_baseline(snapshot(pc))
+        self.assertEqual(run(pc, "my internet is not working", memory=mem).cause, "no_fault_found")
+        self.assertEqual(run(pc_with_adblock(), "my internet is not working").cause, "no_fault_found")  # and without memory
+        pc = pc_with_adblock()
+        sim.apply(pc, "proxy_on")
+        brain = ScriptedBrain([{"action": "check_hosts"}, {"action": "conclude", "cause": "hosts_block"}])
+        s = run(pc, "my browser cannot open any website", brain=brain)
+        self.assertEqual(s.cause, "proxy_blocking")
+        self.assertEqual(len(pc.hosts), 1)  # the owner's line is untouched
+
+    def test_hosts_fix_removes_only_the_site_asked_about(self):
+        pc = FakeSystem()
+        pc.hosts.append({"ip": "0.0.0.0", "names": ["ads.tracker.net"], "demo": False})
+        sim.apply(pc, "hosts_block")
+        s = run(pc, "I cannot open example.com but other sites work")
+        self.assertEqual(s.cause, "hosts_block")
+        self.assertEqual([h["names"] for h in pc.hosts], [["ads.tracker.net"]])
+        self.assertTrue(s.undo())
+        self.assertEqual(sorted({n for h in pc.hosts if h["demo"] for n in h["names"]}), ["example.com", "www.example.com"])
+        fixes.restore_all(pc)
+        self.assertEqual([h["names"] for h in pc.hosts], [["ads.tracker.net"]])
+
+    def test_undoing_the_removal_of_an_owners_line_does_not_mark_it_as_practice(self):
+        pc = FakeSystem()
+        pc.hosts.append({"ip": "127.0.0.1", "names": ["example.com"], "demo": False})  # the owner blocked it once and forgot
+        s = run(pc, "I cannot open example.com")
+        self.assertEqual(s.cause, "hosts_block")
+        self.assertEqual(pc.hosts, [])
+        s.undo()
+        self.assertEqual(pc.hosts, [{"ip": "127.0.0.1", "names": ["example.com"], "demo": False}])
+        fixes.restore_all(pc)
+        self.assertEqual(len(pc.hosts), 1)  # "put everything back" leaves the owner's line alone
+
+    def test_wrong_dns_on_a_network_that_blocks_outside_dns(self):
+        pc = FakeSystem()
+        pc.GOOD_DNS = {"192.168.1.1"}  # campus-style network: only its own DNS server is reachable
+        sim.apply(pc, "wrong_dns")
+        brain = ScriptedBrain([{"action": "check_dns"}, {"action": "conclude", "cause": "dns_misconfigured"}])
+        s = run(pc, "websites will not load", brain=brain)
+        self.assertEqual(s.cause, "dns_misconfigured")
+        self.assertEqual(s.stats["refusals"], 0)  # the safety check fetched the missing proof instead of refusing
+        self.assertIn("check_internet_reach", s.obs)
+
+    def test_a_full_usb_stick_is_not_a_full_pc(self):
+        pc = FakeSystem()
+        pc.disk.append({"drive": "E:", "total_gb": 14.5, "free_gb": 0.2})
+        self.assertEqual(run(pc, "my laptop is very slow").cause, "pc_looks_healthy")
+
+    def test_a_dead_model_is_not_asked_again_and_again(self):
+        class DeadModel(ScriptedBrain):
+            def step(self, convo, view):
+                d = self.rules.step(convo, view)
+                d.update({"source": "rules", "model_error": "the local model server is not running"})
+                return d
+
+        pc = FakeSystem()
+        sim.apply(pc, "router_dns_down")
+        s = run(pc, "websites will not open", brain=DeadModel([]))
+        self.assertEqual(s.cause, "dns_server_down")
+        notes = [e["message"] for e in s.events if e["type"] == "note"]
+        self.assertEqual(len(notes), 2)
+        self.assertIn("finishing this job", notes[1])
 
 
 class SafetyCheck(unittest.TestCase):

@@ -32,8 +32,18 @@ def _wait(fn, seconds: float, step: float = 0.5):
 def _enable_adapter(system: System, args: dict):
     system.enable_adapter(args["adapter"])
     if not system.simulated:
-        _wait(lambda: any(a["name"] == args["adapter"] and a["status"] == "Up" for a in system.adapters()), 20)
-        _wait(lambda: any(c.get("gateway") for c in system.ip_config()), 15)
+        # Windows can answer with an error for a moment while the adapter comes back. That only means "not yet".
+        def quietly(fn):
+            def go():
+                try:
+                    return fn()
+                except Exception:
+                    return False
+
+            return go
+
+        _wait(quietly(lambda: any(a["name"] == args["adapter"] and a["status"] == "Up" for a in system.adapters())), 20)
+        _wait(quietly(lambda: any(c.get("gateway") for c in system.ip_config())), 15)
     return {"adapter": args["adapter"]}
 
 
@@ -53,7 +63,7 @@ def _disable_proxy(system: System, args: dict):
 
 
 def _remove_hosts(system: System, args: dict):
-    pairs = [{"ip": e["ip"], "name": n} for e in args.get("entries", []) for n in e["names"]]
+    pairs = [{"ip": e["ip"], "name": n, "demo": bool(e.get("demo"))} for e in args.get("entries", []) for n in e["names"]]
     removed_names = set()
     for n in sorted({p["name"] for p in pairs}):
         if system.hosts_remove(n):
@@ -115,7 +125,7 @@ FIXES = {
         "title": lambda a: "Remove the blocking line from the hosts file",
         "detail": lambda a: "Removes these names from the hosts file: " + ", ".join(sorted({n for e in a.get("entries", []) for n in e["names"]})) + ". Other lines are left alone.",
         "apply": _remove_hosts,
-        "undo": lambda s, u: [s.hosts_add(r["ip"], r["name"]) for r in u.get("removed", [])],
+        "undo": lambda s, u: [s.hosts_add(r["ip"], r["name"], r.get("demo", False)) for r in u.get("removed", [])],
         "admin": True,
         "changes": True,
     },

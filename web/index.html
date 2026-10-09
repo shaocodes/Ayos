@@ -404,7 +404,15 @@ function renderDiagnosis(ev) {
 
 function renderFixResult(ev) {
   const o = $("outcome"); const acts = $("fixActs");
-  if (!ev.ok) { if (acts) { acts.textContent = ""; acts.append(el("span", "warn", "Not applied: " + ev.message)); } return; }
+  if (!ev.ok) {
+    if (acts) {
+      acts.textContent = "";
+      const again = el("button", "btn go", "Try again"); again.type = "button"; again.onclick = () => act("/api/approve");
+      const no = el("button", "btn quiet", "Leave it"); no.type = "button"; no.onclick = () => act("/api/decline");
+      acts.append(el("span", "warn", "Not applied: " + ev.message), again, no);
+    }
+    return;
+  }
   const box = o.querySelector(".fixbox"); if (acts) acts.textContent = "";
   const res = el("div", "result");
   res.append(el("p", ev.verified === false ? "warn" : "", ev.message));
@@ -421,19 +429,33 @@ function renderFixResult(ev) {
 
 async function act(path) {
   for (const b of document.querySelectorAll("#fixActs button, #undoBtn")) b.disabled = true;
-  try { await api(path, { id: sid }); } catch (e) { onEvent({ type: "error", message: e.message }); }
+  let ok = true;
+  try { const r = await api(path, { id: sid }); ok = r.ok !== false; } catch (e) { ok = false; onEvent({ type: "error", message: e.message }); }
+  if (!ok) for (const b of document.querySelectorAll("#fixActs button, #undoBtn")) b.disabled = false;
   poll();
 }
 
+let pollGen = 0, pollFails = 0, lastState = "";
 async function poll() {
   clearTimeout(pollTimer);
   if (!sid) return;
+  const my = sid, gen = ++pollGen;   // a newer poll, or a newer job, makes this one's answer stale
   let state = "done", pending = 0;
   try {
-    const data = await api("/api/events?id=" + sid + "&after=" + seen);
-    for (const ev of data.events) { seen = ev.i + 1; onEvent(ev); }
+    const data = await api("/api/events?id=" + my + "&after=" + seen);
+    if (my !== sid || gen !== pollGen) return;
+    pollFails = 0;
+    for (const ev of data.events) { if (ev.i < seen) continue; seen = ev.i + 1; onEvent(ev); }
     state = data.state; pending = data.pending; showLive(data.live);
-  } catch (e) { state = "error"; }
+  } catch (e) {
+    if (my !== sid || gen !== pollGen) return;
+    // One failed request must not stop the job from being followed. Network changes (an adapter
+    // going off or on) make the browser drop requests for a moment, even to this same PC.
+    if (++pollFails <= 30 && !/no such session/.test(e.message)) { pollTimer = setTimeout(poll, 1000); return; }
+    state = "error";
+  }
+  lastState = state;
+  $("askBtn").disabled = running || state === "fixing";
   if (state === "running" || state === "fixing" || pending) pollTimer = setTimeout(poll, 300);
   else if (state === "awaiting" || state === "fixed") pollTimer = setTimeout(poll, 1200);
   else setRunning(false);
@@ -441,6 +463,8 @@ async function poll() {
 
 async function ask(question) {
   question = (question || "").trim(); if (!question || running) return;
+  if (lastState === "fixing") return;   // a fix is being applied; a second job would diagnose a half-fixed PC
+  clearTimeout(pollTimer); sid = null; pollGen++; lastState = "";   // stop following the previous job before the ticket is cleared
   resetTicket(); setRunning(true);
   try { const data = await api("/api/ask", { question }); sid = data.id; poll(); }
   catch (e) { setRunning(false); const o = $("outcome"); o.append(el("h2", "", "Could not start"), el("p", "say warn", e.message)); }
@@ -449,8 +473,11 @@ $("askForm").addEventListener("submit", (e) => { e.preventDefault(); ask($("q").
 $("followForm").addEventListener("submit", async (e) => {
   e.preventDefault(); const q = $("fq").value.trim(); if (!q || !sid) return;
   $("followBtn").disabled = true;
-  try { const r = await api("/api/followup", { id: sid, question: q }); if (r.ok) $("fq").value = ""; else $("followBtn").disabled = false; }
-  catch (err) { $("followBtn").disabled = false; }
+  try {
+    const r = await api("/api/followup", { id: sid, question: q });
+    if (r.ok) $("fq").value = "";
+    else { $("followBtn").disabled = false; $("thread").append(el("p", "a muted", "Ayos is still busy with this job. Ask again when it has finished.")); }
+  } catch (err) { $("followBtn").disabled = false; }
   poll();
 });
 for (const p of PICKS) { const b = el("button", "", p); b.type = "button"; b.onclick = () => { $("q").value = p; ask(p); }; $("picks").append(b); }

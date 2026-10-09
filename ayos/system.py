@@ -154,7 +154,7 @@ class System:
     def proxy_set(self, enabled: bool, server: str | None = None) -> None:
         raise NotImplementedError
 
-    def hosts_add(self, ip: str, name: str) -> None:
+    def hosts_add(self, ip: str, name: str, demo: bool = True) -> None:
         raise NotImplementedError
 
     def hosts_remove(self, name: str) -> int:
@@ -398,13 +398,16 @@ class WindowsSystem(System):
         return self._cached('ip_config', self._read_ip_config)
 
     def _read_ip_config(self) -> list:
-        rows = self._ps_json(
-            self.PS_AD + "$phys=@($ad | ForEach-Object { $_.Name }); "
-            "Get-NetIPConfiguration | Where-Object { $phys -contains $_.InterfaceAlias } | "
-            "ForEach-Object { [pscustomobject]@{ adapter=$_.InterfaceAlias; "
-            "ipv4=($_.IPv4Address | Select-Object -First 1).IPAddress; "
-            "gateway=($_.IPv4DefaultGateway | Select-Object -First 1).NextHop } } | ConvertTo-Json -Compress"
-        )
+        try:
+            rows = self._ps_json(
+                self.PS_AD + "$phys=@($ad | ForEach-Object { $_.Name }); "
+                "Get-NetIPConfiguration -ErrorAction SilentlyContinue | Where-Object { $phys -contains $_.InterfaceAlias } | "
+                "ForEach-Object { [pscustomobject]@{ adapter=$_.InterfaceAlias; "
+                "ipv4=($_.IPv4Address | Select-Object -First 1).IPAddress; "
+                "gateway=($_.IPv4DefaultGateway | Select-Object -First 1).NextHop } } | ConvertTo-Json -Compress"
+            )
+        except RuntimeError:
+            rows = []  # while an adapter is going down or coming up, Windows may have nothing to report yet
         return [
             {"adapter": r.get("adapter"), "ipv4": r.get("ipv4") or None, "gateway": r.get("gateway") or None}
             for r in rows
@@ -507,12 +510,13 @@ class WindowsSystem(System):
     def hosts_entries(self) -> list:
         return parse_hosts(_read_text(self.HOSTS))
 
-    def hosts_add(self, ip: str, name: str) -> None:
+    def hosts_add(self, ip: str, name: str, demo: bool = True) -> None:
+        """Add one line. demo=True marks it as a practice line, which "put everything back" removes."""
         self._changed()
         text = _read_text(self.HOSTS)
         if text and not text.endswith("\n"):
             text += "\n"
-        text += f"{ip} {name} {DEMO_TAG}\n"
+        text += f"{ip} {name} {DEMO_TAG}\n" if demo else f"{ip} {name}\n"
         with open(self.HOSTS, "w", encoding="utf-8", newline="\r\n") as f:
             f.write(text)
         self.flush_dns()
@@ -771,6 +775,8 @@ class FakeSystem(System):
     def tcp_reach(self, host: str, port: int, timeout: float = 2.5) -> bool:
         if not self._link() or not self.ip or self.ip.startswith("169.254."):
             return False
+        if host == self.gateway:
+            return self.router_up  # the router's own web and DNS ports
         return self.router_up and self.isp_up
 
     def dns_query(self, name: str, server: str, timeout: float = 2.5) -> dict:
@@ -835,9 +841,9 @@ class FakeSystem(System):
         if server is not None:
             self.proxy["server"] = server
 
-    def hosts_add(self, ip: str, name: str) -> None:
+    def hosts_add(self, ip: str, name: str, demo: bool = True) -> None:
         self._need_admin()
-        self.hosts.append({"ip": ip, "names": [name.lower()], "demo": True})
+        self.hosts.append({"ip": ip, "names": [name.lower()], "demo": bool(demo)})
 
     def hosts_remove(self, name: str) -> int:
         self._need_admin()

@@ -124,9 +124,11 @@ def supports(cause: str, obs: dict):
 
     # An adapter only counts as working if it has a real address. A second adapter that is switched on
     # but leads nowhere must not hide the fact that the real one is off.
-    linked = bool(ad and (ad["online"] or ad["self_addressed"]))
-    adapter_off = bool(ad and ad["disabled"] and not linked)
-    not_joined = bool(ad and not ad["disabled"] and ad["disconnected"] and not linked)
+    # "Working" means it has a router. With memory, "switched off" means switched off since the internet last worked.
+    routed = bool(ad and ad["routed"])
+    off_now = (ad["disabled"] if ad.get("disabled_new") is None else ad["disabled_new"]) if ad else []
+    adapter_off = bool(ad and off_now and not routed)
+    not_joined = bool(ad and not adapter_off and ad["disconnected"] and not routed and not ad["self_addressed"])
     if cause == "adapter_disabled":
         return (adapter_off, None if ad else "check_adapters")
     if cause == "wifi_not_connected":
@@ -144,11 +146,14 @@ def supports(cause: str, obs: dict):
             return False, "check_internet_reach"
         if not ip:
             return False, "check_ip_and_router"
-        return (not reach["reachable"] and ip["gateway_ping"] is True, None)  # the router answers, but nothing beyond it does
+        return (not reach["reachable"] and ip["router_ok"] is True, None)  # the router is alive, but nothing beyond it answers
     if cause == "dns_misconfigured":
         if not dns:
             return False, "check_dns"
-        return (bool(dns["servers"]) and not dns["configured_answers"] and dns["manual"] and (dns["public_answers"] or bool(reach and reach["reachable"])), None)
+        dead = bool(dns["servers"]) and not dns["configured_answers"] and dns["manual"]
+        if dead and not dns["public_answers"] and not reach:
+            return False, "check_internet_reach"  # some networks block outside DNS; the line itself may still be fine
+        return (dead and (dns["public_answers"] or bool(reach and reach["reachable"])), None)
     if cause == "dns_server_down":
         if not dns:
             return False, "check_dns"
@@ -160,12 +165,12 @@ def supports(cause: str, obs: dict):
     if cause == "hosts_block":
         if not hosts:
             return False, "check_hosts"
-        return (bool(hosts["blocked_names"]), None)
+        return (bool(hosts["relevant"]), None)
     if cause == "no_fault_found":
         for need in ("check_adapters", "check_dns", "check_proxy", "check_hosts", "test_website"):
             if not _ok(obs, need):
                 return False, need
-        return (bool(web["ok"] and not hosts["blocked_names"] and not proxy["enabled"]), None)
+        return (bool(web["ok"] and not hosts["relevant"] and not proxy["enabled"]), None)
 
     disk, mem, start = _ok(obs, "check_disk"), _ok(obs, "check_memory"), _ok(obs, "check_startup")
     if cause == "disk_full":
@@ -187,7 +192,7 @@ def why_not(cause: str, obs: dict) -> str:
     ad, ip, reach = _ok(obs, "check_adapters"), _ok(obs, "check_ip_and_router"), _ok(obs, "check_internet_reach")
     dns, proxy, hosts, web = _ok(obs, "check_dns"), _ok(obs, "check_proxy"), _ok(obs, "check_hosts"), _ok(obs, "test_website")
     if cause in ("adapter_disabled", "wifi_not_connected") and ad:
-        return "an adapter is connected and has an address" if ad["online"] else "the adapter results say something else"
+        return "an adapter is connected and has a router" if ad["routed"] else "the adapter results say something else"
     if cause == "no_ip_address" and ip and ip["ipv4"] and not ip["apipa"]:
         return f"the PC does have an address ({ip['ipv4']})"
     if cause == "router_unreachable" and ip and ip.get("router_ok"):
@@ -200,12 +205,14 @@ def why_not(cause: str, obs: dict) -> str:
         return "the DNS servers were set by hand" if cause == "dns_server_down" and dns["manual"] else "the DNS servers are on automatic, not set by hand" if not dns["manual"] else "no DNS server answers at all, not even a public one"
     if cause == "proxy_blocking" and proxy:
         return "no proxy is turned on" if not proxy["enabled"] else "pages fail even without the proxy"
-    if cause == "hosts_block" and hosts and not hosts["blocked_names"]:
-        return "the hosts file blocks nothing"
+    if cause == "hosts_block" and hosts and not hosts["relevant"]:
+        if not hosts["blocked_names"]:
+            return "the hosts file blocks nothing"
+        return "the hosts file does not block that website" if hosts.get("target") else "the blocked names were already there when the internet worked"
     if cause == "no_fault_found":
         if web and not web["ok"]:
             return "a test page still fails to load"
-        if hosts and hosts["blocked_names"]:
+        if hosts and hosts["relevant"]:
             return "the hosts file blocks a website"
         if proxy and proxy["enabled"]:
             return "a proxy is turned on"
@@ -294,7 +301,11 @@ def next_check(obs: dict, route: str = "network", has_baseline: bool = False, pr
 def fix_args(cause: str, obs: dict, baseline: dict | None = None) -> dict:
     """Arguments the fix needs, taken from evidence and memory, never from the model's text."""
     if cause == "adapter_disabled":
-        return {"adapter": obs["check_adapters"]["disabled"][0]}
+        ad = obs["check_adapters"]
+        # Turn on the one that was on when the internet last worked; failing that, Wi-Fi before cable.
+        wifi = {a["name"] for a in ad["adapters"] if a.get("wifi")}
+        pool = list(ad.get("disabled_new") or []) or sorted(ad["disabled"], key=lambda n: n not in wifi)
+        return {"adapter": pool[0]}
     if cause in ("dns_misconfigured", "dns_server_down"):
         d = obs["check_dns"]
         args = {"adapter": d["adapter"], "previous": d["servers"] if d["manual"] else None}
@@ -307,7 +318,15 @@ def fix_args(cause: str, obs: dict, baseline: dict | None = None) -> dict:
         return {"previous": obs["check_proxy"]["server"]}
     if cause == "hosts_block":
         h = obs["check_hosts"]
-        return {"entries": [e for e in h["entries"] if is_block_ip(e["ip"])]}
+        wanted = set(h["relevant"])
+        # Only the names that matter are removed. Other blocking lines in the file are the owner's business.
+        return {
+            "entries": [
+                {"ip": e["ip"], "names": [n for n in e["names"] if n in wanted], "demo": bool(e.get("demo"))}
+                for e in h["entries"]
+                if is_block_ip(e["ip"]) and wanted & set(e["names"])
+            ]
+        }
     return {}
 
 

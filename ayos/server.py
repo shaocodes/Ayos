@@ -40,9 +40,11 @@ class App:
         self.sessions = {}
         self.current = None
         self.lock = threading.Lock()
+        self.break_lock = threading.Lock()  # "remember this as normal" and "break something" must not interleave
         self.internet = None
         self.model_state = {"server_up": False, "installed": False, "models": [], "warm": "no", "warm_seconds": None, "warm_error": None}
         self.force_rules = False
+        self._model_checked = False
         self.use_memory = True  # off: investigate from scratch and save nothing
         self.log = []
         self._stop = False
@@ -53,6 +55,7 @@ class App:
 
     # ------------------------------------------------------------ background
     def refresh_model(self):
+        self._model_checked = True
         b = self.model_brain
         models = b.list_models()
         chat = [m for m in models if not any(x in m.lower() for x in NOT_CHAT)]
@@ -82,7 +85,9 @@ class App:
         except Exception:
             self.internet = False
         if self.internet and not self.memory.baseline and not self.busy():
-            self.save_baseline()
+            with self.break_lock:
+                if self.system.http_get(TEST_URL, use_system_proxy=True, timeout=4.0)["ok"]:  # still healthy right now
+                    self.save_baseline()
 
     def save_baseline(self) -> bool:
         """Remember the current settings as 'normal'. Only when nothing looks wrong."""
@@ -120,14 +125,16 @@ class App:
     def pick_brain(self):
         if self.force_rules:
             return self.rule_brain
-        if not (self.model_state["server_up"] and self.model_state["installed"]):
-            self.refresh_model()
+        if not self._model_checked:
+            self.refresh_model()  # only when nothing has looked yet; after that the monitor keeps this fresh
         if self.model_state["server_up"] and self.model_state["installed"]:
             return self.model_brain
         return self.rule_brain
 
     def ask(self, question: str) -> Session:
         with self.lock:
+            if self.current and self.current.state == "fixing":
+                raise RuntimeError("Ayos is applying a fix right now. Ask again when it has finished.")
             if self.current and self.current.state == "running":
                 self.current.cancelled = True
             sid = secrets.token_hex(6)
@@ -142,9 +149,10 @@ class App:
     def break_it(self, fault_id: str) -> str:
         if self.busy():
             raise RuntimeError("Ayos is in the middle of a check. Wait for it to finish.")
-        if not self.memory.baseline:
-            self.save_baseline()  # remember normal before we break anything
-        msg = sim.apply(self.system, fault_id)
+        with self.break_lock:
+            if not self.memory.baseline:
+                self.save_baseline()  # remember normal before we break anything
+            msg = sim.apply(self.system, fault_id)
         self.kick()
         return msg
 
@@ -214,6 +222,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")  # another site must not be able to show this page inside its own
+        self.send_header("Content-Security-Policy", "frame-ancestors 'none'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -317,6 +327,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def make_server(app: App, port: int = 8020) -> ThreadingHTTPServer:
     handler = type("AyosHandler", (Handler,), {"app": app})
-    srv = ThreadingHTTPServer(("127.0.0.1", port), handler)
-    srv.daemon_threads = True
-    return srv
+    cls = type("AyosServer", (ThreadingHTTPServer,), {"allow_reuse_address": os.name != "nt", "daemon_threads": True})
+    # On Windows, address reuse would let a second Ayos open the same port without an error,
+    # and a forgotten one from rehearsal could keep answering the browser.
+    return cls(("127.0.0.1", port), handler)

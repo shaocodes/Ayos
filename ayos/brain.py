@@ -435,7 +435,7 @@ class LocalModelBrain:
             obj = json.loads(re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip())
             text = str(obj.get("message") or "") if isinstance(obj, dict) else text
         except ValueError:
-            pass
+            text = peek(text).get("message", text)  # the answer was cut off before the JSON closed
         text = text.strip()[:2000]
         if out.get("tok_per_s"):
             self.last_speed = out["tok_per_s"]

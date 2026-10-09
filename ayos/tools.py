@@ -7,6 +7,7 @@ Nothing in this file changes any setting.
 from __future__ import annotations
 
 import concurrent.futures
+import os
 import re
 
 from .system import PUBLIC_DNS, System, is_block_ip
@@ -98,19 +99,29 @@ def compare_with_normal(system: System, ctx: dict):
 def check_adapters(system: System, ctx: dict):
     ads = system.adapters()
     try:
-        addr = {c.get("adapter"): c.get("ipv4") for c in system.ip_config() if c.get("ipv4")}
+        cfgs = system.ip_config()
     except Exception:
-        addr = {}
+        cfgs = []
+    addr = {c.get("adapter"): c.get("ipv4") for c in cfgs if c.get("ipv4")}
+    with_router = {c.get("adapter") for c in cfgs if c.get("gateway")}
     up = [a["name"] for a in ads if a["status"] == "Up"]
     disabled = [a["name"] for a in ads if a["status"] == "Disabled"]
     disconnected = [a["name"] for a in ads if a["status"] not in ("Up", "Disabled")]
     online = [n for n in up if addr.get(n) and not addr[n].startswith("169.254.")]
+    # Only an adapter that has a router leads to the internet. A virtual-machine or VPN adapter can be
+    # "connected" with an address of its own and still lead nowhere.
+    routed = [n for n in online if n in with_router]
     self_addressed = [n for n in up if addr.get(n, "").startswith("169.254.")]
+    # With memory: which switched-off adapters were on when the internet last worked? (None = no memory to ask)
+    was = (((ctx.get("memory") or {}).get("baseline") or {}).get("snapshot") or {}).get("adapters")
+    disabled_new = [n for n in disabled if was.get(n) == "Up"] if was else None
     parts = []
     for a in ads:
         n = a["name"]
-        if n in online:
+        if n in routed:
             note = "connected"
+        elif n in online:
+            note = "connected, but to a network with no router, so it is not the internet line"
         elif n in self_addressed:
             note = "connected, but the router gave it no address"
         elif n in up:
@@ -123,7 +134,16 @@ def check_adapters(system: System, ctx: dict):
         label = n if kind.lower() in n.lower() else f"{n} ({kind})"
         parts.append(f"{label}: {note}")
     summary = "Network adapters: " + "; ".join(parts) + "." if parts else "No network adapter was found."
-    return summary, {"adapters": ads, "up": up, "disabled": disabled, "disconnected": disconnected, "online": online, "self_addressed": self_addressed}
+    return summary, {
+        "adapters": ads,
+        "up": up,
+        "disabled": disabled,
+        "disabled_new": disabled_new,
+        "disconnected": disconnected,
+        "online": online,
+        "routed": routed,
+        "self_addressed": self_addressed,
+    }
 
 
 def check_ip_and_router(system: System, ctx: dict):
@@ -137,16 +157,19 @@ def check_ip_and_router(system: System, ctx: dict):
     gateway = cfg.get("gateway") if cfg else None
     apipa = bool(ipv4 and ipv4.startswith("169.254."))
     ping = passes = None
+    answers = False
     if gateway and not apipa:
         # Some routers (and many public Wi-Fi networks) ignore pings. Traffic getting through proves the router works,
         # so both are tried at the same time and either one is enough.
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
             f_ping = pool.submit(system.ping, gateway)
             f_tcp = [pool.submit(system.tcp_reach, "1.1.1.1", 443), pool.submit(system.tcp_reach, "8.8.8.8", 53)]
+            f_own = [pool.submit(system.tcp_reach, gateway, port, 1.5) for port in (53, 80, 443)]
             ping = bool(f_ping.result())
             if not ping:
                 passes = any(f.result() for f in f_tcp)
-    router_ok = bool(ping or passes) if gateway else None
+                answers = (not passes) and any(f.result() for f in f_own)
+    router_ok = bool(ping or passes or answers) if gateway else None
     if not ipv4:
         summary = "This PC has no IP address, so it is not really on a network."
     elif apipa:
@@ -157,6 +180,8 @@ def check_ip_and_router(system: System, ctx: dict):
         summary = f"IP address {ipv4}, router {gateway}. The router answers."
     elif passes:
         summary = f"IP address {ipv4}, router {gateway}. The router ignores pings, but traffic passes through it, so it is working."
+    elif answers:
+        summary = f"IP address {ipv4}, router {gateway}. The router ignores pings but answers on its own ports, so the router itself is working."
     else:
         summary = f"IP address {ipv4}, router {gateway}. The router does NOT answer and nothing passes through it."
     return summary, {"ipv4": ipv4, "gateway": gateway, "apipa": apipa, "gateway_ping": ping, "router_ok": router_ok}
@@ -230,18 +255,37 @@ def check_proxy(system: System, ctx: dict):
 
 def check_hosts(system: System, ctx: dict):
     entries = system.hosts_entries()
-    blocked = sorted({n for h in entries if is_block_ip(h["ip"]) for n in h["names"]})
+    blocking = [h for h in entries if is_block_ip(h["ip"])]
+    blocked = sorted({n for h in blocking for n in h["names"]})
     target = ctx.get("target")
-    blocks_target = bool(target and any(target == n or target == "www." + n or "www." + target == n for n in blocked))
+
+    def hits(name):
+        return bool(target) and (target == name or target == "www." + name or "www." + target == name)
+
+    # Many PCs carry old blocking lines (ad blockers, licence checks). Those are not the fault unless they
+    # block the site being asked about. Without a named site, only lines that were not there when the
+    # internet last worked count, plus the practice bench's own.
+    was = (((ctx.get("memory") or {}).get("baseline") or {}).get("snapshot") or {}).get("hosts_blocked")
+    if target:
+        relevant = sorted({n for n in blocked if hits(n)})
+    elif was is not None:
+        relevant = sorted(set(blocked) - set(was))
+    else:
+        relevant = sorted({n for h in blocking if h.get("demo") for n in h["names"]})
+    blocks_target = bool(target and relevant)
     if not entries:
         summary = "The hosts file has no extra entries. No website is blocked there."
     elif blocked:
-        summary = "The hosts file blocks these names by pointing them at a dead address: " + ", ".join(blocked) + "."
+        summary = "The hosts file blocks these names by pointing them at a dead address: " + ", ".join(blocked[:12]) + (" and more." if len(blocked) > 12 else ".")
         if target:
             summary += f" That {'includes' if blocks_target else 'does not include'} {target}."
+        elif relevant and len(relevant) < len(blocked):
+            summary += " New since the internet last worked: " + ", ".join(relevant[:12]) + "."
+        elif not relevant:
+            summary += " They were already there when the internet worked, so they are not the cause."
     else:
         summary = f"The hosts file has {len(entries)} extra " + ("entry" if len(entries) == 1 else "entries") + ", and none of them block a website."
-    return summary, {"entries": entries, "blocked_names": blocked, "blocks_target": blocks_target}
+    return summary, {"entries": entries, "blocked_names": blocked, "relevant": relevant, "blocks_target": blocks_target, "target": target}
 
 
 def test_website(system: System, ctx: dict):
@@ -255,7 +299,9 @@ def test_website(system: System, ctx: dict):
 # ----------------------------------------------------------------- slow-PC checks
 def check_disk(system: System, ctx: dict):
     disks = system.disks()
-    low = [d for d in disks if d["total_gb"] and (d["free_gb"] / d["total_gb"] < 0.10 or d["free_gb"] < 10)]
+    # Only the drive Windows runs from slows the PC down when it fills up. A full USB stick does not.
+    main = os.environ.get("SystemDrive", "C:").upper()
+    low = [d for d in disks if d["drive"].upper() == main and d["total_gb"] and (d["free_gb"] / d["total_gb"] < 0.10 or d["free_gb"] < 10)]
     text = "; ".join(f"{d['drive']} {d['free_gb']} GB free of {d['total_gb']} GB" for d in disks) or "no drives found"
     return f"Storage: {text}." + (" Space is running low." if low else " Space is fine."), {"disks": disks, "low": [d["drive"] for d in low]}
 
@@ -337,7 +383,7 @@ def verdict(name: str, data: dict) -> str:
     if name == "compare_with_normal":
         return "bad" if data.get("changes") else ("ok" if data.get("has_baseline") else "info")
     if name == "check_adapters":
-        return "ok" if data.get("online") else "bad"
+        return "ok" if data.get("routed") else "bad"
     if name == "check_ip_and_router":
         return "ok" if data.get("ipv4") and not data.get("apipa") and data.get("router_ok") else "bad"
     if name == "check_internet_reach":
@@ -349,7 +395,7 @@ def verdict(name: str, data: dict) -> str:
             return "ok" if data.get("via_proxy_ok") else "bad"
         return "ok" if data.get("direct_ok") else "info"
     if name == "check_hosts":
-        return "bad" if data.get("blocked_names") else "ok"
+        return "bad" if data.get("relevant") else "ok"
     if name == "test_website":
         return "ok" if data.get("ok") else "bad"
     if name == "check_disk":

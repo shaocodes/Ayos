@@ -359,6 +359,18 @@ class Streaming(unittest.TestCase):
             ms.close()
 
 
+class FollowUp(unittest.TestCase):
+    def test_an_answer_cut_off_mid_sentence_is_shown_as_text_not_json(self):
+        ms = FakeModelServer(['{"message": "Because the DNS setting was changed by hand, and'])
+        try:
+            brain = LocalModelBrain("gemma3:4b", ms.url)
+            res = brain.say(brain.start("no internet", []), "why did this happen?")
+            self.assertTrue(res["ok"])
+            self.assertEqual(res["text"], "Because the DNS setting was changed by hand, and")
+        finally:
+            ms.close()
+
+
 class WebServer(unittest.TestCase):
     def setUp(self):
         self.pc = FakeSystem()
@@ -437,6 +449,19 @@ class WebServer(unittest.TestCase):
         self.call("/api/approve", {"id": sid})
         self.wait_state(sid, ("fixed",))
         self.assertEqual(self.app.memory.public()["incidents"], 0)  # and nothing was saved
+
+    def test_page_cannot_be_framed_and_no_second_job_during_a_fix(self):
+        req = urllib.request.Request(self.base + "/", headers={})
+        with NO_PROXY.open(req, timeout=5) as r:
+            self.assertEqual(r.headers.get("X-Frame-Options"), "DENY")
+            self.assertIn("frame-ancestors 'none'", r.headers.get("Content-Security-Policy", ""))
+        self.call("/api/break", {"fault": "wrong_dns"})
+        sid = json.loads(self.call("/api/ask", {"question": "my internet is not working"})[1])["id"]
+        self.wait_state(sid, ("awaiting",))
+        self.app.sessions[sid].state = "fixing"
+        code, body = self.call("/api/ask", {"question": "and now?"})
+        self.assertEqual(code, 500)
+        self.assertIn("applying a fix", body)
 
     def test_bad_input(self):
         self.assertEqual(self.call("/api/ask", {"question": "   "})[0], 400)
