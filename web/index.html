@@ -35,7 +35,7 @@
   header.top .promise { margin-left: auto; color: var(--ink-2); font-size: .92rem; max-width: 34rem; text-align: right; }
 
   main { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 22px; padding: 12px 28px 40px; max-width: 1500px; margin: 0 auto; align-items: start; }
-  @media (max-width: 980px) { main { grid-template-columns: 1fr; padding: 12px 16px 32px; } header.top { padding: 14px 16px 4px; } header.top .promise { margin-left: 0; text-align: left; } }
+  @media (max-width: 980px) { main { grid-template-columns: minmax(0, 1fr); padding: 12px 16px 32px; } .outcome h2 { padding-right: 0; padding-top: 44px; } .path li { font-size: .7rem; } header.top { padding: 14px 16px 4px; } header.top .promise { margin-left: 0; text-align: left; } }
 
   /* ---------- the job ticket ---------- */
   .ticket { background: var(--paper); border-radius: 4px; box-shadow: 0 1px 0 #b8c4cb, 0 10px 24px -14px rgba(20, 35, 43, .45); position: relative; }
@@ -120,6 +120,12 @@
     font-size: 1.5rem; letter-spacing: .04em; color: var(--fault); opacity: .88; animation: press .22s cubic-bezier(.2, 1.4, .4, 1) both; pointer-events: none; }
   .stamp.good { color: var(--pass); } .stamp.grey { color: var(--ink-2); }
   @keyframes press { from { transform: rotate(-6deg) scale(1.9); opacity: 0; } }
+  .follow { margin: 0 24px; padding: 4px 0 26px; max-width: 70ch; }
+  .follow label { display: block; font-family: var(--head); font-weight: 600; margin: 10px 0 6px; }
+  .follow .ask-row input { font-size: 1rem; padding: 9px 12px; border-width: 1px; }
+  .follow .q { color: var(--pen); margin: 12px 0 2px; font-weight: 600; }
+  .follow .a { margin: 0 0 4px; }
+  .follow .a.muted { font-style: italic; }
   .empty { padding: 26px 24px 30px; color: var(--ink-2); max-width: 62ch; }
   .empty b { color: var(--ink); }
 
@@ -175,6 +181,16 @@
     </div>
     <ol class="ledger" id="ledger"></ol>
     <div class="outcome" id="outcome"></div>
+    <div class="follow" id="follow" hidden>
+      <div id="thread"></div>
+      <form id="followForm" autocomplete="off">
+        <label for="fq">Ask about this result</label>
+        <div class="ask-row">
+          <input id="fq" maxlength="300" placeholder="e.g. why did this happen? is the fix safe?">
+          <button class="btn quiet" id="followBtn" type="submit">Ask</button>
+        </div>
+      </form>
+    </div>
     <div class="empty" id="empty">
       <p><b>Nothing on the bench yet.</b> Describe a problem above. Ayos runs checks on this PC one at a time, shows you each result, names the cause, and asks before it changes anything.</p>
     </div>
@@ -207,7 +223,7 @@ const PICKS = ["My internet is not working", "I can't open example.com", "My lap
 
 let sid = null, seen = 0, pollTimer = null, running = false, t0 = 0, clockTimer = null;
 let thinkingRow = null, pathKind = null, lastStatusKey = "", lastMemKey = "", lastBenchKey = "", status = null;
-const rows = {}; let outcomeKind = "";
+const rows = {}; let outcomeKind = "", modelSession = false, waitingAnswer = null;
 
 async function api(path, body) {
   const opt = { headers: { "X-Ayos-Token": TOKEN } };
@@ -223,7 +239,8 @@ async function api(path, body) {
 function resetTicket() {
   $("ledger").textContent = ""; $("outcome").textContent = ""; $("path").hidden = true; $("pathNodes").textContent = "";
   for (const k in rows) delete rows[k];
-  thinkingRow = null; pathKind = null; seen = 0;
+  thinkingRow = null; pathKind = null; seen = 0; modelSession = false; waitingAnswer = null;
+  $("follow").hidden = true; $("thread").textContent = ""; $("fq").value = "";
   $("empty").hidden = true;
 }
 function setRunning(on) {
@@ -261,6 +278,7 @@ function onEvent(ev) {
       const r = ledgerRow("customer ok"); r.mark.textContent = "“";
       const l1 = el("div", "line1"); l1.append(el("span", "title", "The problem, in the owner's words"));
       r.body.append(l1, el("div", "finding", ev.question));
+      modelSession = ev.brain_kind === "model";
       $("jobNo").textContent = "#" + sid.slice(0, 6) + ", " + new Date().toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
       const p = ledgerRow("plain info"); p.mark.textContent = "i";
       p.body.append(el("div", "", ev.brain_kind === "model" ? "Working with " + ev.brain + "." : "No language model is running, so the built-in rules are doing this job."));
@@ -321,6 +339,17 @@ function onEvent(ev) {
       const old = $("outcome").querySelector(".tally"); if (old) old.remove();
       $("outcome").append(el("p", "tally num", t));
       $("clock").textContent = ev.seconds + " s"; setRunning(false);
+      if (modelSession) $("follow").hidden = false;
+      break;
+    }
+    case "followup_q": {
+      $("thread").append(el("p", "q", ev.message));
+      waitingAnswer = el("p", "a muted", "The model is writing an answer…"); $("thread").append(waitingAnswer); scrollDown(waitingAnswer);
+      break;
+    }
+    case "followup_a": {
+      if (waitingAnswer) { waitingAnswer.remove(); waitingAnswer = null; }
+      const a = el("p", "a" + (ev.ok ? "" : " warn"), ev.message); $("thread").append(a); $("followBtn").disabled = false; scrollDown(a);
       break;
     }
     case "fix_start": {
@@ -388,13 +417,13 @@ async function act(path) {
 async function poll() {
   clearTimeout(pollTimer);
   if (!sid) return;
-  let state = "done";
+  let state = "done", pending = 0;
   try {
     const data = await api("/api/events?id=" + sid + "&after=" + seen);
     for (const ev of data.events) { seen = ev.i + 1; onEvent(ev); }
-    state = data.state;
+    state = data.state; pending = data.pending;
   } catch (e) { state = "error"; }
-  if (state === "running" || state === "fixing") pollTimer = setTimeout(poll, 300);
+  if (state === "running" || state === "fixing" || pending) pollTimer = setTimeout(poll, 300);
   else if (state === "awaiting" || state === "fixed") pollTimer = setTimeout(poll, 1200);
   else setRunning(false);
 }
@@ -406,6 +435,13 @@ async function ask(question) {
   catch (e) { setRunning(false); const o = $("outcome"); o.append(el("h2", "", "Could not start"), el("p", "say warn", e.message)); }
 }
 $("askForm").addEventListener("submit", (e) => { e.preventDefault(); ask($("q").value); });
+$("followForm").addEventListener("submit", async (e) => {
+  e.preventDefault(); const q = $("fq").value.trim(); if (!q || !sid) return;
+  $("followBtn").disabled = true;
+  try { const r = await api("/api/followup", { id: sid, question: q }); if (r.ok) $("fq").value = ""; else $("followBtn").disabled = false; }
+  catch (err) { $("followBtn").disabled = false; }
+  poll();
+});
 for (const p of PICKS) { const b = el("button", "", p); b.type = "button"; b.onclick = () => { $("q").value = p; ask(p); }; $("picks").append(b); }
 
 /* ---------------- the rail ---------------- */

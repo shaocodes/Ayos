@@ -168,6 +168,9 @@ class RuleBrain:
     def record(self, convo: list, decision: dict) -> None:
         pass
 
+    def say(self, convo: list, question: str) -> dict:
+        return {"ok": False, "text": "Follow-up questions need the language model, and it is not running right now.", "seconds": 0.0}
+
     def step(self, convo: list, view: dict) -> dict:
         route = view["route"] if view["route"] in ("network", "pc") else None
         if route is None:
@@ -307,6 +310,35 @@ class LocalModelBrain:
                 ),
             }
         )
+
+    def say(self, convo: list, question: str) -> dict:
+        """Answer a follow-up question about this session in plain words. Changes nothing and runs no checks."""
+        started = time.time()
+        ask = (
+            f'The user now asks a follow-up question: "{question.strip()}"\n'
+            "Answer it in two to four short sentences, in plain words, in the language they used. "
+            "Base it on the check results above. Do not tell them to type commands. "
+            'Reply as JSON: {"message": "your answer"}'
+        )
+        schema = {"type": "object", "properties": {"message": {"type": "string"}}, "required": ["message"]}
+        try:
+            out = self._chat(convo + [{"role": "user", "content": ask}], schema, max_tokens=320)
+        except Exception as e:
+            return {"ok": False, "text": "The language model could not answer: " + _short_error(e) + ".", "seconds": round(time.time() - started, 2)}
+        text = out["text"] or ""
+        try:
+            obj = json.loads(re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip())
+            text = str(obj.get("message") or "") if isinstance(obj, dict) else text
+        except ValueError:
+            pass
+        text = text.strip()[:2000]
+        if out.get("tok_per_s"):
+            self.last_speed = out["tok_per_s"]
+        if not text:
+            return {"ok": False, "text": "The language model gave an empty answer. Try asking in a different way.", "seconds": round(time.time() - started, 2)}
+        convo.append({"role": "user", "content": f'Follow-up question from the user: "{question.strip()}"'})
+        convo.append({"role": "assistant", "content": json.dumps({"thought": "", "action": "answer", "cause": "none", "message": text})})
+        return {"ok": True, "text": text, "seconds": round(time.time() - started, 2), "tok_per_s": out.get("tok_per_s")}
 
     def step(self, convo: list, view: dict) -> dict:
         started = time.time()

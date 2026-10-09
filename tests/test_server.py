@@ -26,8 +26,9 @@ NO_PROXY = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 class FakeModelServer:
     """Speaks just enough of the Ollama and OpenAI chat APIs to test our side of the conversation."""
 
-    def __init__(self, replies, models=("gemma3:4b",), reject_think=False):
+    def __init__(self, replies, models=("gemma3:4b",), reject_think=False, delay=0.0):
         self.replies = list(replies)
+        self.delay = delay
         self.requests = []
         outer = self
 
@@ -55,6 +56,14 @@ class FakeModelServer:
                 outer.requests.append((self.path, body))
                 if reject_think and "think" in body:
                     return self._send(400, {"error": '"gemma3:4b" does not support thinking'})
+                if (body.get("options") or {}).get("num_predict") == 1 or body.get("max_tokens") == 1:
+                    outer.requests.pop()  # a warm-up call: answer it, but it is not part of the script
+                    text = "{}"
+                    if self.path == "/api/chat":
+                        return self._send(200, {"message": {"role": "assistant", "content": text}, "eval_count": 1, "eval_duration": 1})
+                    return self._send(200, {"choices": [{"message": {"content": text}}], "usage": {"completion_tokens": 1}})
+                if outer.delay:
+                    time.sleep(outer.delay)
                 text = outer.replies.pop(0) if outer.replies else '{"thought":"","action":"answer","cause":"none","message":"out of script"}'
                 if self.path == "/api/chat":
                     return self._send(200, {"message": {"role": "assistant", "content": text}, "eval_count": 40, "eval_duration": 2_000_000_000})

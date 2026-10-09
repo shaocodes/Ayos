@@ -259,7 +259,7 @@ class Handler(BaseHTTPRequestHandler):
                 after = max(0, int((q.get("after") or ["0"])[0]))
             except ValueError:
                 after = 0
-            return self._json({"events": s.since(after), "state": s.state})
+            return self._json({"events": s.since(after), "state": s.state, "pending": s.pending})
         return self._json({"error": "not found"}, 404)
 
     # ---- POST
@@ -282,6 +282,11 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json({"error": "no such session"}, 404)
                 ok = {"/api/approve": s.approve, "/api/decline": s.decline, "/api/undo": s.undo}[path]()
                 return self._json({"ok": bool(ok)})
+            if path == "/api/followup":
+                s = app.sessions.get(str(body.get("id") or ""))
+                if not s:
+                    return self._json({"error": "no such session"}, 404)
+                return self._json({"ok": bool(s.follow_up(str(body.get("question") or "")))})
             if path == "/api/break":
                 return self._json({"ok": True, "message": app.break_it(str(body.get("fault") or ""))})
             if path == "/api/restore":

@@ -54,6 +54,8 @@ class Session:
         self.diagnosed_after = None
         self.first_conclusion = None  # what the model said first, before the safety check
         self.thread = None
+        self.convo = []
+        self.pending = 0  # follow-up answers still being written
 
     # ------------------------------------------------------------ plumbing
     def emit(self, type_: str, **data) -> dict:
@@ -127,7 +129,7 @@ class Session:
         ]
         if self.ctx["target"]:
             notes.append(f"The website they mention is {self.ctx['target']}.")
-        convo = self.brain.start(self.question, notes)
+        convo = self.convo = self.brain.start(self.question, notes)
         self.emit("start", question=self.question, brain=self.brain.label, brain_kind=self.brain.kind, target=self.ctx["target"])
 
         # Step 1 is always memory, with no model call: what changed since the internet last worked?
@@ -266,6 +268,11 @@ class Session:
             healthy=cause in ("no_fault_found", "pc_looks_healthy"),
             first_conclusion=self.first_conclusion,
         )
+        self.brain.observe(
+            self.convo,
+            f"The safety check confirmed the cause: {title}. "
+            + (f"Proposed fix, waiting for the user's approval: {fix['title']}. {fix['detail']}" if fix else f"No automatic fix. Advice given: {advice}"),
+        )
         if fix:
             self.state = "awaiting"
             self._summary()
@@ -356,6 +363,7 @@ class Session:
             can_undo=info["can_undo"],
             seconds=round(time.time() - t0, 1),
         )
+        self.brain.observe(self.convo, "The user approved the fix. It was applied. " + ("Checked again: the problem is gone." if verified else "Checked again: a problem is still showing."))
         if verified:
             self._remember_normal()
         self.state = "fixed" if info["can_undo"] else "done"
@@ -384,6 +392,24 @@ class Session:
                 time.sleep(2.5)
         return ok, lines
 
+    def follow_up(self, question: str) -> bool:
+        """A question about this result, answered by the model from the evidence already gathered."""
+        question = question.strip()[:400]
+        if not question or self.state in ("running", "fixing") or self.pending:
+            return False
+        self.pending += 1
+        self.emit("followup_q", message=question)
+
+        def go():
+            try:
+                res = self.brain.say(self.convo, question)
+                self.emit("followup_a", message=res["text"], ok=res["ok"], seconds=res.get("seconds"), source=self.brain.kind)
+            finally:
+                self.pending -= 1
+
+        threading.Thread(target=self._safe, args=(go,), daemon=True).start()
+        return True
+
     def undo(self) -> bool:
         if self.state != "fixed" or self.undo_info is None:
             return False
@@ -407,4 +433,4 @@ class Session:
                 pass
 
     def public(self) -> dict:
-        return {"id": self.id, "state": self.state, "cause": self.cause, "question": self.question}
+        return {"id": self.id, "state": self.state, "cause": self.cause, "question": self.question, "pending": self.pending}
