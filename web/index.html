@@ -321,7 +321,7 @@ function onEvent(ev) {
     }
     case "guard": {
       const r = ledgerRow("refused"); r.mark.textContent = "!";
-      const l1 = el("div", "line1"); l1.append(el("span", "title", "Safety check refused a conclusion"), el("span", "by safety", "plain code, not the model"));
+      const l1 = el("div", "line1"); l1.append(el("span", "title", ev.kind === "more_proof" ? "Safety check wants more proof" : "Safety check refused a conclusion"), el("span", "by safety", "plain code, not the model"));
       r.body.append(l1); if (ev.thought) r.body.append(el("div", "why", ev.thought)); r.body.append(el("div", "finding", ev.message)); scrollDown(r.li);
       break;
     }

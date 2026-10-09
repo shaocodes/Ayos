@@ -30,17 +30,17 @@ jobs:
           mkdir -p ci_out
           python -m unittest discover -s tests -v 2>&1 | tee ci_out/windows_unit.txt
       - name: Self-test (read-only)
-        if: always()
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           mkdir -p ci_out
           python -m ayos --selftest 2>&1 | tee ci_out/windows_selftest.txt || true
       - name: Live break-and-repair test
-        if: always()
+        if: ${{ !cancelled() }}
         shell: bash
         run: python tests/windows_live_test.py
       - name: Publish results
-        if: always()
+        if: ${{ !cancelled() }}
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -80,7 +80,7 @@ jobs:
           sleep 3
           gh release create ayos-windows dist/Ayos.exe --target "$GITHUB_SHA" --title "Ayos for Windows" --notes "Ayos.exe built from the code in this repository by GitHub Actions. It needs no Python. Double-click it and accept the administrator prompt. You still need Ollama and a model (ollama pull gemma3:4b). Windows may show a SmartScreen warning because the file is not signed: choose More info, then Run anyway. To run from source instead, use start_ayos.bat."
       - name: Publish results
-        if: always()
+        if: ${{ !cancelled() }}
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

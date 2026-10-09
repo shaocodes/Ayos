@@ -119,6 +119,8 @@ class Session:
             "prefer": self.memory.preferred_checks(),
             "allowed": [] if self.ready else allowed,
             "ready": self.ready,
+            # "What is DNS?" is a question, not a fault report: it gets an answer, not a round of checks.
+            "answer_only": bool(self.cls["just_asking"] and not self.obs),
         }
 
     def _on_text(self, text: str) -> None:
@@ -210,36 +212,41 @@ class Session:
                 if d.get("source") == "model" and self.first_conclusion is None:
                     self.first_conclusion = cause
                 ok, missing = supports(cause, self.obs)
+                title = CAUSES[cause][0]
+                # Not proven yet? The safety check gathers the missing proof itself, then judges the conclusion again.
+                extra = []
+                while not ok and missing and missing not in self.obs and len(extra) < 6:
+                    if not extra:
+                        self.emit(
+                            "guard",
+                            kind="more_proof",
+                            passed=None,
+                            thought=d.get("thought", ""),
+                            message=f"The model's conclusion: \"{title}\". Not proven yet, so the safety check runs what is missing before it decides.",
+                        )
+                    extra.append((missing, self._run_check(missing, "safety")))
+                    ok, missing = supports(cause, self.obs)
+                results = " ".join(f"Result of {n}: {t}" for n, t in extra)
                 if ok:
+                    if extra:
+                        self.brain.observe(convo, f"The safety check needed more proof for '{cause}' and ran: {results}")
                     self._diagnosis(cause, d)
                     return
-                title = CAUSES[cause][0]
                 self.stats["refusals"] += 1
-                if missing and missing not in self.obs:
-                    self.emit(
-                        "guard",
-                        passed=False,
-                        thought=d.get("thought", ""),
-                        message=f"Suggested cause: \"{title}\". Safety check: not proven yet. {TITLES[missing]} first.",
-                    )
-                    summary = self._run_check(missing, "safety")
-                    self.brain.observe(
-                        convo,
-                        f"Safety check: '{cause}' is not proven yet, so {missing} was run. Result of {missing}: {summary} Decide again from the results.",
-                    )
-                else:
-                    self.emit(
-                        "guard",
-                        passed=False,
-                        thought=d.get("thought", ""),
-                        message=f"Suggested cause: \"{title}\". Safety check: the check results do not show that. Looking again.",
-                    )
-                    self.brain.observe(
-                        convo,
-                        f"Safety check: '{cause}' is refused because {why_not(cause, self.obs)}. Read the results again and name a different cause"
-                        + ("." if self.ready else ", or run another check."),
-                    )
-                if self.stats["refusals"] >= MAX_REFUSALS + 3 or (not missing and self.stats["refusals"] >= MAX_REFUSALS):
+                self.emit(
+                    "guard",
+                    kind="refused",
+                    passed=False,
+                    thought="" if extra else d.get("thought", ""),
+                    message=f"The model's conclusion: \"{title}\". Refused: {why_not(cause, self.obs)}. Looking again.",
+                )
+                self.brain.observe(
+                    convo,
+                    (f"More checks were run. {results} " if extra else "")
+                    + f"Safety check: '{cause}' is refused because {why_not(cause, self.obs)}. Read the results again and name a different cause"
+                    + (", or run another check." if not infer(self.obs, "pc" if self._route() == "pc" else "network") else "."),
+                )
+                if self.stats["refusals"] >= MAX_REFUSALS:
                     use_rules = True
 
             elif action == "answer":

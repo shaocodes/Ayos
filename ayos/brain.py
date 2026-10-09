@@ -69,7 +69,12 @@ def classify(question: str) -> dict:
     else:
         route = "general"
     # must_check: the complaint is about something Ayos has checks for, so advice without evidence is not acceptable
-    return {"route": route, "is_fault": fault and not asking, "must_check": route in ("network", "pc") and (net or pc)}
+    return {
+        "route": route,
+        "is_fault": fault and not asking,
+        "must_check": route in ("network", "pc") and (net or pc),
+        "just_asking": asking and not fault,  # a question about computers, not a report of a problem
+    }
 
 
 # ----------------------------------------------------------------- prompt
@@ -125,16 +130,23 @@ Rules:
 - A problem on this PC: run checks, never guess. Conclude only what the results show.
 - If a setting changed since it last worked, check that first. Otherwise work outward: adapter, address and router, internet line, DNS, proxy, hosts file.
 - Never repeat a check. Stop as soon as a result shows the cause.
+- If two or three checks pass and nothing looks wrong, conclude no_fault_found (or pc_looks_healthy). The safety step runs whatever proof is still missing.
 - A general question that needs no check, or a problem you have no check for (printer, sound, one app): use answer.
 - message: two short plain sentences. Say what is wrong and why it causes what the user sees. Use the user's language."""
 
 
-def decision_schema(allowed_checks: list, must_conclude: bool = False) -> dict:
+def decision_schema(allowed_checks: list, must_conclude: bool = False, answer_only: bool = False) -> dict:
+    if must_conclude:
+        actions = ["conclude"]
+    elif answer_only:
+        actions = ["answer"]
+    else:
+        actions = list(allowed_checks) + ["conclude", "answer"]
     return {
         "type": "object",
         "properties": {
             "thought": {"type": "string"},
-            "action": {"type": "string", "enum": ["conclude"] if must_conclude else list(allowed_checks) + ["conclude", "answer"]},
+            "action": {"type": "string", "enum": actions},
             "cause": {"type": "string", "enum": NETWORK_CAUSES + PC_CAUSES + ["none"]},
             "message": {"type": "string"},
         },
@@ -420,7 +432,8 @@ class LocalModelBrain:
         started = time.time()
         allowed = view["allowed"]
         try:
-            out = self._chat(convo, decision_schema(allowed, bool(view.get("ready"))), on_text=on_text if self.api == "ollama" else None)
+            schema = decision_schema(allowed, bool(view.get("ready")), bool(view.get("answer_only")))
+            out = self._chat(convo, schema, on_text=on_text if self.api == "ollama" else None)
         except Exception as e:
             err = _short_error(e)
             if "took too long" in err and not self.server_up(1.0):

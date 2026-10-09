@@ -252,6 +252,42 @@ class ModelClient(unittest.TestCase):
         finally:
             ms.close()
 
+    def test_no_fault_conclusion_is_proven_by_the_safety_check_without_more_model_calls(self):
+        ms = FakeModelServer([J("check_adapters"), J("conclude", "no_fault_found", "Everything looks fine.")])
+        try:
+            s = run_session(FakeSystem(), LocalModelBrain("gemma3:4b", ms.url), "I think my internet is broken")
+            self.assertEqual(s.cause, "no_fault_found")
+            self.assertEqual(len(ms.requests), 2)
+            self.assertEqual(s.stats["refusals"], 0)
+            by = [(e["name"], e["source"]) for e in s.events if e["type"] == "check_start"]
+            self.assertEqual(by[0], ("check_adapters", "model"))
+            self.assertEqual({n for n, src in by if src == "safety"}, {"check_dns", "check_proxy", "check_hosts", "test_website"})
+            guard = [e for e in s.events if e["type"] == "guard"][0]
+            self.assertEqual(guard["kind"], "more_proof")
+            self.assertEqual([e for e in s.events if e["type"] == "diagnosis"][0]["source"], "model")
+        finally:
+            ms.close()
+
+    def test_wrong_no_fault_conclusion_is_still_refused(self):
+        ms = FakeModelServer([J("conclude", "no_fault_found", "All good."), J("conclude", "no_fault_found", "All good.")])
+        try:
+            pc = FakeSystem()
+            sim.apply(pc, "hosts_block")
+            s = run_session(pc, LocalModelBrain("gemma3:4b", ms.url), "I can't open example.com")
+            self.assertEqual(s.cause, "hosts_block")
+            self.assertGreaterEqual(s.stats["refusals"], 1)
+            self.assertEqual(s.first_conclusion, "no_fault_found")
+        finally:
+            ms.close()
+
+    def test_a_plain_question_is_only_offered_answer(self):
+        ms = FakeModelServer([J("answer", message="DNS turns names into numbers.")])
+        try:
+            run_session(FakeSystem(), LocalModelBrain("gemma3:4b", ms.url), "What is DNS?")
+            self.assertEqual(ms.requests[0][1]["format"]["properties"]["action"]["enum"], ["answer"])
+        finally:
+            ms.close()
+
     def test_general_question_is_answered_by_the_model(self):
         ms = FakeModelServer([J("answer", message="DNS is the phone book of the internet.")])
         try:
