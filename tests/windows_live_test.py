@@ -89,6 +89,16 @@ def main() -> int:
         say("")
         say(f"=== {fault}: \"{question}\"")
         try:
+            if fault == "clock_wrong":
+                # A virtual machine's clock is usually held by its host, which undoes any change at once.
+                # Pause that for this one test so the fault can exist long enough to be found and fixed.
+                for svc in ("vmictimesync", "w32time"):
+                    try:
+                        pc._ps(f"Stop-Service -Name {svc} -Force -ErrorAction SilentlyContinue")
+                    except Exception as e:
+                        say(f"         (could not pause {svc}: {e})")
+                moved = pc._ps("$a=Get-Date; Set-Date -Adjust (New-TimeSpan -Seconds -5) | Out-Null; $b=Get-Date; Set-Date -Adjust (New-TimeSpan -Seconds 5) | Out-Null; [int](($b-$a).TotalSeconds)")
+                say(f"         a 5-second test move of the clock changed it by {moved} s")
             say("break:   " + fixes.apply_fault(pc, fault))
             if fault == "clock_wrong":
                 summary, data = run_check("check_clock", pc, {})
@@ -212,6 +222,11 @@ def main() -> int:
     finally:
         try:
             fixes.restore_all(pc)
+        except Exception:
+            pass
+    for svc in ("vmictimesync", "w32time"):
+        try:
+            pc._ps(f"Start-Service -Name {svc} -ErrorAction SilentlyContinue")
         except Exception:
             pass
     # The launcher: start_ayos.bat must find Python and start Ayos (here it only runs the self-test).
