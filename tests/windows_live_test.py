@@ -129,6 +129,58 @@ def main() -> int:
             except Exception:
                 say("RESTORE EXCEPTION:\n" + traceback.format_exc())
             wait_internet(pc, want=True, seconds=40)
+    # The panic button: restore_network.ps1 must undo everything without Python's help.
+    say("")
+    say("=== restore_network.ps1 (the emergency reset)")
+    try:
+        import subprocess
+
+        for fault in ("proxy_on", "hosts_block", "wrong_dns"):
+            fixes.apply_fault(pc, fault)
+        pc._changed()
+        say(f"broken:  DNS manual={[d['adapter'] for d in pc.dns_config() if d['manual']]}, proxy on={pc.proxy_get()['enabled']}, hosts lines={len(pc.hosts_entries())}")
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        r = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", os.path.join(root, "restore_network.ps1")],
+            capture_output=True, text=True, timeout=120,
+        )
+        for line in (r.stdout or "").splitlines():
+            say("ps1:     " + line)
+        if (r.stderr or "").strip():
+            say("ps1 ERR: " + r.stderr.strip()[:500])
+        pc._changed()
+        clean = (
+            not any(d["manual"] for d in pc.dns_config())
+            and not pc.proxy_get()["enabled"]
+            and not any(h.get("demo") for h in pc.hosts_entries())
+            and wait_internet(pc, want=True, seconds=40)
+        )
+        say(f"result:  {'PASS' if clean else 'FAIL'}  everything back to normal={clean}")
+        failed += not clean
+    except Exception:
+        failed += 1
+        say("EXCEPTION:\n" + traceback.format_exc())
+    finally:
+        try:
+            fixes.restore_all(pc)
+        except Exception:
+            pass
+    # The launcher: start_ayos.bat must find Python and start Ayos (here it only runs the self-test).
+    say("")
+    say("=== start_ayos.bat --selftest (the launcher)")
+    try:
+        import subprocess
+
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        r = subprocess.run(["cmd", "/c", os.path.join(root, "start_ayos.bat"), "--selftest"], capture_output=True, text=True, timeout=180, stdin=subprocess.DEVNULL, cwd=root)
+        ran = "RESULT: all checks ran." in (r.stdout or "")
+        say(f"result:  {'PASS' if ran else 'FAIL'}  exit code {r.returncode}")
+        if not ran:
+            say("output:  " + ((r.stdout or "") + (r.stderr or ""))[-800:])
+        failed += not ran
+    except Exception:
+        failed += 1
+        say("EXCEPTION:\n" + traceback.format_exc())
     say("")
     say(f"After the test: internet works = {internet(pc)}; DNS = {pc.dns_config()}; proxy = {pc.proxy_get()}; hosts = {pc.hosts_entries()}")
     say("RESULT: " + ("ALL PASSED" if not failed else f"{failed} FAILED"))
