@@ -152,21 +152,24 @@ class Session:
         ]
         if self.ctx["target"]:
             notes.append(f"The website they mention is {self.ctx['target']}.")
-        convo = self.convo = self.brain.start(self.question, notes)
         self.emit("start", question=self.question, brain=self.brain.label, brain_kind=self.brain.kind, target=self.ctx["target"])
 
         # Step 1 is always memory, with no model call: what changed since the internet last worked?
-        # These results are handed to the model as plain facts in its first message. Fewer words for the
-        # model to read means a faster start, which matters on a PC without a graphics card.
+        # If memory shows that a setting changed, Ayos looks there straight away, without asking the model where to look.
+        # The results are handed to the model as plain facts in its first message.
         if self.memory.baseline and self.cls["route"] == "network":
             summary = self._run_check("compare_with_normal", "memory", "First, compare with how this PC looked the last time the internet worked.")
-            self.brain.observe(convo, f"Already checked from memory. compare_with_normal: {summary}")
-            # If memory shows that a setting changed, look there straight away. No need to ask the model where to look.
+            notes.append(f"Already checked from memory. compare_with_normal: {summary}")
             areas = changed_areas(self.obs)
             if areas:
                 name, what = areas[0]
                 summary = self._run_check(name, "memory", f"Memory shows {what} changed since the internet last worked, so look there first.")
-                self.brain.observe(convo, f"{name}: {summary}")
+                notes.append(f"{name}: {summary}")
+
+        # If those results already prove a cause, the model gets the short instructions: read, then name it.
+        first_view = self._view()
+        compact = bool(first_view["ready"] and first_view["causes"])
+        convo = self.convo = self.brain.start(self.question, notes, compact=compact, route=self.cls["route"] if compact else None)
 
         use_rules = self.brain.kind == "rules"
         refused_answer = False

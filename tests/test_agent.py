@@ -26,7 +26,7 @@ class ScriptedBrain:
         self.heard = []
         self.rules = RuleBrain()
 
-    def start(self, question, notes):
+    def start(self, question, notes, **kw):
         return []
 
     def observe(self, convo, text):

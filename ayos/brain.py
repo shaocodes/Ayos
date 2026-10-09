@@ -111,7 +111,26 @@ CAUSE_HINTS = {
 }
 
 
-def system_prompt() -> str:
+def system_prompt(compact: bool = False, route: str | None = None) -> str:
+    """The model's instructions.
+
+    compact=True is used when memory has already run the checks that matter and the results prove a
+    cause: the model only has to read them and name it, so the list of checks and the rules for
+    investigating are left out. On a PC without a graphics card that saves several seconds of reading.
+    """
+    cause_ids = PC_CAUSES if route == "pc" else NETWORK_CAUSES if route == "network" else NETWORK_CAUSES + PC_CAUSES
+    causes = "\n".join(f"{cid}: {CAUSE_HINTS[cid]}" for cid in cause_ids)
+    if compact:
+        return f"""You are Ayos, a PC repair technician running offline on the user's own Windows PC.
+Checks were already run on this PC. Read the results and name the cause. A safety step verifies your conclusion.
+
+Reply with ONE JSON object on one line:
+{{"thought": "at most 15 words: what the results show", "action": "conclude", "cause": "one cause id", "message": "what to tell the user"}}
+
+Causes:
+{causes}
+
+message: two short plain sentences. Say what is wrong and why it causes what the user sees. Use the user's language."""
     checks = "\n".join(f"{name}: {CHECK_HINTS[name]}" for name in CHECKS)
     causes = "\n".join(f"{cid}: {CAUSE_HINTS[cid]}" for cid in NETWORK_CAUSES + PC_CAUSES)
     return f"""You are Ayos, a PC repair technician running offline on the user's own Windows PC.
@@ -130,7 +149,6 @@ Rules:
 - A problem on this PC: run checks, never guess. Conclude only what the results show.
 - If a setting changed since it last worked, check that first. Otherwise work outward: adapter, address and router, internet line, DNS, proxy, hosts file.
 - Never repeat a check. Stop as soon as a result shows the cause.
-- If two or three checks pass and nothing looks wrong, conclude no_fault_found (or pc_looks_healthy). The safety step runs whatever proof is still missing.
 - A general question that needs no check, or a problem you have no check for (printer, sound, one app): use answer.
 - message: two short plain sentences. Say what is wrong and why it causes what the user sees. Use the user's language."""
 
@@ -213,7 +231,7 @@ class RuleBrain:
     def available(self) -> bool:
         return True
 
-    def start(self, question: str, notes: list) -> list:
+    def start(self, question: str, notes: list, compact: bool = False, route: str | None = None) -> list:
         return []
 
     def observe(self, convo: list, text: str) -> None:
@@ -291,9 +309,10 @@ class LocalModelBrain:
         """Load the model into memory and let it read the instructions once, so the first real question is fast."""
         started = time.time()
         try:
+            # The instructions used most often: an internet problem where memory already found what changed.
             self._chat(
-                [{"role": "system", "content": system_prompt()}, {"role": "user", "content": 'The user says: "hello"'}],
-                decision_schema(list(CHECKS)),
+                [{"role": "system", "content": system_prompt(True, "network")}, {"role": "user", "content": 'The user says: "hello"'}],
+                decision_schema([], must_conclude=True),
                 max_tokens=1,
             )
             return {"ok": True, "seconds": round(time.time() - started, 1)}
@@ -376,8 +395,8 @@ class LocalModelBrain:
         return {"text": text, "tokens": tokens, "tok_per_s": round(tokens / dur, 1) if dur > 0 and tokens > 1 else None}
 
     # ---- conversation
-    def start(self, question: str, notes: list) -> list:
-        return [{"role": "system", "content": system_prompt()}, {"role": "user", "content": first_message(question, notes)}]
+    def start(self, question: str, notes: list, compact: bool = False, route: str | None = None) -> list:
+        return [{"role": "system", "content": system_prompt(compact, route)}, {"role": "user", "content": first_message(question, notes)}]
 
     def observe(self, convo: list, text: str) -> None:
         """Add a result for the model to read. Messages are only ever added, so the server can reuse its cache."""

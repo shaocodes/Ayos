@@ -162,6 +162,8 @@ class ModelClient(unittest.TestCase):
             body = ms.requests[0][1]
             msgs = body["messages"]
             self.assertEqual([m["role"] for m in msgs], ["system", "user"])  # memory's findings arrive as plain facts
+            self.assertIn("Checks were already run", msgs[0]["content"])  # the short instructions
+            self.assertLess(len(msgs[0]["content"]), 1300)
             self.assertIn("Already checked from memory. compare_with_normal: Changed since the internet last worked", msgs[1]["content"])
             self.assertIn("check_dns: DNS servers on 'Wi-Fi'", msgs[1]["content"])
             self.assertIn("enough to name the cause", msgs[1]["content"])
@@ -189,6 +191,11 @@ class ModelClient(unittest.TestCase):
         from ayos.brain import system_prompt
 
         self.assertLess(len(system_prompt()), 2900)  # about 650 tokens; every token costs time on a CPU
+        short = system_prompt(True, "network")
+        self.assertLess(len(short), 1300)
+        self.assertIn("dns_misconfigured", short)
+        self.assertNotIn("disk_full", short)  # a slow-PC cause is not offered for an internet problem
+        self.assertNotIn("check_proxy", short)  # no list of checks: they were already run
 
     def test_unusable_reply_falls_back_for_that_step(self):
         ms = FakeModelServer(["I think you should restart the router!", J("conclude", "proxy_blocking", "A proxy is in the way.")])
