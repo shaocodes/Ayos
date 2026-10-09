@@ -109,12 +109,12 @@ The first three columns after the model name describe the model; the next three 
 
 | Model | Size | Tokens/s | Model alone | With safety check | Median time | Model alone | With safety check | Median time |
 |---|---|---|---|---|---|---|---|---|
-| `gemma3:1b` | 0.8 GB | 32.0 | 12/20 | 20/20 | 5.3 s | 12/20 | 20/20 | 10.4 s |
-| `gemma3:4b` | 3.3 GB | 14.9 | 17/20 | 20/20 | 15.8 s | 17/20 | 20/20 | 27.1 s |
-| `llama3.2:3b` | 2.0 GB | 12.8 | 14/20 | 20/20 | 12.6 s | 18/20 | 20/20 | 31.6 s |
-| `qwen2.5:3b` | 1.9 GB | 12.8 | 18/20 | 20/20 | 13.2 s | 14/20 | 20/20 | 22.2 s |
+| `gemma3:1b` | 0.8 GB | 27.6 | 10/20 | 20/20 | 8.9 s | 10/20 | 20/20 | 15.6 s |
+| `llama3.2:3b` | 2.0 GB | 18.7 | 15/20 | 20/20 | 7.8 s | 16/20 | 20/20 | 16.4 s |
+| `qwen2.5:3b` | 1.9 GB | 15.6 | 18/20 | 20/20 | 10.2 s | 14/20 | 20/20 | 15.1 s |
+| `gemma3:4b` | 3.3 GB | 15.1 | 17/20 | 20/20 | 16.1 s | 17/20 | 20/20 | 27.6 s |
 
-In the recorded replay, made on the same kind of machine, the four practice-bench faults took 9.7 to 11.6 seconds each with `gemma3:4b`, from the question to a verified cause.
+In the recorded replay, made on the same kind of machine, the four practice-bench faults took 10.3 to 12.1 seconds each with `gemma3:4b`, from the question to a verified cause.
 
 ### What the first measurement taught us
 

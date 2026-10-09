@@ -2,16 +2,16 @@
   "summary": {
     "brain": "gemma3:4b (local, via Ollama)",
     "computer": "x86_64, Linux 6.17.0-1022-azure",
-    "date": "2026-10-09 18:53",
+    "date": "2026-10-09 19:46",
     "with_memory": true,
     "cases": 20,
     "final_correct": 20,
     "model_first_correct": 17,
     "model_reached_a_conclusion": 19,
     "conclusions_refused_by_safety_check": 2,
-    "median_seconds": 15.8,
-    "slowest_seconds": 47.0,
-    "tokens_per_second": 14.9
+    "median_seconds": 16.1,
+    "slowest_seconds": 53.6,
+    "tokens_per_second": 15.1
   },
   "rows": [
     {
@@ -26,11 +26,11 @@
       "model_calls": [
         {
           "action": "conclude",
-          "seconds": 10.26,
+          "seconds": 10.1,
           "tokens": 64,
-          "gen_seconds": 4.22,
+          "gen_seconds": 3.96,
           "prompt_tokens": 486,
-          "prompt_seconds": 6.04
+          "prompt_seconds": 6.13
         }
       ],
       "case": "wrong_dns",
@@ -44,9 +44,9 @@
       "checks": 2,
       "model_steps": 1,
       "rule_steps": 0,
-      "seconds": 10.3,
-      "model_seconds": 10.3,
-      "tok_per_s": 15.2,
+      "seconds": 10.1,
+      "model_seconds": 10.1,
+      "tok_per_s": 16.1,
       "fix_verified": true
     },
     {
@@ -61,11 +61,11 @@
       "model_calls": [
         {
           "action": "conclude",
-          "seconds": 8.72,
+          "seconds": 8.68,
           "tokens": 59,
-          "gen_seconds": 3.9,
+          "gen_seconds": 3.73,
           "prompt_tokens": 389,
-          "prompt_seconds": 4.81
+          "prompt_seconds": 4.94
         }
       ],
       "case": "adapter_off",
@@ -81,7 +81,7 @@
       "rule_steps": 0,
       "seconds": 8.7,
       "model_seconds": 8.7,
-      "tok_per_s": 15.1,
+      "tok_per_s": 15.8,
       "fix_verified": true
     },
     {
@@ -96,11 +96,11 @@
       "model_calls": [
         {
           "action": "conclude",
-          "seconds": 9.08,
+          "seconds": 8.98,
           "tokens": 59,
-          "gen_seconds": 3.85,
+          "gen_seconds": 3.61,
           "prompt_tokens": 422,
-          "prompt_seconds": 5.22
+          "prompt_seconds": 5.37
         }
       ],
       "case": "proxy_on",
@@ -114,9 +114,9 @@
       "checks": 2,
       "model_steps": 1,
       "rule_steps": 0,
-      "seconds": 9.1,
-      "model_seconds": 9.1,
-      "tok_per_s": 15.3,
+      "seconds": 9.0,
+      "model_seconds": 9.0,
+      "tok_per_s": 16.4,
       "fix_verified": true
     },
     {
@@ -131,11 +131,11 @@
       "model_calls": [
         {
           "action": "conclude",
-          "seconds": 9.31,
+          "seconds": 9.13,
           "tokens": 61,
-          "gen_seconds": 4.01,
+          "gen_seconds": 3.73,
           "prompt_tokens": 427,
-          "prompt_seconds": 5.3
+          "prompt_seconds": 5.39
         }
       ],
       "case": "hosts_block",
@@ -149,46 +149,46 @@
       "checks": 2,
       "model_steps": 1,
       "rule_steps": 0,
-      "seconds": 9.3,
-      "model_seconds": 9.3,
-      "tok_per_s": 15.2,
+      "seconds": 9.1,
+      "model_seconds": 9.1,
+      "tok_per_s": 16.4,
       "fix_verified": true
     },
     {
       "trace": [
         "memory -> compare_with_normal   why: First, compare with how this PC looked the last time the internet worked.",
-        "          = Settings match the last time the internet worked (2026-10-09 18:47). Nothing changed.",
-        "model  -> check_adapters   why: The settings are normal, so let's check the adapter.",
+        "          = Settings match the last time the internet worked (2026-10-09 19:40). Nothing changed.",
+        "model  -> check_adapters   why: The settings are the same as before, so the problem is not a configuration change.",
         "          = Network adapters: Wi-Fi: connected.",
-        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's check the IP address and router.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so the problem isn't a simple connection issue.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router does NOT answer and nothing passes through it.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => router_unreachable   says: It seems the router isn't responding to the PC. This means the connection to the internet isn't working."
+        "model  => router_unreachable   says: The router isn't responding to the PC, which means it can't connect to the internet."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 13.19,
-          "tokens": 59,
-          "gen_seconds": 4.09,
+          "seconds": 12.87,
+          "tokens": 58,
+          "gen_seconds": 3.66,
           "prompt_tokens": 721,
-          "prompt_seconds": 9.08
+          "prompt_seconds": 9.19
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.57,
-          "tokens": 75,
-          "gen_seconds": 5.2,
-          "prompt_tokens": 806,
-          "prompt_seconds": 1.36
+          "seconds": 5.74,
+          "tokens": 68,
+          "gen_seconds": 4.4,
+          "prompt_tokens": 805,
+          "prompt_seconds": 1.33
         },
         {
           "action": "conclude",
-          "seconds": 6.98,
-          "tokens": 69,
-          "gen_seconds": 4.79,
-          "prompt_tokens": 957,
-          "prompt_seconds": 2.18
+          "seconds": 6.71,
+          "tokens": 68,
+          "gen_seconds": 4.55,
+          "prompt_tokens": 949,
+          "prompt_seconds": 2.16
         }
       ],
       "case": "router_down",
@@ -202,46 +202,46 @@
       "checks": 3,
       "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 26.7,
-      "model_seconds": 26.7,
-      "tok_per_s": 14.4,
+      "seconds": 25.3,
+      "model_seconds": 25.3,
+      "tok_per_s": 14.9,
       "fix_verified": false
     },
     {
       "trace": [
         "memory -> compare_with_normal   why: First, compare with how this PC looked the last time the internet worked.",
-        "          = Settings match the last time the internet worked (2026-10-09 18:47). Nothing changed.",
+        "          = Settings match the last time the internet worked (2026-10-09 19:41). Nothing changed.",
         "model  -> check_ip_and_router   why: The settings are normal, so the problem is likely with the connection itself.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The router is responding, but the PC still cannot reach the internet.",
+        "model  -> check_internet_reach   why: The router is responding, but the PC still doesn't have internet access.",
         "          = Internet addresses cannot be reached even by number, so traffic is not getting out to the internet.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => isp_outage   says: Your internet service provider is experiencing a problem preventing your PC from connecting."
+        "model  => isp_outage   says: Your internet service provider is likely experiencing an outage. They are the source of the problem."
       ],
       "model_calls": [
         {
           "action": "check_ip_and_router",
-          "seconds": 11.06,
-          "tokens": 64,
-          "gen_seconds": 4.47,
+          "seconds": 11.41,
+          "tokens": 72,
+          "gen_seconds": 4.66,
           "prompt_tokens": 723,
-          "prompt_seconds": 6.58
+          "prompt_seconds": 6.73
         },
         {
           "action": "check_internet_reach",
-          "seconds": 5.87,
-          "tokens": 59,
-          "gen_seconds": 4.06,
-          "prompt_tokens": 842,
-          "prompt_seconds": 1.8
+          "seconds": 6.31,
+          "tokens": 67,
+          "gen_seconds": 4.49,
+          "prompt_tokens": 850,
+          "prompt_seconds": 1.82
         },
         {
           "action": "conclude",
-          "seconds": 6.04,
-          "tokens": 62,
-          "gen_seconds": 4.35,
-          "prompt_tokens": 953,
-          "prompt_seconds": 1.69
+          "seconds": 5.82,
+          "tokens": 61,
+          "gen_seconds": 4.01,
+          "prompt_tokens": 969,
+          "prompt_seconds": 1.8
         }
       ],
       "case": "isp_down",
@@ -255,20 +255,20 @@
       "checks": 3,
       "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 23.0,
-      "model_seconds": 23.0,
-      "tok_per_s": 14.3,
+      "seconds": 23.5,
+      "model_seconds": 23.5,
+      "tok_per_s": 15.2,
       "fix_verified": false
     },
     {
       "trace": [
         "memory -> compare_with_normal   why: First, compare with how this PC looked the last time the internet worked.",
-        "          = Settings match the last time the internet worked (2026-10-09 18:48). Nothing changed.",
+        "          = Settings match the last time the internet worked (2026-10-09 19:41). Nothing changed.",
         "model  -> check_adapters   why: The settings are normal, so let's check the adapter.",
         "          = Network adapters: Wi-Fi: connected.",
         "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's check the IP address and router.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, so let's check if the internet is reachable.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, so let's test internet reachability.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
         "model  -> check_dns   why: The internet line is working, but DNS might be the issue.",
         "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). None of them answer. A public DNS server (1.1.1.1) answers when asked directly. Windows CANNOT turn website names into addresses.",
@@ -278,43 +278,43 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.35,
+          "seconds": 10.16,
           "tokens": 56,
-          "gen_seconds": 3.85,
+          "gen_seconds": 3.59,
           "prompt_tokens": 721,
-          "prompt_seconds": 6.49
+          "prompt_seconds": 6.56
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.1,
+          "seconds": 5.89,
           "tokens": 69,
-          "gen_seconds": 4.76,
+          "gen_seconds": 4.54,
           "prompt_tokens": 803,
-          "prompt_seconds": 1.33
+          "prompt_seconds": 1.34
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.22,
-          "tokens": 74,
-          "gen_seconds": 5.31,
+          "seconds": 6.57,
+          "tokens": 70,
+          "gen_seconds": 4.71,
           "prompt_tokens": 927,
-          "prompt_seconds": 1.9
+          "prompt_seconds": 1.85
         },
         {
           "action": "check_dns",
-          "seconds": 5.78,
-          "tokens": 58,
-          "gen_seconds": 4.1,
-          "prompt_tokens": 1038,
+          "seconds": 5.45,
+          "tokens": 56,
+          "gen_seconds": 3.77,
+          "prompt_tokens": 1034,
           "prompt_seconds": 1.67
         },
         {
           "action": "conclude",
-          "seconds": 6.91,
+          "seconds": 6.36,
           "tokens": 74,
-          "gen_seconds": 5.44,
-          "prompt_tokens": 1185,
-          "prompt_seconds": 1.46
+          "gen_seconds": 4.94,
+          "prompt_tokens": 1179,
+          "prompt_seconds": 1.41
         }
       ],
       "case": "router_dns_down",
@@ -328,15 +328,15 @@
       "checks": 5,
       "model_steps": 5,
       "rule_steps": 0,
-      "seconds": 36.4,
-      "model_seconds": 36.4,
-      "tok_per_s": 13.6,
+      "seconds": 34.4,
+      "model_seconds": 34.4,
+      "tok_per_s": 15.0,
       "fix_verified": true
     },
     {
       "trace": [
         "memory -> compare_with_normal   why: First, compare with how this PC looked the last time the internet worked.",
-        "          = Settings match the last time the internet worked (2026-10-09 18:48). Nothing changed.",
+        "          = Settings match the last time the internet worked (2026-10-09 19:42). Nothing changed.",
         "model  -> check_adapters   why: The settings are normal, but the user reports no internet. Let's check the adapter.",
         "          = Network adapters: Wi-Fi: connected, but the router gave it no address.",
         "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, but the router isn't assigning it an IP address. This is a key issue.",
@@ -347,25 +347,25 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 11.42,
+          "seconds": 11.29,
           "tokens": 70,
-          "gen_seconds": 4.78,
+          "gen_seconds": 4.57,
           "prompt_tokens": 724,
-          "prompt_seconds": 6.64
+          "prompt_seconds": 6.71
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 7.45,
+          "seconds": 7.24,
           "tokens": 85,
-          "gen_seconds": 5.83,
+          "gen_seconds": 5.62,
           "prompt_tokens": 828,
-          "prompt_seconds": 1.62
+          "prompt_seconds": 1.61
         },
         {
           "action": "conclude",
-          "seconds": 7.64,
+          "seconds": 7.47,
           "tokens": 77,
-          "gen_seconds": 5.42,
+          "gen_seconds": 5.23,
           "prompt_tokens": 979,
           "prompt_seconds": 2.22
         }
@@ -381,9 +381,9 @@
       "checks": 3,
       "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 26.5,
-      "model_seconds": 26.5,
-      "tok_per_s": 14.2,
+      "seconds": 26.0,
+      "model_seconds": 26.0,
+      "tok_per_s": 14.7,
       "fix_verified": true
     },
     {
@@ -398,11 +398,11 @@
       "model_calls": [
         {
           "action": "conclude",
-          "seconds": 9.7,
+          "seconds": 9.6,
           "tokens": 71,
-          "gen_seconds": 4.66,
+          "gen_seconds": 4.55,
           "prompt_tokens": 391,
-          "prompt_seconds": 4.96
+          "prompt_seconds": 4.98
         }
       ],
       "case": "wifi_dropped",
@@ -416,9 +416,9 @@
       "checks": 2,
       "model_steps": 1,
       "rule_steps": 0,
-      "seconds": 9.7,
-      "model_seconds": 9.7,
-      "tok_per_s": 15.2,
+      "seconds": 9.6,
+      "model_seconds": 9.6,
+      "tok_per_s": 15.6,
       "fix_verified": false
     },
     {
@@ -431,19 +431,19 @@
       "model_calls": [
         {
           "action": "check_disk",
-          "seconds": 10.38,
+          "seconds": 10.36,
           "tokens": 65,
-          "gen_seconds": 4.42,
+          "gen_seconds": 4.34,
           "prompt_tokens": 680,
-          "prompt_seconds": 5.93
+          "prompt_seconds": 5.99
         },
         {
           "action": "conclude",
-          "seconds": 5.3,
+          "seconds": 5.22,
           "tokens": 52,
-          "gen_seconds": 3.54,
+          "gen_seconds": 3.43,
           "prompt_tokens": 800,
-          "prompt_seconds": 1.75
+          "prompt_seconds": 1.78
         }
       ],
       "case": "disk_full",
@@ -457,9 +457,9 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 15.7,
-      "model_seconds": 15.7,
-      "tok_per_s": 14.7,
+      "seconds": 15.6,
+      "model_seconds": 15.6,
+      "tok_per_s": 15.1,
       "fix_verified": false
     },
     {
@@ -474,27 +474,27 @@
       "model_calls": [
         {
           "action": "check_disk",
-          "seconds": 9.75,
+          "seconds": 9.81,
           "tokens": 57,
-          "gen_seconds": 3.77,
+          "gen_seconds": 3.76,
           "prompt_tokens": 681,
-          "prompt_seconds": 5.98
+          "prompt_seconds": 6.05
         },
         {
           "action": "check_memory",
-          "seconds": 5.28,
+          "seconds": 5.3,
           "tokens": 56,
-          "gen_seconds": 3.77,
+          "gen_seconds": 3.74,
           "prompt_tokens": 779,
-          "prompt_seconds": 1.5
+          "prompt_seconds": 1.55
         },
         {
           "action": "conclude",
-          "seconds": 7.3,
+          "seconds": 7.04,
           "tokens": 74,
-          "gen_seconds": 5.27,
+          "gen_seconds": 4.91,
           "prompt_tokens": 912,
-          "prompt_seconds": 2.01
+          "prompt_seconds": 2.13
         }
       ],
       "case": "low_memory",
@@ -508,9 +508,9 @@
       "checks": 2,
       "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 22.3,
-      "model_seconds": 22.3,
-      "tok_per_s": 14.0,
+      "seconds": 22.2,
+      "model_seconds": 22.1,
+      "tok_per_s": 15.1,
       "fix_verified": false
     },
     {
@@ -523,19 +523,19 @@
       "model_calls": [
         {
           "action": "check_startup",
-          "seconds": 10.4,
+          "seconds": 10.58,
           "tokens": 64,
-          "gen_seconds": 4.35,
+          "gen_seconds": 4.49,
           "prompt_tokens": 682,
-          "prompt_seconds": 6.04
+          "prompt_seconds": 6.09
         },
         {
           "action": "conclude",
-          "seconds": 5.63,
+          "seconds": 6.08,
           "tokens": 56,
-          "gen_seconds": 3.71,
+          "gen_seconds": 4.07,
           "prompt_tokens": 813,
-          "prompt_seconds": 1.91
+          "prompt_seconds": 2.01
         }
       ],
       "case": "many_startup",
@@ -549,88 +549,87 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 16.0,
-      "model_seconds": 16.0,
-      "tok_per_s": 15.1,
+      "seconds": 16.7,
+      "model_seconds": 16.7,
+      "tok_per_s": 13.8,
       "fix_verified": false
     },
     {
       "trace": [
         "memory -> compare_with_normal   why: First, compare with how this PC looked the last time the internet worked.",
-        "          = Settings match the last time the internet worked (2026-10-09 18:50). Nothing changed.",
-        "model  -> check_adapters   why: The settings are the same as the last working time, so let's check the adapter.",
+        "          = Settings match the last time the internet worked (2026-10-09 19:43). Nothing changed.",
+        "model  -> check_adapters   why: The settings are the same as before, so the problem is not a configuration change.",
         "          = Network adapters: Wi-Fi: connected.",
-        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's check the IP address and router.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so the problem isn't a disabled adapter.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so let's check if the internet can be reached.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so the problem isn't a lack of connectivity to the router.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: The internet line is working, so let's check the DNS settings.",
+        "model  -> check_dns   why: The internet line is working, but DNS is likely the issue.",
         "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.",
-        "model  -> check_proxy   why: The DNS servers are answering, so let's check if a proxy is set.",
+        "model  -> check_proxy   why: The DNS servers are responding, so the problem is not a DNS server issue.",
         "          = No proxy is set. A test page loads.",
-        "model  -> check_hosts   why: No proxy is set and a test page loads, so let's check the hosts file.",
+        "rules  -> check_hosts",
         "          = The hosts file has no extra entries. No website is blocked there.",
-        "REFUSED   The model's conclusion: \"No fault found\". Not proven yet, so the safety check runs what is missing before it decides.   why: All checks have passed, so there is no fault found.",
-        "safety -> test_website",
+        "rules  -> test_website",
         "          = Opening http://www.msftconnecttest.com/connecttest.txt: it loads.",
-        "model  => no_fault_found   says: It appears there is no fault found, and the internet should be working as expected."
+        "rules  => no_fault_found   says: (catalogue text)"
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.79,
-          "tokens": 65,
-          "gen_seconds": 4.3,
+          "seconds": 10.92,
+          "tokens": 58,
+          "gen_seconds": 4.1,
           "prompt_tokens": 721,
-          "prompt_seconds": 6.49
+          "prompt_seconds": 6.81
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.54,
-          "tokens": 73,
-          "gen_seconds": 5.1,
-          "prompt_tokens": 812,
-          "prompt_seconds": 1.42
+          "seconds": 6.21,
+          "tokens": 67,
+          "gen_seconds": 4.81,
+          "prompt_tokens": 805,
+          "prompt_seconds": 1.4
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.07,
-          "tokens": 74,
-          "gen_seconds": 5.09,
-          "prompt_tokens": 940,
-          "prompt_seconds": 1.97
+          "seconds": 7.24,
+          "tokens": 70,
+          "gen_seconds": 5.33,
+          "prompt_tokens": 927,
+          "prompt_seconds": 1.9
         },
         {
           "action": "check_dns",
-          "seconds": 5.96,
-          "tokens": 60,
-          "gen_seconds": 4.28,
-          "prompt_tokens": 1051,
-          "prompt_seconds": 1.67
+          "seconds": 6.26,
+          "tokens": 58,
+          "gen_seconds": 4.5,
+          "prompt_tokens": 1034,
+          "prompt_seconds": 1.74
+        },
+        {
+          "action": "answer",
+          "seconds": 6.4,
+          "tokens": 68,
+          "gen_seconds": 5.09,
+          "prompt_tokens": 1164,
+          "prompt_seconds": 1.29
         },
         {
           "action": "check_proxy",
-          "seconds": 5.91,
-          "tokens": 66,
-          "gen_seconds": 4.69,
-          "prompt_tokens": 1183,
-          "prompt_seconds": 1.21
+          "seconds": 4.82,
+          "tokens": 59,
+          "gen_seconds": 4.13,
+          "prompt_tokens": 1260,
+          "prompt_seconds": 0.68
         },
         {
-          "action": "check_hosts",
-          "seconds": 5.87,
-          "tokens": 73,
-          "gen_seconds": 5.22,
-          "prompt_tokens": 1276,
+          "action": "answer",
+          "seconds": 4.89,
+          "tokens": 59,
+          "gen_seconds": 4.24,
+          "prompt_tokens": 1346,
           "prompt_seconds": 0.64
-        },
-        {
-          "action": "conclude",
-          "seconds": 4.66,
-          "tokens": 56,
-          "gen_seconds": 3.93,
-          "prompt_tokens": 1380,
-          "prompt_seconds": 0.72
         }
       ],
       "case": "healthy_network",
@@ -638,15 +637,15 @@
       "expected": "no_fault_found",
       "final": "no_fault_found",
       "final_correct": true,
-      "model_first": "no_fault_found",
-      "model_first_correct": true,
+      "model_first": null,
+      "model_first_correct": false,
       "refused": 0,
       "checks": 8,
       "model_steps": 7,
-      "rule_steps": 0,
-      "seconds": 46.8,
-      "model_seconds": 46.8,
-      "tok_per_s": 14.3,
+      "rule_steps": 3,
+      "seconds": 46.7,
+      "model_seconds": 46.7,
+      "tok_per_s": 13.9,
       "fix_verified": false
     },
     {
@@ -665,35 +664,35 @@
       "model_calls": [
         {
           "action": "check_disk",
-          "seconds": 10.65,
+          "seconds": 10.66,
           "tokens": 63,
-          "gen_seconds": 4.26,
+          "gen_seconds": 4.15,
           "prompt_tokens": 679,
-          "prompt_seconds": 5.94
+          "prompt_seconds": 6.09
         },
         {
           "action": "check_memory",
-          "seconds": 5.54,
+          "seconds": 5.48,
           "tokens": 58,
-          "gen_seconds": 3.96,
+          "gen_seconds": 3.87,
           "prompt_tokens": 783,
-          "prompt_seconds": 1.57
+          "prompt_seconds": 1.59
         },
         {
           "action": "check_startup",
-          "seconds": 5.74,
+          "seconds": 5.85,
           "tokens": 56,
-          "gen_seconds": 3.89,
+          "gen_seconds": 4.05,
           "prompt_tokens": 903,
-          "prompt_seconds": 1.85
+          "prompt_seconds": 1.8
         },
         {
           "action": "conclude",
-          "seconds": 5.38,
+          "seconds": 5.4,
           "tokens": 55,
-          "gen_seconds": 3.78,
+          "gen_seconds": 3.84,
           "prompt_tokens": 1002,
-          "prompt_seconds": 1.59
+          "prompt_seconds": 1.56
         }
       ],
       "case": "healthy_pc",
@@ -707,9 +706,9 @@
       "checks": 3,
       "model_steps": 4,
       "rule_steps": 1,
-      "seconds": 32.7,
-      "model_seconds": 32.7,
-      "tok_per_s": 14.5,
+      "seconds": 33.1,
+      "model_seconds": 33.1,
+      "tok_per_s": 14.3,
       "fix_verified": false
     },
     {
@@ -724,11 +723,11 @@
       "model_calls": [
         {
           "action": "conclude",
-          "seconds": 10.5,
+          "seconds": 10.72,
           "tokens": 65,
-          "gen_seconds": 4.28,
+          "gen_seconds": 4.41,
           "prompt_tokens": 490,
-          "prompt_seconds": 6.01
+          "prompt_seconds": 6.14
         }
       ],
       "case": "wrong_dns#taglish",
@@ -742,9 +741,9 @@
       "checks": 2,
       "model_steps": 1,
       "rule_steps": 0,
-      "seconds": 10.5,
-      "model_seconds": 10.5,
-      "tok_per_s": 15.2,
+      "seconds": 10.7,
+      "model_seconds": 10.7,
+      "tok_per_s": 14.8,
       "fix_verified": true
     },
     {
@@ -759,11 +758,11 @@
       "model_calls": [
         {
           "action": "conclude",
-          "seconds": 9.16,
+          "seconds": 9.22,
           "tokens": 56,
-          "gen_seconds": 3.67,
+          "gen_seconds": 3.56,
           "prompt_tokens": 435,
-          "prompt_seconds": 5.49
+          "prompt_seconds": 5.65
         }
       ],
       "case": "proxy_on#taglish",
@@ -779,7 +778,7 @@
       "rule_steps": 0,
       "seconds": 9.2,
       "model_seconds": 9.2,
-      "tok_per_s": 15.3,
+      "tok_per_s": 15.7,
       "fix_verified": true
     },
     {
@@ -794,11 +793,11 @@
       "model_calls": [
         {
           "action": "conclude",
-          "seconds": 9.85,
+          "seconds": 9.9,
           "tokens": 68,
-          "gen_seconds": 4.43,
+          "gen_seconds": 4.33,
           "prompt_tokens": 430,
-          "prompt_seconds": 5.41
+          "prompt_seconds": 5.56
         }
       ],
       "case": "hosts_block#vague",
@@ -812,9 +811,9 @@
       "checks": 2,
       "model_steps": 1,
       "rule_steps": 0,
-      "seconds": 9.8,
-      "model_seconds": 9.8,
-      "tok_per_s": 15.4,
+      "seconds": 9.9,
+      "model_seconds": 9.9,
+      "tok_per_s": 15.7,
       "fix_verified": true
     },
     {
@@ -829,11 +828,11 @@
       "model_calls": [
         {
           "action": "conclude",
-          "seconds": 8.48,
+          "seconds": 8.67,
           "tokens": 58,
-          "gen_seconds": 3.7,
+          "gen_seconds": 3.68,
           "prompt_tokens": 385,
-          "prompt_seconds": 4.76
+          "prompt_seconds": 4.98
         }
       ],
       "case": "adapter_off#short",
@@ -847,9 +846,9 @@
       "checks": 2,
       "model_steps": 1,
       "rule_steps": 0,
-      "seconds": 8.5,
-      "model_seconds": 8.5,
-      "tok_per_s": 15.7,
+      "seconds": 8.7,
+      "model_seconds": 8.7,
+      "tok_per_s": 15.8,
       "fix_verified": true
     },
     {
@@ -865,35 +864,35 @@
       "model_calls": [
         {
           "action": "check_startup",
-          "seconds": 10.49,
+          "seconds": 10.79,
           "tokens": 62,
-          "gen_seconds": 4.19,
+          "gen_seconds": 4.29,
           "prompt_tokens": 687,
-          "prompt_seconds": 6.27
+          "prompt_seconds": 6.47
         },
         {
           "action": "conclude",
-          "seconds": 5.42,
+          "seconds": 5.3,
           "tokens": 57,
-          "gen_seconds": 3.97,
+          "gen_seconds": 3.82,
           "prompt_tokens": 778,
-          "prompt_seconds": 1.45
+          "prompt_seconds": 1.47
         },
         {
           "action": "check_disk",
-          "seconds": 6.25,
+          "seconds": 6.59,
           "tokens": 66,
-          "gen_seconds": 4.62,
+          "gen_seconds": 4.93,
           "prompt_tokens": 882,
-          "prompt_seconds": 1.62
+          "prompt_seconds": 1.65
         },
         {
           "action": "conclude",
-          "seconds": 5.82,
+          "seconds": 6.28,
           "tokens": 57,
-          "gen_seconds": 3.95,
+          "gen_seconds": 4.36,
           "prompt_tokens": 1002,
-          "prompt_seconds": 1.86
+          "prompt_seconds": 1.91
         }
       ],
       "case": "disk_full#taglish",
@@ -907,87 +906,88 @@
       "checks": 2,
       "model_steps": 4,
       "rule_steps": 0,
-      "seconds": 28.0,
-      "model_seconds": 28.0,
-      "tok_per_s": 14.4,
+      "seconds": 29.0,
+      "model_seconds": 29.0,
+      "tok_per_s": 13.1,
       "fix_verified": false
     },
     {
       "trace": [
         "memory -> compare_with_normal   why: First, compare with how this PC looked the last time the internet worked.",
-        "          = Settings match the last time the internet worked (2026-10-09 18:52). Nothing changed.",
-        "model  -> check_adapters   why: The settings are normal, so the problem must be with the connection itself.",
+        "          = Settings match the last time the internet worked (2026-10-09 19:45). Nothing changed.",
+        "model  -> check_adapters   why: The settings are normal, so let's check the adapter.",
         "          = Network adapters: Wi-Fi: connected.",
-        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so the problem is likely with the network connection itself.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's check the IP address and router.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so the problem is likely with the internet connection beyond the router.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, so let's test internet reachability.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: The internet line is working, so the problem must be with DNS resolution.",
+        "model  -> check_dns   why: The internet line is working, so let\u2019s investigate DNS.",
         "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.",
-        "model  -> check_proxy   why: The DNS is working, so let's check if there's a proxy setting that might be interfering.",
+        "model  -> check_proxy   why: DNS is working correctly, so let's check for proxy settings.",
         "          = No proxy is set. A test page loads.",
-        "rules  -> check_hosts",
+        "model  -> check_hosts   why: No proxy is set and a test page loads, so let\u2019s check the hosts file.",
         "          = The hosts file has no extra entries. No website is blocked there.",
-        "rules  -> test_website",
+        "REFUSED   The model's conclusion: \"No fault found\". Not proven yet, so the safety check runs what is missing before it decides.   why: All checks have passed, so there is no fault found.",
+        "safety -> test_website",
         "          = Opening http://www.msftconnecttest.com/connecttest.txt: it loads.",
-        "rules  => no_fault_found   says: (catalogue text)"
+        "model  => no_fault_found   says: It appears there isn\u2019t a problem with your internet connection. Everything seems to be working as it should."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.82,
-          "tokens": 58,
-          "gen_seconds": 4.02,
+          "seconds": 12.06,
+          "tokens": 67,
+          "gen_seconds": 4.95,
           "prompt_tokens": 726,
-          "prompt_seconds": 6.79
+          "prompt_seconds": 7.1
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.53,
-          "tokens": 73,
-          "gen_seconds": 5.1,
-          "prompt_tokens": 810,
-          "prompt_seconds": 1.42
+          "seconds": 7.18,
+          "tokens": 77,
+          "gen_seconds": 5.59,
+          "prompt_tokens": 819,
+          "prompt_seconds": 1.58
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.37,
-          "tokens": 75,
-          "gen_seconds": 5.38,
-          "prompt_tokens": 938,
-          "prompt_seconds": 1.98
+          "seconds": 7.62,
+          "tokens": 77,
+          "gen_seconds": 5.48,
+          "prompt_tokens": 956,
+          "prompt_seconds": 2.13
         },
         {
           "action": "check_dns",
-          "seconds": 5.76,
-          "tokens": 57,
-          "gen_seconds": 3.96,
-          "prompt_tokens": 1050,
-          "prompt_seconds": 1.79
-        },
-        {
-          "action": "answer",
-          "seconds": 6.18,
-          "tokens": 68,
-          "gen_seconds": 4.87,
-          "prompt_tokens": 1179,
-          "prompt_seconds": 1.3
+          "seconds": 7.06,
+          "tokens": 64,
+          "gen_seconds": 4.96,
+          "prompt_tokens": 1085,
+          "prompt_seconds": 2.09
         },
         {
           "action": "check_proxy",
-          "seconds": 5.33,
-          "tokens": 66,
-          "gen_seconds": 4.64,
-          "prompt_tokens": 1275,
-          "prompt_seconds": 0.68
+          "seconds": 6.98,
+          "tokens": 63,
+          "gen_seconds": 4.85,
+          "prompt_tokens": 1231,
+          "prompt_seconds": 2.12
         },
         {
-          "action": "answer",
-          "seconds": 4.98,
-          "tokens": 60,
-          "gen_seconds": 4.33,
-          "prompt_tokens": 1368,
-          "prompt_seconds": 0.64
+          "action": "check_hosts",
+          "seconds": 6.45,
+          "tokens": 70,
+          "gen_seconds": 5.39,
+          "prompt_tokens": 1326,
+          "prompt_seconds": 1.05
+        },
+        {
+          "action": "conclude",
+          "seconds": 6.29,
+          "tokens": 61,
+          "gen_seconds": 4.72,
+          "prompt_tokens": 1442,
+          "prompt_seconds": 1.56
         }
       ],
       "case": "healthy_network#site",
@@ -995,15 +995,15 @@
       "expected": "no_fault_found",
       "final": "no_fault_found",
       "final_correct": true,
-      "model_first": null,
-      "model_first_correct": false,
+      "model_first": "no_fault_found",
+      "model_first_correct": true,
       "refused": 0,
       "checks": 8,
       "model_steps": 7,
-      "rule_steps": 3,
-      "seconds": 47.0,
-      "model_seconds": 47.0,
-      "tok_per_s": 13.9,
+      "rule_steps": 0,
+      "seconds": 53.6,
+      "model_seconds": 53.6,
+      "tok_per_s": 12.9,
       "fix_verified": false
     }
   ]

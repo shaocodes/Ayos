@@ -63,7 +63,6 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AYOS_CI_BRANCH: "1"
         run: python3 tools/ci_publish.py "eval-${{ matrix.label }}" "ci_out/*.txt" "ci_out/*.json"
       - name: Record sessions for the web replay
         if: ${{ !cancelled() }}
@@ -76,5 +75,4 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AYOS_CI_BRANCH: "1"
         run: python3 tools/ci_publish.py "eval-${{ matrix.label }}" "ci_out/*.txt" "ci_out/*.json"

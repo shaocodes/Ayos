@@ -2,16 +2,16 @@
   "summary": {
     "brain": "gemma3:4b (local, via Ollama)",
     "computer": "x86_64, Linux 6.17.0-1022-azure",
-    "date": "2026-10-09 19:06",
+    "date": "2026-10-09 19:59",
     "with_memory": false,
     "cases": 20,
     "final_correct": 20,
     "model_first_correct": 17,
     "model_reached_a_conclusion": 19,
     "conclusions_refused_by_safety_check": 2,
-    "median_seconds": 27.1,
-    "slowest_seconds": 48.0,
-    "tokens_per_second": 14.3
+    "median_seconds": 27.6,
+    "slowest_seconds": 49.4,
+    "tokens_per_second": 14.1
   },
   "rows": [
     {
@@ -30,43 +30,43 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 9.89,
+          "seconds": 9.91,
           "tokens": 57,
-          "gen_seconds": 3.82,
+          "gen_seconds": 3.7,
           "prompt_tokens": 687,
-          "prompt_seconds": 6.05
+          "prompt_seconds": 6.19
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.58,
+          "seconds": 6.46,
           "tokens": 77,
-          "gen_seconds": 5.28,
+          "gen_seconds": 5.13,
           "prompt_tokens": 770,
-          "prompt_seconds": 1.3
+          "prompt_seconds": 1.32
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.19,
+          "seconds": 7.29,
           "tokens": 75,
-          "gen_seconds": 5.13,
+          "gen_seconds": 5.16,
           "prompt_tokens": 907,
-          "prompt_seconds": 2.05
+          "prompt_seconds": 2.12
         },
         {
           "action": "check_dns",
-          "seconds": 6.83,
+          "seconds": 6.66,
           "tokens": 68,
-          "gen_seconds": 4.92,
+          "gen_seconds": 4.71,
           "prompt_tokens": 1029,
-          "prompt_seconds": 1.9
+          "prompt_seconds": 1.94
         },
         {
           "action": "conclude",
-          "seconds": 7.54,
+          "seconds": 7.75,
           "tokens": 81,
-          "gen_seconds": 5.6,
+          "gen_seconds": 5.84,
           "prompt_tokens": 1205,
-          "prompt_seconds": 1.93
+          "prompt_seconds": 1.9
         }
       ],
       "case": "wrong_dns",
@@ -80,9 +80,9 @@
       "checks": 4,
       "model_steps": 5,
       "rule_steps": 0,
-      "seconds": 38.0,
-      "model_seconds": 38.0,
-      "tok_per_s": 14.5,
+      "seconds": 38.1,
+      "model_seconds": 38.1,
+      "tok_per_s": 13.9,
       "fix_verified": true
     },
     {
@@ -95,19 +95,19 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 9.74,
+          "seconds": 9.78,
           "tokens": 57,
-          "gen_seconds": 3.69,
+          "gen_seconds": 3.72,
           "prompt_tokens": 683,
-          "prompt_seconds": 6.05
+          "prompt_seconds": 6.06
         },
         {
           "action": "conclude",
-          "seconds": 5.69,
+          "seconds": 5.56,
           "tokens": 60,
-          "gen_seconds": 4.09,
+          "gen_seconds": 4.0,
           "prompt_tokens": 783,
-          "prompt_seconds": 1.59
+          "prompt_seconds": 1.56
         }
       ],
       "case": "adapter_off",
@@ -121,9 +121,9 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 15.4,
-      "model_seconds": 15.4,
-      "tok_per_s": 14.7,
+      "seconds": 15.3,
+      "model_seconds": 15.3,
+      "tok_per_s": 15.0,
       "fix_verified": true
     },
     {
@@ -140,35 +140,35 @@
       "model_calls": [
         {
           "action": "check_internet_reach",
-          "seconds": 10.15,
+          "seconds": 10.32,
           "tokens": 63,
-          "gen_seconds": 4.14,
+          "gen_seconds": 4.22,
           "prompt_tokens": 683,
-          "prompt_seconds": 6.0
+          "prompt_seconds": 6.09
         },
         {
           "action": "check_dns",
-          "seconds": 5.86,
+          "seconds": 5.9,
           "tokens": 63,
-          "gen_seconds": 4.28,
+          "gen_seconds": 4.32,
           "prompt_tokens": 783,
-          "prompt_seconds": 1.56
+          "prompt_seconds": 1.57
         },
         {
           "action": "check_proxy",
-          "seconds": 6.17,
+          "seconds": 6.06,
           "tokens": 59,
-          "gen_seconds": 4.15,
+          "gen_seconds": 4.02,
           "prompt_tokens": 918,
-          "prompt_seconds": 2.02
+          "prompt_seconds": 2.03
         },
         {
           "action": "conclude",
-          "seconds": 5.97,
+          "seconds": 5.76,
           "tokens": 55,
-          "gen_seconds": 3.98,
+          "gen_seconds": 3.8,
           "prompt_tokens": 1044,
-          "prompt_seconds": 1.98
+          "prompt_seconds": 1.94
         }
       ],
       "case": "proxy_on",
@@ -182,9 +182,9 @@
       "checks": 3,
       "model_steps": 4,
       "rule_steps": 0,
-      "seconds": 28.1,
-      "model_seconds": 28.1,
-      "tok_per_s": 13.8,
+      "seconds": 28.0,
+      "model_seconds": 28.0,
+      "tok_per_s": 14.5,
       "fix_verified": true
     },
     {
@@ -206,43 +206,43 @@
       "model_calls": [
         {
           "action": "check_internet_reach",
-          "seconds": 11.25,
+          "seconds": 10.95,
           "tokens": 69,
-          "gen_seconds": 4.89,
+          "gen_seconds": 4.54,
           "prompt_tokens": 697,
-          "prompt_seconds": 6.35
+          "prompt_seconds": 6.4
         },
         {
           "action": "check_dns",
-          "seconds": 6.06,
+          "seconds": 5.92,
           "tokens": 64,
-          "gen_seconds": 4.41,
+          "gen_seconds": 4.25,
           "prompt_tokens": 803,
-          "prompt_seconds": 1.65
+          "prompt_seconds": 1.66
         },
         {
           "action": "answer",
-          "seconds": 6.0,
+          "seconds": 5.85,
           "tokens": 55,
-          "gen_seconds": 3.89,
+          "gen_seconds": 3.78,
           "prompt_tokens": 939,
-          "prompt_seconds": 2.1
+          "prompt_seconds": 2.05
         },
         {
           "action": "check_adapters",
-          "seconds": 5.97,
+          "seconds": 5.88,
           "tokens": 64,
-          "gen_seconds": 4.54,
+          "gen_seconds": 4.51,
           "prompt_tokens": 1022,
-          "prompt_seconds": 1.42
+          "prompt_seconds": 1.37
         },
         {
           "action": "answer",
-          "seconds": 4.84,
+          "seconds": 4.63,
           "tokens": 57,
-          "gen_seconds": 4.13,
+          "gen_seconds": 3.97,
           "prompt_tokens": 1112,
-          "prompt_seconds": 0.7
+          "prompt_seconds": 0.64
         }
       ],
       "case": "hosts_block",
@@ -256,9 +256,9 @@
       "checks": 6,
       "model_steps": 5,
       "rule_steps": 4,
-      "seconds": 34.1,
-      "model_seconds": 34.1,
-      "tok_per_s": 13.8,
+      "seconds": 33.2,
+      "model_seconds": 33.2,
+      "tok_per_s": 14.3,
       "fix_verified": true
     },
     {
@@ -273,27 +273,27 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.07,
+          "seconds": 9.78,
           "tokens": 57,
-          "gen_seconds": 3.97,
+          "gen_seconds": 3.72,
           "prompt_tokens": 682,
-          "prompt_seconds": 6.09
+          "prompt_seconds": 6.05
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.67,
+          "seconds": 6.47,
           "tokens": 77,
-          "gen_seconds": 5.34,
+          "gen_seconds": 5.15,
           "prompt_tokens": 765,
-          "prompt_seconds": 1.32
+          "prompt_seconds": 1.31
         },
         {
           "action": "conclude",
-          "seconds": 7.82,
+          "seconds": 7.64,
           "tokens": 74,
-          "gen_seconds": 5.32,
+          "gen_seconds": 5.26,
           "prompt_tokens": 923,
-          "prompt_seconds": 2.5
+          "prompt_seconds": 2.37
         }
       ],
       "case": "router_down",
@@ -307,9 +307,9 @@
       "checks": 2,
       "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 24.6,
-      "model_seconds": 24.6,
-      "tok_per_s": 13.9,
+      "seconds": 23.9,
+      "model_seconds": 23.9,
+      "tok_per_s": 14.1,
       "fix_verified": false
     },
     {
@@ -324,27 +324,27 @@
       "model_calls": [
         {
           "action": "check_ip_and_router",
-          "seconds": 11.05,
+          "seconds": 10.71,
           "tokens": 69,
-          "gen_seconds": 4.87,
+          "gen_seconds": 4.55,
           "prompt_tokens": 684,
-          "prompt_seconds": 6.17
+          "prompt_seconds": 6.15
         },
         {
           "action": "check_internet_reach",
-          "seconds": 6.78,
+          "seconds": 6.5,
           "tokens": 69,
-          "gen_seconds": 4.93,
+          "gen_seconds": 4.59,
           "prompt_tokens": 808,
-          "prompt_seconds": 1.84
+          "prompt_seconds": 1.9
         },
         {
           "action": "conclude",
-          "seconds": 6.99,
+          "seconds": 6.94,
           "tokens": 70,
-          "gen_seconds": 5.08,
+          "gen_seconds": 5.1,
           "prompt_tokens": 929,
-          "prompt_seconds": 1.9
+          "prompt_seconds": 1.83
         }
       ],
       "case": "isp_down",
@@ -358,9 +358,9 @@
       "checks": 2,
       "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 24.8,
-      "model_seconds": 24.8,
-      "tok_per_s": 13.8,
+      "seconds": 24.2,
+      "model_seconds": 24.2,
+      "tok_per_s": 13.7,
       "fix_verified": false
     },
     {
@@ -379,43 +379,43 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.34,
+          "seconds": 10.45,
           "tokens": 64,
-          "gen_seconds": 4.31,
+          "gen_seconds": 4.34,
           "prompt_tokens": 682,
-          "prompt_seconds": 6.02
+          "prompt_seconds": 6.1
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.61,
+          "seconds": 6.33,
           "tokens": 74,
-          "gen_seconds": 5.17,
+          "gen_seconds": 4.9,
           "prompt_tokens": 772,
-          "prompt_seconds": 1.44
+          "prompt_seconds": 1.43
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.45,
+          "seconds": 7.16,
           "tokens": 78,
-          "gen_seconds": 5.51,
+          "gen_seconds": 5.25,
           "prompt_tokens": 901,
-          "prompt_seconds": 1.94
+          "prompt_seconds": 1.9
         },
         {
           "action": "check_dns",
-          "seconds": 6.26,
+          "seconds": 6.02,
           "tokens": 62,
-          "gen_seconds": 4.45,
+          "gen_seconds": 4.23,
           "prompt_tokens": 1021,
-          "prompt_seconds": 1.8
+          "prompt_seconds": 1.79
         },
         {
           "action": "conclude",
-          "seconds": 7.25,
+          "seconds": 6.92,
           "tokens": 82,
-          "gen_seconds": 5.79,
+          "gen_seconds": 5.54,
           "prompt_tokens": 1172,
-          "prompt_seconds": 1.44
+          "prompt_seconds": 1.36
         }
       ],
       "case": "router_dns_down",
@@ -429,9 +429,9 @@
       "checks": 4,
       "model_steps": 5,
       "rule_steps": 0,
-      "seconds": 37.9,
-      "model_seconds": 37.9,
-      "tok_per_s": 14.2,
+      "seconds": 36.9,
+      "model_seconds": 36.9,
+      "tok_per_s": 14.8,
       "fix_verified": true
     },
     {
@@ -446,19 +446,19 @@
       "model_calls": [
         {
           "action": "check_ip_and_router",
-          "seconds": 11.81,
+          "seconds": 11.27,
           "tokens": 83,
-          "gen_seconds": 5.67,
+          "gen_seconds": 5.39,
           "prompt_tokens": 685,
-          "prompt_seconds": 6.14
+          "prompt_seconds": 5.88
         },
         {
           "action": "conclude",
-          "seconds": 7.77,
+          "seconds": 7.66,
           "tokens": 86,
-          "gen_seconds": 5.76,
+          "gen_seconds": 5.73,
           "prompt_tokens": 820,
-          "prompt_seconds": 2.0
+          "prompt_seconds": 1.92
         }
       ],
       "case": "no_ip",
@@ -472,9 +472,9 @@
       "checks": 2,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 19.6,
-      "model_seconds": 19.6,
-      "tok_per_s": 14.9,
+      "seconds": 18.9,
+      "model_seconds": 18.9,
+      "tok_per_s": 15.0,
       "fix_verified": true
     },
     {
@@ -487,19 +487,19 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 9.79,
+          "seconds": 9.59,
           "tokens": 56,
-          "gen_seconds": 3.85,
+          "gen_seconds": 3.67,
           "prompt_tokens": 681,
-          "prompt_seconds": 5.93
+          "prompt_seconds": 5.91
         },
         {
           "action": "conclude",
-          "seconds": 6.81,
+          "seconds": 6.44,
           "tokens": 74,
-          "gen_seconds": 5.17,
+          "gen_seconds": 4.89,
           "prompt_tokens": 783,
-          "prompt_seconds": 1.63
+          "prompt_seconds": 1.55
         }
       ],
       "case": "wifi_dropped",
@@ -513,9 +513,9 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 16.6,
-      "model_seconds": 16.6,
-      "tok_per_s": 14.3,
+      "seconds": 16.0,
+      "model_seconds": 16.0,
+      "tok_per_s": 15.1,
       "fix_verified": false
     },
     {
@@ -528,19 +528,19 @@
       "model_calls": [
         {
           "action": "check_disk",
-          "seconds": 9.98,
+          "seconds": 9.58,
           "tokens": 54,
-          "gen_seconds": 3.75,
+          "gen_seconds": 3.56,
           "prompt_tokens": 682,
-          "prompt_seconds": 6.22
+          "prompt_seconds": 6.02
         },
         {
           "action": "conclude",
-          "seconds": 4.93,
+          "seconds": 4.51,
           "tokens": 44,
-          "gen_seconds": 3.22,
+          "gen_seconds": 2.84,
           "prompt_tokens": 791,
-          "prompt_seconds": 1.71
+          "prompt_seconds": 1.66
         }
       ],
       "case": "disk_full",
@@ -554,9 +554,9 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 14.9,
-      "model_seconds": 14.9,
-      "tok_per_s": 13.7,
+      "seconds": 14.1,
+      "model_seconds": 14.1,
+      "tok_per_s": 15.5,
       "fix_verified": false
     },
     {
@@ -571,25 +571,25 @@
       "model_calls": [
         {
           "action": "check_disk",
-          "seconds": 10.85,
+          "seconds": 10.24,
           "tokens": 62,
-          "gen_seconds": 4.47,
+          "gen_seconds": 4.16,
           "prompt_tokens": 683,
-          "prompt_seconds": 6.37
+          "prompt_seconds": 6.07
         },
         {
           "action": "check_memory",
-          "seconds": 5.72,
+          "seconds": 5.68,
           "tokens": 59,
-          "gen_seconds": 4.07,
+          "gen_seconds": 4.11,
           "prompt_tokens": 786,
-          "prompt_seconds": 1.63
+          "prompt_seconds": 1.57
         },
         {
           "action": "conclude",
-          "seconds": 7.4,
+          "seconds": 7.3,
           "tokens": 74,
-          "gen_seconds": 5.33,
+          "gen_seconds": 5.23,
           "prompt_tokens": 922,
           "prompt_seconds": 2.06
         }
@@ -605,9 +605,9 @@
       "checks": 2,
       "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 24.0,
-      "model_seconds": 24.0,
-      "tok_per_s": 13.9,
+      "seconds": 23.2,
+      "model_seconds": 23.2,
+      "tok_per_s": 14.1,
       "fix_verified": false
     },
     {
@@ -620,19 +620,19 @@
       "model_calls": [
         {
           "action": "check_startup",
-          "seconds": 9.64,
+          "seconds": 9.58,
           "tokens": 49,
-          "gen_seconds": 3.34,
+          "gen_seconds": 3.43,
           "prompt_tokens": 684,
-          "prompt_seconds": 6.29
+          "prompt_seconds": 6.15
         },
         {
           "action": "conclude",
-          "seconds": 5.47,
+          "seconds": 5.48,
           "tokens": 55,
-          "gen_seconds": 3.73,
+          "gen_seconds": 3.76,
           "prompt_tokens": 800,
-          "prompt_seconds": 1.73
+          "prompt_seconds": 1.7
         }
       ],
       "case": "many_startup",
@@ -648,7 +648,7 @@
       "rule_steps": 0,
       "seconds": 15.1,
       "model_seconds": 15.1,
-      "tok_per_s": 14.7,
+      "tok_per_s": 14.6,
       "fix_verified": false
     },
     {
@@ -673,43 +673,43 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 9.92,
+          "seconds": 10.19,
           "tokens": 57,
-          "gen_seconds": 3.75,
+          "gen_seconds": 4.02,
           "prompt_tokens": 682,
           "prompt_seconds": 6.17
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.57,
+          "seconds": 6.8,
           "tokens": 77,
-          "gen_seconds": 5.26,
+          "gen_seconds": 5.46,
           "prompt_tokens": 765,
-          "prompt_seconds": 1.31
+          "prompt_seconds": 1.33
         },
         {
           "action": "check_internet_reach",
-          "seconds": 6.79,
+          "seconds": 7.22,
           "tokens": 70,
-          "gen_seconds": 4.73,
+          "gen_seconds": 5.12,
           "prompt_tokens": 902,
-          "prompt_seconds": 2.05
+          "prompt_seconds": 2.09
         },
         {
           "action": "check_dns",
-          "seconds": 6.76,
+          "seconds": 6.89,
           "tokens": 69,
-          "gen_seconds": 4.96,
+          "gen_seconds": 5.1,
           "prompt_tokens": 1019,
           "prompt_seconds": 1.79
         },
         {
           "action": "check_proxy",
-          "seconds": 6.4,
+          "seconds": 6.61,
           "tokens": 70,
-          "gen_seconds": 4.88,
+          "gen_seconds": 5.08,
           "prompt_tokens": 1165,
-          "prompt_seconds": 1.51
+          "prompt_seconds": 1.52
         },
         {
           "action": "check_hosts",
@@ -721,11 +721,11 @@
         },
         {
           "action": "conclude",
-          "seconds": 6.03,
+          "seconds": 6.2,
           "tokens": 64,
-          "gen_seconds": 4.49,
+          "gen_seconds": 4.64,
           "prompt_tokens": 1375,
-          "prompt_seconds": 1.53
+          "prompt_seconds": 1.54
         }
       ],
       "case": "healthy_network",
@@ -739,9 +739,9 @@
       "checks": 7,
       "model_steps": 7,
       "rule_steps": 0,
-      "seconds": 48.0,
-      "model_seconds": 48.0,
-      "tok_per_s": 14.3,
+      "seconds": 49.4,
+      "model_seconds": 49.4,
+      "tok_per_s": 13.8,
       "fix_verified": false
     },
     {
@@ -760,35 +760,35 @@
       "model_calls": [
         {
           "action": "check_disk",
-          "seconds": 10.52,
+          "seconds": 10.62,
           "tokens": 59,
-          "gen_seconds": 4.03,
+          "gen_seconds": 4.06,
           "prompt_tokens": 681,
-          "prompt_seconds": 6.07
+          "prompt_seconds": 6.23
         },
         {
           "action": "check_memory",
-          "seconds": 5.45,
+          "seconds": 5.6,
           "tokens": 58,
-          "gen_seconds": 3.93,
+          "gen_seconds": 4.01,
           "prompt_tokens": 781,
-          "prompt_seconds": 1.51
+          "prompt_seconds": 1.58
         },
         {
           "action": "check_startup",
-          "seconds": 6.24,
+          "seconds": 6.23,
           "tokens": 65,
-          "gen_seconds": 4.45,
+          "gen_seconds": 4.44,
           "prompt_tokens": 901,
-          "prompt_seconds": 1.78
+          "prompt_seconds": 1.79
         },
         {
           "action": "conclude",
-          "seconds": 5.89,
+          "seconds": 6.0,
           "tokens": 61,
-          "gen_seconds": 4.22,
+          "gen_seconds": 4.3,
           "prompt_tokens": 1007,
-          "prompt_seconds": 1.66
+          "prompt_seconds": 1.69
         }
       ],
       "case": "healthy_pc",
@@ -802,9 +802,9 @@
       "checks": 3,
       "model_steps": 4,
       "rule_steps": 1,
-      "seconds": 32.8,
-      "model_seconds": 32.8,
-      "tok_per_s": 14.4,
+      "seconds": 33.1,
+      "model_seconds": 33.0,
+      "tok_per_s": 14.2,
       "fix_verified": false
     },
     {
@@ -823,43 +823,43 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 11.03,
+          "seconds": 11.02,
           "tokens": 73,
-          "gen_seconds": 4.81,
+          "gen_seconds": 4.78,
           "prompt_tokens": 691,
-          "prompt_seconds": 6.21
+          "prompt_seconds": 6.23
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.37,
+          "seconds": 6.17,
           "tokens": 71,
-          "gen_seconds": 4.85,
+          "gen_seconds": 4.68,
           "prompt_tokens": 790,
-          "prompt_seconds": 1.51
+          "prompt_seconds": 1.48
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.07,
+          "seconds": 6.96,
           "tokens": 75,
-          "gen_seconds": 5.17,
+          "gen_seconds": 5.08,
           "prompt_tokens": 916,
-          "prompt_seconds": 1.9
+          "prompt_seconds": 1.87
         },
         {
           "action": "check_dns",
-          "seconds": 5.65,
+          "seconds": 5.53,
           "tokens": 55,
-          "gen_seconds": 3.94,
+          "gen_seconds": 3.82,
           "prompt_tokens": 1028,
           "prompt_seconds": 1.7
         },
         {
           "action": "conclude",
-          "seconds": 7.23,
+          "seconds": 7.32,
           "tokens": 81,
-          "gen_seconds": 5.62,
+          "gen_seconds": 5.74,
           "prompt_tokens": 1181,
-          "prompt_seconds": 1.61
+          "prompt_seconds": 1.57
         }
       ],
       "case": "wrong_dns#taglish",
@@ -873,9 +873,9 @@
       "checks": 4,
       "model_steps": 5,
       "rule_steps": 0,
-      "seconds": 37.4,
-      "model_seconds": 37.3,
-      "tok_per_s": 14.4,
+      "seconds": 37.0,
+      "model_seconds": 37.0,
+      "tok_per_s": 14.1,
       "fix_verified": true
     },
     {
@@ -892,41 +892,41 @@
       "model_calls": [
         {
           "action": "check_internet_reach",
-          "seconds": 10.18,
+          "seconds": 10.27,
           "tokens": 59,
-          "gen_seconds": 3.82,
+          "gen_seconds": 3.88,
           "prompt_tokens": 696,
-          "prompt_seconds": 6.35
+          "prompt_seconds": 6.38
         },
         {
           "action": "check_dns",
-          "seconds": 5.74,
+          "seconds": 5.75,
           "tokens": 64,
-          "gen_seconds": 4.26,
+          "gen_seconds": 4.28,
           "prompt_tokens": 792,
           "prompt_seconds": 1.46
         },
         {
           "action": "answer",
-          "seconds": 5.77,
+          "seconds": 5.78,
           "tokens": 55,
-          "gen_seconds": 3.74,
+          "gen_seconds": 3.73,
           "prompt_tokens": 928,
-          "prompt_seconds": 2.02
+          "prompt_seconds": 2.03
         },
         {
           "action": "check_proxy",
-          "seconds": 5.14,
+          "seconds": 5.23,
           "tokens": 56,
-          "gen_seconds": 3.76,
+          "gen_seconds": 3.86,
           "prompt_tokens": 1011,
-          "prompt_seconds": 1.36
+          "prompt_seconds": 1.35
         },
         {
           "action": "conclude",
-          "seconds": 4.64,
+          "seconds": 4.77,
           "tokens": 53,
-          "gen_seconds": 3.58,
+          "gen_seconds": 3.71,
           "prompt_tokens": 1134,
           "prompt_seconds": 1.05
         }
@@ -942,9 +942,9 @@
       "checks": 3,
       "model_steps": 5,
       "rule_steps": 0,
-      "seconds": 31.5,
-      "model_seconds": 31.5,
-      "tok_per_s": 14.8,
+      "seconds": 31.8,
+      "model_seconds": 31.8,
+      "tok_per_s": 14.3,
       "fix_verified": true
     },
     {
@@ -967,59 +967,59 @@
       "model_calls": [
         {
           "action": "test_website",
-          "seconds": 10.98,
+          "seconds": 11.24,
           "tokens": 69,
-          "gen_seconds": 4.58,
+          "gen_seconds": 4.76,
           "prompt_tokens": 700,
-          "prompt_seconds": 6.39
+          "prompt_seconds": 6.47
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.25,
+          "seconds": 6.44,
           "tokens": 69,
-          "gen_seconds": 4.71,
+          "gen_seconds": 4.9,
           "prompt_tokens": 800,
           "prompt_seconds": 1.53
         },
         {
           "action": "check_internet_reach",
-          "seconds": 6.65,
+          "seconds": 6.85,
           "tokens": 70,
-          "gen_seconds": 4.79,
+          "gen_seconds": 4.99,
           "prompt_tokens": 924,
-          "prompt_seconds": 1.85
+          "prompt_seconds": 1.84
         },
         {
           "action": "check_dns",
-          "seconds": 5.98,
+          "seconds": 6.19,
           "tokens": 63,
-          "gen_seconds": 4.29,
+          "gen_seconds": 4.47,
           "prompt_tokens": 1031,
-          "prompt_seconds": 1.68
+          "prompt_seconds": 1.71
         },
         {
           "action": "check_proxy",
-          "seconds": 5.64,
+          "seconds": 6.08,
           "tokens": 64,
-          "gen_seconds": 4.43,
+          "gen_seconds": 4.84,
           "prompt_tokens": 1166,
-          "prompt_seconds": 1.2
+          "prompt_seconds": 1.23
         },
         {
           "action": "check_hosts",
-          "seconds": 4.63,
+          "seconds": 5.53,
           "tokens": 56,
-          "gen_seconds": 3.97,
+          "gen_seconds": 4.84,
           "prompt_tokens": 1257,
-          "prompt_seconds": 0.65
+          "prompt_seconds": 0.68
         },
         {
           "action": "conclude",
-          "seconds": 5.5,
+          "seconds": 5.79,
           "tokens": 61,
-          "gen_seconds": 4.28,
+          "gen_seconds": 4.47,
           "prompt_tokens": 1374,
-          "prompt_seconds": 1.21
+          "prompt_seconds": 1.31
         }
       ],
       "case": "hosts_block#vague",
@@ -1033,9 +1033,9 @@
       "checks": 6,
       "model_steps": 7,
       "rule_steps": 0,
-      "seconds": 45.6,
-      "model_seconds": 45.6,
-      "tok_per_s": 14.3,
+      "seconds": 48.1,
+      "model_seconds": 48.1,
+      "tok_per_s": 13.7,
       "fix_verified": true
     },
     {
@@ -1048,19 +1048,19 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.3,
+          "seconds": 10.78,
           "tokens": 57,
-          "gen_seconds": 3.85,
+          "gen_seconds": 4.13,
           "prompt_tokens": 679,
-          "prompt_seconds": 6.11
+          "prompt_seconds": 6.32
         },
         {
           "action": "conclude",
-          "seconds": 6.25,
+          "seconds": 6.79,
           "tokens": 69,
-          "gen_seconds": 4.67,
+          "gen_seconds": 5.18,
           "prompt_tokens": 779,
-          "prompt_seconds": 1.57
+          "prompt_seconds": 1.61
         }
       ],
       "case": "adapter_off#short",
@@ -1074,9 +1074,9 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 16.5,
-      "model_seconds": 16.6,
-      "tok_per_s": 14.8,
+      "seconds": 17.6,
+      "model_seconds": 17.6,
+      "tok_per_s": 13.3,
       "fix_verified": true
     },
     {
@@ -1092,35 +1092,35 @@
       "model_calls": [
         {
           "action": "check_startup",
-          "seconds": 10.38,
+          "seconds": 11.01,
           "tokens": 61,
-          "gen_seconds": 4.11,
+          "gen_seconds": 4.48,
           "prompt_tokens": 689,
-          "prompt_seconds": 6.26
+          "prompt_seconds": 6.52
         },
         {
           "action": "conclude",
-          "seconds": 5.11,
+          "seconds": 5.2,
           "tokens": 52,
-          "gen_seconds": 3.7,
+          "gen_seconds": 3.75,
           "prompt_tokens": 777,
-          "prompt_seconds": 1.4
+          "prompt_seconds": 1.44
         },
         {
           "action": "check_disk",
-          "seconds": 5.43,
+          "seconds": 5.71,
           "tokens": 56,
-          "gen_seconds": 3.82,
+          "gen_seconds": 4.16,
           "prompt_tokens": 876,
-          "prompt_seconds": 1.6
+          "prompt_seconds": 1.54
         },
         {
           "action": "conclude",
-          "seconds": 5.17,
+          "seconds": 5.34,
           "tokens": 50,
-          "gen_seconds": 3.43,
+          "gen_seconds": 3.61,
           "prompt_tokens": 986,
-          "prompt_seconds": 1.73
+          "prompt_seconds": 1.72
         }
       ],
       "case": "disk_full#taglish",
@@ -1134,9 +1134,9 @@
       "checks": 2,
       "model_steps": 4,
       "rule_steps": 0,
-      "seconds": 26.1,
-      "model_seconds": 26.1,
-      "tok_per_s": 14.6,
+      "seconds": 27.3,
+      "model_seconds": 27.3,
+      "tok_per_s": 13.8,
       "fix_verified": false
     },
     {
@@ -1161,59 +1161,59 @@
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.0,
+          "seconds": 10.64,
           "tokens": 57,
-          "gen_seconds": 3.74,
+          "gen_seconds": 4.2,
           "prompt_tokens": 687,
-          "prompt_seconds": 6.26
+          "prompt_seconds": 6.43
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.52,
+          "seconds": 6.79,
           "tokens": 77,
-          "gen_seconds": 5.21,
+          "gen_seconds": 5.46,
           "prompt_tokens": 770,
-          "prompt_seconds": 1.3
+          "prompt_seconds": 1.32
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.16,
+          "seconds": 7.35,
           "tokens": 74,
-          "gen_seconds": 5.11,
+          "gen_seconds": 5.24,
           "prompt_tokens": 907,
-          "prompt_seconds": 2.04
+          "prompt_seconds": 2.1
         },
         {
           "action": "check_dns",
-          "seconds": 6.23,
+          "seconds": 6.48,
           "tokens": 62,
-          "gen_seconds": 4.41,
+          "gen_seconds": 4.68,
           "prompt_tokens": 1023,
-          "prompt_seconds": 1.81
+          "prompt_seconds": 1.79
         },
         {
           "action": "check_proxy",
-          "seconds": 6.07,
+          "seconds": 6.23,
           "tokens": 65,
-          "gen_seconds": 4.53,
+          "gen_seconds": 4.77,
           "prompt_tokens": 1162,
-          "prompt_seconds": 1.53
+          "prompt_seconds": 1.45
         },
         {
           "action": "check_hosts",
-          "seconds": 5.63,
+          "seconds": 6.1,
           "tokens": 67,
-          "gen_seconds": 4.65,
+          "gen_seconds": 5.12,
           "prompt_tokens": 1259,
-          "prompt_seconds": 0.96
+          "prompt_seconds": 0.97
         },
         {
           "action": "conclude",
-          "seconds": 5.04,
+          "seconds": 5.36,
           "tokens": 57,
-          "gen_seconds": 4.0,
+          "gen_seconds": 4.3,
           "prompt_tokens": 1362,
-          "prompt_seconds": 1.03
+          "prompt_seconds": 1.05
         }
       ],
       "case": "healthy_network#site",
@@ -1227,9 +1227,9 @@
       "checks": 7,
       "model_steps": 7,
       "rule_steps": 0,
-      "seconds": 46.6,
-      "model_seconds": 46.7,
-      "tok_per_s": 14.3,
+      "seconds": 49.0,
+      "model_seconds": 49.0,
+      "tok_per_s": 13.3,
       "fix_verified": false
     }
   ]

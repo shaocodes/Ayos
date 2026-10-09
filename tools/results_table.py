@@ -70,7 +70,7 @@ def build() -> str:
         + HEAD
         + "\n".join(row(m, runs) for m, runs in sorted(load("current").items(), key=lambda kv: -((kv[1].get("memory") or kv[1].get("nomemory"))["tokens_per_second"] or 0)))
         + "\n\n"
-        "In the recorded replay, made on the same kind of machine, the four practice-bench faults took 9.7 to 11.6 seconds each "
+        "In the recorded replay, made on the same kind of machine, the four practice-bench faults took 10.3 to 12.1 seconds each "
         "with `gemma3:4b`, from the question to a verified cause.\n"
     )
     if first:
