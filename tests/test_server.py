@@ -161,11 +161,10 @@ class ModelClient(unittest.TestCase):
             self.assertEqual(len(ms.requests), 1)  # one model call for the whole diagnosis
             body = ms.requests[0][1]
             msgs = body["messages"]
-            self.assertEqual([m["role"] for m in msgs], ["system", "user", "assistant", "user", "assistant", "user"])
-            self.assertIn("compare_with_normal", msgs[2]["content"])
-            self.assertIn("Changed since the internet last worked", msgs[3]["content"])
-            self.assertIn("check_dns", msgs[4]["content"])
-            self.assertIn("enough to name the cause", msgs[5]["content"])
+            self.assertEqual([m["role"] for m in msgs], ["system", "user"])  # memory's findings arrive as plain facts
+            self.assertIn("Already checked from memory. compare_with_normal: Changed since the internet last worked", msgs[1]["content"])
+            self.assertIn("check_dns: DNS servers on 'Wi-Fi'", msgs[1]["content"])
+            self.assertIn("enough to name the cause", msgs[1]["content"])
             self.assertEqual(body["format"]["properties"]["action"]["enum"], ["conclude"])
             sources = [e["source"] for e in s.events if e["type"] == "check_start"]
             self.assertEqual(sources, ["memory", "memory"])

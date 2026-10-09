@@ -36,7 +36,6 @@ class Session:
         self.memory = memory
         self.auto_approve = auto_approve
         self.on_change = on_change  # called after a setting was changed, so the status light can update at once
-        self.on_done = None  # called when the model's work for this session is over
         self.rules = RuleBrain()
         self.events = []
         self.lock = threading.Lock()
@@ -81,8 +80,6 @@ class Session:
     def _safe(self, fn):
         try:
             fn()
-            if fn == self.run:
-                self._model_idle()
         except Exception as e:  # a session must always end with something the user can read
             self.emit("error", message=f"Something went wrong inside Ayos: {type(e).__name__}: {str(e)[:200]}")
             if self.state in ("running", "fixing"):
@@ -159,19 +156,17 @@ class Session:
         self.emit("start", question=self.question, brain=self.brain.label, brain_kind=self.brain.kind, target=self.ctx["target"])
 
         # Step 1 is always memory, with no model call: what changed since the internet last worked?
+        # These results are handed to the model as plain facts in its first message. Fewer words for the
+        # model to read means a faster start, which matters on a PC without a graphics card.
         if self.memory.baseline and self.cls["route"] == "network":
-            d = {"action": "compare_with_normal", "cause": "none", "thought": "First, compare with how this PC looked the last time the internet worked."}
-            self.brain.record(convo, d)
-            summary = self._run_check("compare_with_normal", "memory", d["thought"])
-            self.brain.observe(convo, f"Result of compare_with_normal: {summary}")
+            summary = self._run_check("compare_with_normal", "memory", "First, compare with how this PC looked the last time the internet worked.")
+            self.brain.observe(convo, f"Already checked from memory. compare_with_normal: {summary}")
             # If memory shows that a setting changed, look there straight away. No need to ask the model where to look.
             areas = changed_areas(self.obs)
             if areas:
                 name, what = areas[0]
-                d = {"action": name, "cause": "none", "thought": f"Memory shows {what} changed since the internet last worked, so look there first."}
-                self.brain.record(convo, d)
-                summary = self._run_check(name, "memory", d["thought"])
-                self.brain.observe(convo, f"Result of {name}: {summary}")
+                summary = self._run_check(name, "memory", f"Memory shows {what} changed since the internet last worked, so look there first.")
+                self.brain.observe(convo, f"{name}: {summary}")
 
         use_rules = self.brain.kind == "rules"
         refused_answer = False
@@ -353,13 +348,6 @@ class Session:
     def _finish(self):
         self._summary()
         self.emit("done")
-
-    def _model_idle(self):
-        if self.on_done:
-            try:
-                self.on_done()
-            except Exception:
-                pass
 
     def _remember_normal(self):
         """Save the healthy settings, but only when the internet demonstrably works right now."""
