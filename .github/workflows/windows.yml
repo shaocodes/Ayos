@@ -46,6 +46,33 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python tools/ci_publish.py windows "ci_out/*.txt"
 
+  older-pythons:
+    # Ayos must also start on a laptop that has an older Python installed.
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.9", "3.10", "3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests
+        shell: bash
+        run: |
+          mkdir -p ci_out
+          python --version | tee "ci_out/python_${{ matrix.python }}.txt"
+          python -m unittest discover -s tests 2>&1 | tail -25 | tee -a "ci_out/python_${{ matrix.python }}.txt"
+          python -m ayos --sim --selftest | tail -3 | tee -a "ci_out/python_${{ matrix.python }}.txt"
+      - name: Publish results
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tools/ci_publish.py "python-${{ matrix.python }}" "ci_out/*.txt"
+
   package:
     # Builds Ayos.exe, a single file that needs no Python, and attaches it to a release.
     runs-on: windows-latest
