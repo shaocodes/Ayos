@@ -146,6 +146,12 @@ class SafetyCheck(unittest.TestCase):
         self.assertEqual(s.cause, "proxy_blocking")
         self.assertTrue(any("reporting a problem" in h for h in brain.heard))
 
+    def test_out_of_scope_problem_may_be_answered_without_checks(self):
+        brain = ScriptedBrain([{"action": "answer", "message": "I cannot check printers yet. Try turning it off and on."}])
+        s = run(FakeSystem(), "my printer will not print", brain=brain)
+        self.assertEqual([e["message"] for e in s.events if e["type"] == "answer"], ["I cannot check printers yet. Try turning it off and on."])
+        self.assertEqual(s.obs, {})
+
     def test_unknown_or_repeated_actions_do_not_hang(self):
         pc = FakeSystem()
         sim.apply(pc, "hosts_block")
@@ -298,6 +304,10 @@ class Reading(unittest.TestCase):
         self.assertEqual(classify("what is DNS?")["route"], "general")
         self.assertFalse(classify("what is DNS?")["is_fault"])
         self.assertTrue(classify("I can't open facebook.com")["is_fault"])
+        self.assertTrue(classify("wifi gone")["must_check"])
+        self.assertTrue(classify("why is my internet so slow?")["must_check"])
+        self.assertFalse(classify("my printer will not print")["must_check"])
+        self.assertFalse(classify("what is DNS?")["must_check"])
 
     def test_parse_decision(self):
         d = parse_decision('{"thought":"x","action":"check_dns","cause":"none","message":""}')

@@ -95,6 +95,9 @@
   .why::before { content: "Why: "; font-weight: 600; }
   .finding { margin-top: 3px; }
   .ledger li.thinking, .ledger li.plain { color: var(--ink-2); align-items: center; }
+  .livetext.on { color: var(--pen); margin-top: 2px; }
+  .livetext.on::after { content: "▍"; margin-left: 1px; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
   .ledger li.customer .finding { color: var(--pen); font-size: 1.1rem; }
   .ledger li.customer .mark { background: var(--pen); }
 
@@ -222,7 +225,7 @@ const BY = { model: "chosen by the AI model", memory: "from memory", safety: "re
 const PICKS = ["My internet is not working", "I can't open example.com", "My laptop is very slow", "What is DNS?"];
 
 let sid = null, seen = 0, pollTimer = null, running = false, t0 = 0, clockTimer = null;
-let thinkingRow = null, pathKind = null, lastStatusKey = "", lastMemKey = "", lastBenchKey = "", status = null;
+let thinkingRow = null, thinkingLive = null, pathKind = null, lastStatusKey = "", lastMemKey = "", lastBenchKey = "", status = null;
 const rows = {}; let outcomeKind = "", modelSession = false, waitingAnswer = null;
 
 async function api(path, body) {
@@ -267,7 +270,13 @@ function setNode(name, state) {
   if (!li) return;
   li.className = state; li.querySelector("i").textContent = state === "ok" ? "✓" : state === "bad" ? "×" : "";
 }
-function dropThinking() { if (thinkingRow) { thinkingRow.remove(); thinkingRow = null; } }
+function dropThinking() { if (thinkingRow) { thinkingRow.remove(); thinkingRow = null; thinkingLive = null; } }
+function showLive(live) {   // the reply as the model is writing it, word by word
+  if (!live) return;
+  const text = live.message || live.thought || "";
+  if (thinkingLive && text) { thinkingLive.textContent = text; thinkingLive.classList.add("on"); }
+  if (waitingAnswer && live.message) { waitingAnswer.textContent = live.message; waitingAnswer.className = "a livetext on"; }
+}
 function ledgerRow(cls) { const li = el("li", cls); const mark = el("span", "mark"); const body = el("div", "body"); li.append(mark, body); $("ledger").append(li); return { li, mark, body }; }
 function scrollDown(node) { try { node.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {} }
 
@@ -287,8 +296,8 @@ function onEvent(ev) {
     case "thinking": {
       dropThinking();
       if (ev.who !== "model") break;
-      const r = ledgerRow("thinking"); const txt = el("div", "", "The model is deciding what to do next…"); r.body.append(txt); thinkingRow = r.li;
-      const began = performance.now(); const tick = () => { if (thinkingRow !== r.li) return; txt.textContent = "The model is deciding what to do next… " + ((performance.now() - began) / 1000).toFixed(0) + " s"; setTimeout(tick, 500); }; tick();
+      const r = ledgerRow("thinking"); const txt = el("div", "", "The model is thinking…"); thinkingLive = el("div", "livetext"); r.body.append(txt, thinkingLive); thinkingRow = r.li;
+      const began = performance.now(); const tick = () => { if (thinkingRow !== r.li) return; txt.textContent = "The model on this PC is thinking… " + ((performance.now() - began) / 1000).toFixed(0) + " s"; setTimeout(tick, 500); }; tick();
       scrollDown(r.li);
       break;
     }
@@ -421,7 +430,7 @@ async function poll() {
   try {
     const data = await api("/api/events?id=" + sid + "&after=" + seen);
     for (const ev of data.events) { seen = ev.i + 1; onEvent(ev); }
-    state = data.state; pending = data.pending;
+    state = data.state; pending = data.pending; showLive(data.live);
   } catch (e) { state = "error"; }
   if (state === "running" || state === "fixing" || pending) pollTimer = setTimeout(poll, 300);
   else if (state === "awaiting" || state === "fixed") pollTimer = setTimeout(poll, 1200);

@@ -90,9 +90,14 @@ def main() -> int:
             broke = True if fault == "hosts_block" else wait_internet(pc, want=False, seconds=20)
             say(f"         internet now {'DOWN (fault took effect)' if fault != 'hosts_block' and broke else 'unchanged' if fault != 'hosts_block' else 'n/a (one site only)'}")
             if fault == "hosts_block":
-                r = pc.http_get("http://example.com", timeout=5.0)
-                say(f"         example.com now loads: {r['ok']}")
-                broke = not r["ok"]
+                # Windows notices a changed hosts file after a moment, not instantly.
+                t1 = time.time()
+                broke = False
+                while time.time() - t1 < 20 and not broke:
+                    broke = not pc.http_get("http://example.com", timeout=5.0)["ok"]
+                    if not broke:
+                        time.sleep(1)
+                say(f"         example.com stopped loading: {broke} (after {time.time() - t1:.1f} s)")
             t0 = time.time()
             s = Session("live", question, pc, RuleBrain(), mem, auto_approve=True)
             s.run()

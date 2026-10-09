@@ -68,7 +68,8 @@ def classify(question: str) -> dict:
         route = "network"
     else:
         route = "general"
-    return {"route": route, "is_fault": fault and not asking}
+    # must_check: the complaint is about something Ayos has checks for, so advice without evidence is not acceptable
+    return {"route": route, "is_fault": fault and not asking, "must_check": route in ("network", "pc") and (net or pc)}
 
 
 # ----------------------------------------------------------------- prompt
@@ -100,6 +101,8 @@ Rules:
 - Do not repeat a check. Two to five checks are usually enough.
 - Conclude no_fault_found only after test_website loads.
 - If the user asks a general computer question that needs no check, use action answer.
+- If the problem is about something you have no check for (a printer, sound, one app), use action answer:
+  say plainly that you cannot check that yet, and give two or three safe things to try.
 - message: two or three short sentences in plain words. Explain any technical word you use.
   Say what is wrong and why it causes what the user sees. Reply in the language the user wrote in."""
 
@@ -123,6 +126,23 @@ def first_message(question: str, notes: list) -> str:
         if n:
             text += "\n" + n
     return text
+
+
+def peek(text: str) -> dict:
+    """Read what can already be read from a reply that is still being written (unfinished JSON)."""
+    out = {}
+    for key in ("thought", "action", "cause", "message"):
+        m = re.search(r'"' + key + r'"\s*:\s*"((?:[^"\\]|\\.)*)', text or "", flags=re.S)
+        if not m:
+            continue
+        frag = m.group(1)
+        for cut in (frag, frag[:-1]):  # a half-written escape such as a lone backslash is dropped
+            try:
+                out[key] = json.loads('"' + cut + '"')
+                break
+            except ValueError:
+                continue
+    return out
 
 
 def parse_decision(text: str):
@@ -247,27 +267,51 @@ class LocalModelBrain:
             return {"ok": False, "seconds": round(time.time() - started, 1), "error": _short_error(e)}
 
     # ---- one request
-    def _chat(self, messages: list, schema: dict, max_tokens: int = 260) -> dict:
+    def _chat(self, messages: list, schema: dict, max_tokens: int = 260, on_text=None) -> dict:
+        """One reply from the model. With on_text, the reply is streamed and on_text(text_so_far) is called as it grows."""
         if self.api == "ollama":
             body = {
                 "model": self.model,
                 "messages": messages,
-                "stream": False,
+                "stream": on_text is not None,
                 "format": schema,
                 "keep_alive": "60m",
                 "options": {"temperature": 0, "seed": 7, "num_ctx": 4096, "num_predict": max_tokens},
             }
             if self.use_think_flag:
                 body["think"] = False
+            req = urllib.request.Request(self.url + "/api/chat", data=json.dumps(body).encode("utf-8"), headers={"Content-Type": "application/json"})
             try:
-                data = _http_json(self.url + "/api/chat", body, self.timeout)
+                res = _LOCAL.open(req, timeout=self.timeout)
             except urllib.error.HTTPError as e:
                 detail = e.read().decode("utf-8", "replace")[:300]
                 if self.use_think_flag and "think" in detail.lower():
                     self.use_think_flag = False  # this model has no thinking switch
-                    return self._chat(messages, schema, max_tokens)
+                    return self._chat(messages, schema, max_tokens, on_text)
                 raise RuntimeError(f"model server said {e.code}: {detail}") from None
-            text = (data.get("message") or {}).get("content", "")
+            text, data = "", {}
+            with res:
+                if on_text is None:
+                    data = json.loads(res.read().decode("utf-8"))
+                    text = (data.get("message") or {}).get("content", "")
+                else:
+                    for raw in res:  # one JSON object per line while the model writes
+                        raw = raw.strip()
+                        if not raw:
+                            continue
+                        part = json.loads(raw.decode("utf-8"))
+                        if part.get("error"):
+                            raise RuntimeError(str(part["error"])[:300])
+                        piece = (part.get("message") or {}).get("content") or ""
+                        if piece:
+                            text += piece
+                            try:
+                                on_text(text)
+                            except Exception:
+                                pass
+                        if part.get("done"):
+                            data = part
+                            break
             tokens = int(data.get("eval_count") or 0)
             dur = float(data.get("eval_duration") or 0) / 1e9
             return {
@@ -319,7 +363,7 @@ class LocalModelBrain:
             }
         )
 
-    def say(self, convo: list, question: str) -> dict:
+    def say(self, convo: list, question: str, on_text=None) -> dict:
         """Answer a follow-up question about this session in plain words. Changes nothing and runs no checks."""
         started = time.time()
         ask = (
@@ -330,7 +374,7 @@ class LocalModelBrain:
         )
         schema = {"type": "object", "properties": {"message": {"type": "string"}}, "required": ["message"]}
         try:
-            out = self._chat(convo + [{"role": "user", "content": ask}], schema, max_tokens=320)
+            out = self._chat(convo + [{"role": "user", "content": ask}], schema, max_tokens=320, on_text=on_text if self.api == "ollama" else None)
         except Exception as e:
             return {"ok": False, "text": "The language model could not answer: " + _short_error(e) + ".", "seconds": round(time.time() - started, 2)}
         text = out["text"] or ""
@@ -348,11 +392,13 @@ class LocalModelBrain:
         convo.append({"role": "assistant", "content": json.dumps({"thought": "", "action": "answer", "cause": "none", "message": text})})
         return {"ok": True, "text": text, "seconds": round(time.time() - started, 2), "tok_per_s": out.get("tok_per_s")}
 
-    def step(self, convo: list, view: dict) -> dict:
+    streams = True  # step() and say() accept on_text and report the reply while it is being written
+
+    def step(self, convo: list, view: dict, on_text=None) -> dict:
         started = time.time()
         allowed = view["allowed"]
         try:
-            out = self._chat(convo, decision_schema(allowed))
+            out = self._chat(convo, decision_schema(allowed), on_text=on_text if self.api == "ollama" else None)
         except Exception as e:
             err = _short_error(e)
             if "took too long" in err and not self.server_up(1.0):

@@ -261,7 +261,7 @@ class Handler(BaseHTTPRequestHandler):
                 after = max(0, int((q.get("after") or ["0"])[0]))
             except ValueError:
                 after = 0
-            return self._json({"events": s.since(after), "state": s.state, "pending": s.pending})
+            return self._json({"events": s.since(after), "state": s.state, "pending": s.pending, "live": s.live})
         return self._json({"error": "not found"}, 404)
 
     # ---- POST

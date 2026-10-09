@@ -17,7 +17,7 @@ import threading
 import time
 
 from . import fixes
-from .brain import RuleBrain, classify
+from .brain import RuleBrain, classify, peek
 from .memory import Memory
 from .rules import CAUSES, KEY_CHECK, PC_CAUSES, evidence_lines, fix_args, infer, supports
 from .system import System
@@ -57,6 +57,7 @@ class Session:
         self.thread = None
         self.convo = []
         self.pending = 0  # follow-up answers still being written
+        self.live = {}  # what the model has written so far in the reply it is working on right now
 
     # ------------------------------------------------------------ plumbing
     def emit(self, type_: str, **data) -> dict:
@@ -108,6 +109,10 @@ class Session:
             "allowed": [c for c in CHECKS if c not in self.obs],
         }
 
+    def _on_text(self, text: str) -> None:
+        seen = peek(text)
+        self.live = {"thought": seen.get("thought", ""), "action": seen.get("action", ""), "message": seen.get("message", ""), "chars": len(text)}
+
     def _run_check(self, name: str, source: str, thought: str = "") -> str:
         self.emit("check_start", name=name, title=TITLES.get(name, name), source=source, thought=thought)
         t0 = time.time()
@@ -144,11 +149,14 @@ class Session:
         refused_answer = False
         repeats = 0
         while not self.cancelled:
-            if len(self.obs) >= len(CHECKS) + 2:
-                break
             brain = self.rules if use_rules else self.brain
             self.emit("thinking", who="rules" if use_rules else self.brain.kind)
-            d = brain.step(convo, self._view(force_route=use_rules and self.brain.kind != "rules"))
+            view = self._view(force_route=use_rules and self.brain.kind != "rules")
+            if getattr(brain, "streams", False):
+                d = brain.step(convo, view, on_text=self._on_text)
+            else:
+                d = brain.step(convo, view)
+            self.live = {}
             took = float(d.get("seconds") or 0)
             if d.get("source") == "model":
                 self.stats["model_seconds"] += took
@@ -210,7 +218,7 @@ class Session:
                     use_rules = True
 
             elif action == "answer":
-                if self.cls["is_fault"] and d.get("source") == "model":
+                if self.cls["must_check"] and d.get("source") == "model":
                     # A fault report gets a diagnosis from evidence, never general advice from the model.
                     if refused_answer:
                         use_rules = True
@@ -404,7 +412,11 @@ class Session:
 
         def go():
             try:
-                res = self.brain.say(self.convo, question)
+                if getattr(self.brain, "streams", False):
+                    res = self.brain.say(self.convo, question, on_text=self._on_text)
+                else:
+                    res = self.brain.say(self.convo, question)
+                self.live = {}
                 self.emit("followup_a", message=res["text"], ok=res["ok"], seconds=res.get("seconds"), source=self.brain.kind)
             finally:
                 self.pending -= 1

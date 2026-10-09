@@ -65,6 +65,18 @@ class FakeModelServer:
                 if outer.delay:
                     time.sleep(outer.delay)
                 text = outer.replies.pop(0) if outer.replies else '{"thought":"","action":"answer","cause":"none","message":"out of script"}'
+                if self.path == "/api/chat" and body.get("stream"):
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/x-ndjson")
+                    self.end_headers()
+                    third = max(1, len(text) // 3)
+                    for i in range(0, len(text), third):
+                        self.wfile.write((json.dumps({"message": {"role": "assistant", "content": text[i:i + third]}, "done": False}) + "\n").encode())
+                        self.wfile.flush()
+                        if outer.delay:
+                            time.sleep(outer.delay / 3)
+                    self.wfile.write((json.dumps({"message": {"role": "assistant", "content": ""}, "done": True, "eval_count": 40, "eval_duration": 2_000_000_000, "prompt_eval_count": 12, "prompt_eval_duration": 500_000_000}) + "\n").encode())
+                    return
                 if self.path == "/api/chat":
                     return self._send(200, {"message": {"role": "assistant", "content": text}, "eval_count": 40, "eval_duration": 2_000_000_000})
                 if self.path == "/v1/chat/completions":
@@ -108,7 +120,7 @@ class ModelClient(unittest.TestCase):
             # what we sent
             (p1, b1), (p2, b2) = ms.requests
             self.assertEqual(p1, "/api/chat")
-            self.assertIs(b1["stream"], False)
+            self.assertIs(b1["stream"], True)  # replies are streamed so the interface can show them being written
             self.assertEqual(b1["options"]["temperature"], 0)
             self.assertIn("check_dns", b1["format"]["properties"]["action"]["enum"])
             self.assertNotIn("check_dns", b2["format"]["properties"]["action"]["enum"])  # no repeats offered
@@ -200,6 +212,48 @@ class ModelClient(unittest.TestCase):
             s = run_session(FakeSystem(), LocalModelBrain("gemma3:4b", ms.url), "What is DNS?")
             self.assertEqual([e["message"] for e in s.events if e["type"] == "answer"], ["DNS is the phone book of the internet."])
             self.assertEqual(s.obs, {})
+        finally:
+            ms.close()
+
+
+class Streaming(unittest.TestCase):
+    def test_peek_reads_unfinished_json(self):
+        from ayos.brain import peek
+
+        self.assertEqual(peek('{"thought": "The DNS setting cha'), {"thought": "The DNS setting cha"})
+        self.assertEqual(peek('{"thought": "ok", "action": "check_dns", "cause": "no'), {"thought": "ok", "action": "check_dns", "cause": "no"})
+        self.assertEqual(peek('{"thought": "say \\"hi\\" then\\'), {"thought": 'say "hi" then'})
+        self.assertEqual(peek('{"thought": "x", "action": "conclude", "cause": "hosts_block", "message": "Naka-block ang si')["message"], "Naka-block ang si")
+        self.assertEqual(peek(""), {})
+        self.assertEqual(peek("not json at all"), {})
+
+    def test_reply_is_reported_while_it_is_written(self):
+        ms = FakeModelServer([J("check_dns", thought="DNS changed, so check DNS.")])
+        try:
+            brain = LocalModelBrain("gemma3:4b", ms.url)
+            seen = []
+            d = brain.step(brain.start("no internet", []), {"question": "", "obs": {}, "route": "network", "has_baseline": False, "prefer": [], "allowed": ["check_dns"]}, on_text=seen.append)
+            self.assertEqual(d["action"], "check_dns")
+            self.assertGreaterEqual(len(seen), 2)
+            self.assertTrue(seen[-1].startswith(seen[0]))
+            self.assertEqual(d["prompt_tokens"], 12)
+            self.assertEqual(d["tok_per_s"], 20.0)
+        finally:
+            ms.close()
+
+    def test_session_exposes_live_text_and_clears_it(self):
+        ms = FakeModelServer([J("check_dns", thought="DNS changed."), J("conclude", "dns_misconfigured", "Sira ang DNS setting.")], delay=0.3)
+        try:
+            pc = FakeSystem()
+            sim.apply(pc, "wrong_dns")
+            s = Session("t", "walang internet", pc, LocalModelBrain("gemma3:4b", ms.url), Memory(None))
+            lives = []
+            real = s._on_text
+            s._on_text = lambda text: (real(text), lives.append(dict(s.live)))
+            s.run()
+            self.assertTrue(any(v.get("thought") for v in lives))
+            self.assertEqual(s.live, {})
+            self.assertEqual(s.cause, "dns_misconfigured")
         finally:
             ms.close()
 
