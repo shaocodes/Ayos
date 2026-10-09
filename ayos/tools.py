@@ -144,7 +144,7 @@ def check_dns(system: System, ctx: dict):
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         f_conf = [pool.submit(system.dns_query, TEST_HOST, s) for s in asked]
         f_pub = [pool.submit(system.dns_query, TEST_HOST, s) for s in PUBLIC_DNS]
-        f_res = pool.submit(system.resolve, TEST_HOST)
+        f_res = pool.submit(system.resolve, TEST_HOST, 3.0)
         results = [{"server": s, "answered": bool(f.result().get("answered"))} for s, f in zip(asked, f_conf)]
         public_answers = any(f.result().get("answered") for f in f_pub)
         resolves = bool(f_res.result())
@@ -170,8 +170,8 @@ def check_dns(system: System, ctx: dict):
 
 def check_proxy(system: System, ctx: dict):
     p = system.proxy_get()
-    direct = system.http_get(TEST_URL, use_system_proxy=False)
-    via = system.http_get(TEST_URL, use_system_proxy=True) if p["enabled"] else None
+    direct = system.http_get(TEST_URL, use_system_proxy=False, timeout=4.0)
+    via = system.http_get(TEST_URL, use_system_proxy=True, timeout=4.0) if p["enabled"] else None
     if p["enabled"]:
         summary = f"A proxy is turned ON ({p['server'] or 'no address'}). Through the proxy a test page " + (
             "loads." if via and via["ok"] else "FAILS."
@@ -207,7 +207,7 @@ def check_hosts(system: System, ctx: dict):
 def test_website(system: System, ctx: dict):
     target = ctx.get("target")
     url = f"http://{target}" if target else TEST_URL
-    r = system.http_get(url, use_system_proxy=True)
+    r = system.http_get(url, use_system_proxy=True, timeout=5.0)
     summary = f"Opening {url}: " + ("it loads." if r["ok"] else f"it FAILS ({r['error'] or 'no answer'}).")
     return summary, {"url": url, "ok": r["ok"], "why": r["error"]}
 

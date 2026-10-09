@@ -6,6 +6,7 @@ model diagnoses faults without breaking a real machine.
 """
 from __future__ import annotations
 
+import base64
 import concurrent.futures
 import json
 import os
@@ -179,25 +180,42 @@ class WindowsSystem(System):
     HOSTS = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "drivers", "etc", "hosts")
     INET_KEY = r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
 
+    PS_PREFIX = "$ProgressPreference='SilentlyContinue'; try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}; "
+    CACHE_SECONDS = 1.5  # several checks ask for the same lists back to back; PowerShell is slow to start
+
+    def __init__(self):
+        self._cache = {}
+
+    def _cached(self, key: str, fn):
+        hit = self._cache.get(key)
+        if hit and time.time() - hit[0] < self.CACHE_SECONDS:
+            return [dict(x) for x in hit[1]]
+        val = fn()
+        self._cache[key] = (time.time(), val)
+        return [dict(x) for x in val]
+
+    def _changed(self):
+        self._cache.clear()
+
     def _ps(self, script: str, timeout: float = 20.0) -> str:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         proc = subprocess.run(
-            ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
+            ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", self.PS_PREFIX + script],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
             creationflags=flags,
         )
-        if proc.returncode != 0 and proc.stderr.strip():
-            raise RuntimeError(proc.stderr.strip().splitlines()[0][:300])
-        return proc.stdout.strip()
+        if proc.returncode != 0 and (proc.stderr or "").strip():
+            raise RuntimeError(clean_ps_error(proc.stderr))
+        return (proc.stdout or "").strip().lstrip("\ufeff")
 
     def _ps_json(self, script: str, timeout: float = 20.0) -> list:
-        out = self._ps(script, timeout)
-        if not out:
-            return []
-        data = json.loads(out)
-        return data if isinstance(data, list) else [data]
+        # The JSON comes back as Base64 text, so adapter names in any language survive the console's code page.
+        wrapped = "$j = & { " + script + " }; if ($j) { [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes([string]$j)) }"
+        return decode_ps_json(self._ps(wrapped, timeout))
 
     @staticmethod
     def _q(s: str) -> str:
@@ -212,6 +230,9 @@ class WindowsSystem(System):
             return False
 
     def adapters(self) -> list:
+        return self._cached('adapters', self._read_adapters)
+
+    def _read_adapters(self) -> list:
         rows = self._ps_json(
             "Get-NetAdapter -Physical | Select-Object Name,InterfaceDescription,Status,PhysicalMediaType | "
             "ConvertTo-Json -Compress"
@@ -234,8 +255,13 @@ class WindowsSystem(System):
         return out
 
     def ip_config(self) -> list:
+        return self._cached('ip_config', self._read_ip_config)
+
+    def _read_ip_config(self) -> list:
         rows = self._ps_json(
-            "Get-NetIPConfiguration | ForEach-Object { [pscustomobject]@{ adapter=$_.InterfaceAlias; "
+            "$phys=@(Get-NetAdapter -Physical | ForEach-Object { $_.Name }); "
+            "Get-NetIPConfiguration | Where-Object { $phys -contains $_.InterfaceAlias } | "
+            "ForEach-Object { [pscustomobject]@{ adapter=$_.InterfaceAlias; "
             "ipv4=($_.IPv4Address | Select-Object -First 1).IPAddress; "
             "gateway=($_.IPv4DefaultGateway | Select-Object -First 1).NextHop } } | ConvertTo-Json -Compress"
         )
@@ -245,24 +271,31 @@ class WindowsSystem(System):
         ]
 
     def dns_config(self) -> list:
+        return self._cached('dns_config', self._read_dns_config)
+
+    def _read_dns_config(self) -> list:
         rows = self._ps_json(
             "Get-NetAdapter -Physical | ForEach-Object { $a=$_; "
-            "$p='HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\' + $a.InterfaceGuid; "
-            "$reg=Get-ItemProperty -Path $p -ErrorAction SilentlyContinue; "
+            "$k='\\Parameters\\Interfaces\\' + $a.InterfaceGuid; "
+            "$r4=Get-ItemProperty -Path ('HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip' + $k) -ErrorAction SilentlyContinue; "
+            "$r6=Get-ItemProperty -Path ('HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip6' + $k) -ErrorAction SilentlyContinue; "
             "$s=@(Get-DnsClientServerAddress -InterfaceAlias $a.Name -ErrorAction SilentlyContinue | "
             "ForEach-Object { $_.ServerAddresses }); "
-            "[pscustomobject]@{ adapter=$a.Name; servers=$s; manual=[string]$reg.NameServer } } | "
+            "[pscustomobject]@{ adapter=$a.Name; servers=$s; manual4=[string]$r4.NameServer; manual6=[string]$r6.NameServer } } | "
             "ConvertTo-Json -Compress -Depth 4"
         )
         out = []
         for r in rows:
+            if "bluetooth" in str(r.get("adapter") or "").lower():
+                continue
             servers = r.get("servers") or []
+            if isinstance(servers, dict):  # a PowerShell 5 quirk can wrap arrays as {"value": [...], "Count": n}
+                servers = servers.get("value") or []
             if isinstance(servers, str):
                 servers = [servers]
-            servers = [s for s in servers if s and not s.lower().startswith("fec0:")]
-            v4 = [s for s in servers if ":" not in s]
-            manual_v4 = [s for s in str(r.get("manual") or "").replace(",", " ").split() if s]
-            out.append({"adapter": r.get("adapter"), "servers": servers, "manual": bool(manual_v4) or (not v4 and bool(servers))})
+            servers = [str(x) for x in servers if x and not str(x).lower().startswith("fec0:")]
+            manual = bool(str(r.get("manual4") or "").strip()) or bool(str(r.get("manual6") or "").strip())
+            out.append({"adapter": r.get("adapter"), "servers": servers, "manual": manual})
         return out
 
     def ping(self, host: str, timeout: float = 1.5) -> bool:
@@ -335,6 +368,7 @@ class WindowsSystem(System):
         return parse_hosts(_read_text(self.HOSTS))
 
     def hosts_add(self, ip: str, name: str) -> None:
+        self._changed()
         text = _read_text(self.HOSTS)
         if text and not text.endswith("\n"):
             text += "\n"
@@ -360,17 +394,29 @@ class WindowsSystem(System):
         return out
 
     def set_dns(self, adapter: str, servers) -> None:
+        self._changed()
         if servers:
-            lst = ",".join(self._q(s) for s in servers)
-            self._ps(f"Set-DnsClientServerAddress -InterfaceAlias {self._q(adapter)} -ServerAddresses ({lst})")
+            def put(lst):
+                joined = ",".join(self._q(x) for x in lst)
+                self._ps(f"Set-DnsClientServerAddress -InterfaceAlias {self._q(adapter)} -ServerAddresses ({joined})")
+
+            try:
+                put(servers)
+            except RuntimeError as e:
+                v4 = [x for x in servers if ":" not in x]
+                if "administrator" in str(e) or not v4 or len(v4) == len(servers):
+                    raise
+                put(v4)  # IPv6 is switched off on this adapter
         else:
             self._ps(f"Set-DnsClientServerAddress -InterfaceAlias {self._q(adapter)} -ResetServerAddresses")
         self.flush_dns()
 
     def enable_adapter(self, adapter: str) -> None:
+        self._changed()
         self._ps(f"Enable-NetAdapter -Name {self._q(adapter)} -Confirm:$false", timeout=30)
 
     def disable_adapter(self, adapter: str) -> None:
+        self._changed()
         self._ps(f"Disable-NetAdapter -Name {self._q(adapter)} -Confirm:$false", timeout=30)
 
     def flush_dns(self) -> None:
@@ -380,6 +426,7 @@ class WindowsSystem(System):
             pass
 
     def renew_ip(self) -> None:
+        self._changed()
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         subprocess.run(["ipconfig", "/renew"], capture_output=True, text=True, timeout=60, creationflags=flags)
 
@@ -422,6 +469,36 @@ class WindowsSystem(System):
 
     def open_settings(self, page: str) -> None:
         os.startfile(f"ms-settings:{page}")  # type: ignore[attr-defined]
+
+
+def decode_ps_json(out: str) -> list:
+    """Decode what _ps_json's wrapper printed: Base64 of UTF-8 JSON. Always returns a list."""
+    out = (out or "").strip()
+    if not out:
+        return []
+    try:
+        text = base64.b64decode(out, validate=True).decode("utf-8")
+    except Exception:
+        text = out  # plain JSON, just in case
+    data = json.loads(text)
+    if data is None:
+        return []
+    return data if isinstance(data, list) else [data]
+
+
+def clean_ps_error(stderr: str) -> str:
+    """Turn PowerShell's error output into one readable line."""
+    text = stderr or ""
+    if "<Objs" in text:  # PowerShell sometimes wraps errors in XML when its output is captured
+        import re as _re
+
+        parts = _re.findall(r'<S S="Error">(.*?)</S>', text, flags=_re.S)
+        text = " ".join(p.replace("_x000D__x000A_", " ") for p in parts) or text
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip() and not ln.startswith("#< CLIXML")]
+    first = lines[0] if lines else "PowerShell reported an error"
+    if "access is denied" in text.lower() or "requires elevation" in text.lower() or "PermissionDenied" in text:
+        return "Windows refused: administrator rights are needed. Start Ayos with start_ayos.bat. (" + first[:160] + ")"
+    return first[:300]
 
 
 def _read_text(path: str) -> str:

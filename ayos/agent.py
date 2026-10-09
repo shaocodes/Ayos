@@ -363,7 +363,7 @@ class Session:
 
     def _verify(self):
         """Run the deciding check again, then try a real page. Returns (verified, summaries)."""
-        tries = 1 if self.system.simulated else 6
+        tries = getattr(self, "_verify_tries", None) or (1 if self.system.simulated else 6)
         key = KEY_CHECK.get(self.cause)
         lines, ok = [], False
         for attempt in range(tries):
