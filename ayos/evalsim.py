@@ -78,6 +78,7 @@ def run_case(brain, fault: str, question: str, expected: str, with_memory: bool)
             trace.append(f"{e['type']}: {e['message']}")
     return {
         "trace": trace,
+        "model_calls": s.steps,
         "case": fault,
         "question": question,
         "expected": expected,
@@ -145,6 +146,8 @@ def main(argv=None) -> int:
             print(f"\n=== {r['case']}: \"{r['question']}\"  expected {r['expected']}, got {r['final']}")
             for line in r["trace"]:
                 print("   " + line)
+            for c in r.get("model_calls") or []:
+                print(f"   call: {c['action']:22s} {c['seconds']:6.1f} s total | read {c.get('prompt_tokens')} tokens in {c.get('prompt_seconds')} s | wrote {c.get('tokens')} tokens in {c.get('gen_seconds')} s")
     n = len(rows)
     final_ok = sum(r["final_correct"] for r in rows)
     first_ok = sum(r["model_first_correct"] for r in rows)

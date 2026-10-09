@@ -45,3 +45,44 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python tools/ci_publish.py windows "ci_out/*.txt"
+
+  package:
+    # Builds Ayos.exe, a single file that needs no Python, and attaches it to a release.
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build Ayos.exe
+        shell: bash
+        run: |
+          python -m pip install --quiet pyinstaller
+          pyinstaller --noconfirm --onefile --console --uac-admin --name Ayos --add-data "web;web" ayos_app.py
+          ls -la dist
+      - name: Try the packaged program
+        shell: bash
+        run: |
+          mkdir -p ci_out
+          ./dist/Ayos.exe --selftest 2>&1 | tee ci_out/exe_selftest.txt || true
+          ./dist/Ayos.exe --sim --no-open --port 8031 > ci_out/exe_server.txt 2>&1 &
+          sleep 8
+          curl -s http://127.0.0.1:8031/api/status | head -c 400 | tee ci_out/exe_status.txt
+          echo
+          curl -s http://127.0.0.1:8031/ | grep -c "Ayos repair desk" | tee -a ci_out/exe_status.txt
+      - name: Attach to a release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete ayos-windows --yes --cleanup-tag || true
+          sleep 3
+          gh release create ayos-windows dist/Ayos.exe --target "$GITHUB_SHA" --title "Ayos for Windows" --notes "Ayos.exe built from the code in this repository by GitHub Actions. It needs no Python. Double-click it and accept the administrator prompt. You still need Ollama and a model (ollama pull gemma3:4b). Windows may show a SmartScreen warning because the file is not signed: choose More info, then Run anyway. To run from source instead, use start_ayos.bat."
+      - name: Publish results
+        if: always()
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tools/ci_publish.py package "ci_out/*.txt"
+

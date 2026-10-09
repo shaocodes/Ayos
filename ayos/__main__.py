@@ -16,6 +16,8 @@ from .server import App, make_server
 from .system import FakeSystem, WindowsSystem
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if getattr(sys, "frozen", False):
+    ROOT = os.path.dirname(os.path.abspath(sys.executable))  # packaged as Ayos.exe: keep memory next to the program
 
 
 def main(argv=None) -> int:
@@ -50,7 +52,7 @@ def main(argv=None) -> int:
         srv = make_server(app, args.port)
     except OSError as e:
         print(f"Could not start on port {args.port} ({e}). Is Ayos already running? Try: python -m ayos --port 8021")
-        return 1
+        return _pause_if_packaged(1)
     url = f"http://127.0.0.1:{args.port}/"
     print("")
     print("  Ayos is running.")
@@ -70,6 +72,16 @@ def main(argv=None) -> int:
     finally:
         srv.server_close()
     return 0
+
+
+def _pause_if_packaged(code: int) -> int:
+    """Double-clicked programs close their window at once; keep it open long enough to read a message."""
+    if getattr(sys, "frozen", False) and code != 0:
+        try:
+            input("\nPress Enter to close this window.")
+        except EOFError:
+            pass
+    return code
 
 
 if __name__ == "__main__":

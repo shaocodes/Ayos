@@ -7,3 +7,6 @@ eval_results.json
 node_modules/
 ci_out/
 ci_branch/
+build/
+dist/
+*.spec

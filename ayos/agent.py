@@ -50,6 +50,7 @@ class Session:
         self.fix_args = {}
         self.undo_info = None
         self.stats = {"model_seconds": 0.0, "check_seconds": 0.0, "model_steps": 0, "rule_steps": 0, "refusals": 0, "tok_per_s": None}
+        self.steps = []  # one line per model call, for measuring where the time goes
         self.started = time.time()
         self.diagnosed_after = None
         self.first_conclusion = None  # what the model said first, before the safety check
@@ -154,6 +155,7 @@ class Session:
                 self.stats["model_steps"] += 1
                 if d.get("tok_per_s"):
                     self.stats["tok_per_s"] = d["tok_per_s"]
+                self.steps.append({k: d.get(k) for k in ("action", "seconds", "tokens", "gen_seconds", "prompt_tokens", "prompt_seconds")})
             else:
                 self.stats["rule_steps"] += 1
                 if d.get("model_error"):

@@ -63,6 +63,9 @@ jobs:
         if: always()
         run: |
           python3 -m ayos.evalsim --model "${{ matrix.model }}" --no-memory --extra --trace --out "ci_out/eval_${{ matrix.label }}_nomemory.json" 2>&1 | tee "ci_out/eval_${{ matrix.label }}_nomemory.txt"
+      - name: Record sessions for the web replay
+        if: always()
+        run: python3 tools/build_live_demo.py record --model "${{ matrix.model }}" --out "ci_out/recording_${{ matrix.label }}.json" 2>&1 | tee "ci_out/recording_${{ matrix.label }}.txt"
       - name: Publish results
         if: always()
         env:

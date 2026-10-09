@@ -270,7 +270,15 @@ class LocalModelBrain:
             text = (data.get("message") or {}).get("content", "")
             tokens = int(data.get("eval_count") or 0)
             dur = float(data.get("eval_duration") or 0) / 1e9
-            return {"text": text, "tokens": tokens, "tok_per_s": round(tokens / dur, 1) if dur > 0 and tokens > 1 else None}
+            return {
+                "text": text,
+                "tokens": tokens,
+                "tok_per_s": round(tokens / dur, 1) if dur > 0 and tokens > 1 else None,
+                # how much of the conversation the server had to read again (small when its cache is reused)
+                "prompt_tokens": int(data.get("prompt_eval_count") or 0),
+                "prompt_seconds": round(float(data.get("prompt_eval_duration") or 0) / 1e9, 2),
+                "gen_seconds": round(dur, 2),
+            }
         body = {
             "model": self.model,
             "messages": messages,
@@ -369,6 +377,7 @@ class LocalModelBrain:
             return fb
         convo.append({"role": "assistant", "content": json.dumps({k: d[k] for k in ("thought", "action", "cause", "message")})})
         d.update({"source": "model", "seconds": seconds, "tokens": out.get("tokens"), "tok_per_s": out.get("tok_per_s")})
+        d.update({k: out.get(k) for k in ("prompt_tokens", "prompt_seconds", "gen_seconds")})
         return d
 
 
