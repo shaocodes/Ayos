@@ -209,13 +209,21 @@ def main() -> int:
     try:
         import subprocess
 
+        import shutil
+        import tempfile
+
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        r = subprocess.run(["cmd", "/c", os.path.join(root, "start_ayos.bat"), "--selftest"], capture_output=True, text=True, timeout=180, stdin=subprocess.DEVNULL, cwd=root)
-        ran = "RESULT: all checks ran." in (r.stdout or "")
-        say(f"result:  {'PASS' if ran else 'FAIL'}  exit code {r.returncode}")
-        if not ran:
-            say("output:  " + ((r.stdout or "") + (r.stderr or ""))[-800:])
-        failed += not ran
+        # A ZIP downloaded twice unpacks to a folder like "Ayos-main (1)". Spaces and brackets break careless batch files.
+        awkward = os.path.join(tempfile.mkdtemp(), "Ayos main (1)")
+        shutil.copytree(root, awkward, ignore=shutil.ignore_patterns(".git", "ci_out", "ci_branch", "__pycache__", "dist", "build"))
+        for folder, bat in ((root, "start_ayos.bat"), (awkward, "start_ayos.bat"), (awkward, "selftest.bat")):
+            r = subprocess.run(["cmd", "/c", os.path.join(folder, bat), "--selftest"] if bat == "start_ayos.bat" else ["cmd", "/c", os.path.join(folder, bat)],
+                               capture_output=True, text=True, timeout=240, stdin=subprocess.DEVNULL, cwd=os.environ.get("TEMP", root))
+            ran = "RESULT: all checks ran." in (r.stdout or "")
+            say(f"result:  {'PASS' if ran else 'FAIL'}  {bat} in \"{os.path.basename(folder)}\", exit code {r.returncode}")
+            if not ran:
+                say("output:  " + ((r.stdout or "") + (r.stderr or ""))[-800:])
+            failed += not ran
     except Exception:
         failed += 1
         say("EXCEPTION:\n" + traceback.format_exc())
