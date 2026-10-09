@@ -53,12 +53,12 @@ def _disable_proxy(system: System, args: dict):
 
 
 def _remove_hosts(system: System, args: dict):
-    removed = []
-    for e in args.get("entries", []):
-        for n in e["names"]:
-            if system.hosts_remove(n):
-                removed.append({"ip": e["ip"], "name": n})
-    return {"removed": removed}
+    pairs = [{"ip": e["ip"], "name": n} for e in args.get("entries", []) for n in e["names"]]
+    removed_names = set()
+    for n in sorted({p["name"] for p in pairs}):
+        if system.hosts_remove(n):
+            removed_names.add(n)
+    return {"removed": [p for p in pairs if p["name"] in removed_names]}
 
 
 def _renew_ip(system: System, args: dict):
@@ -113,7 +113,7 @@ FIXES = {
     },
     "remove_hosts_entry": {
         "title": lambda a: "Remove the blocking line from the hosts file",
-        "detail": lambda a: "Removes these names from the hosts file: " + ", ".join(n for e in a.get("entries", []) for n in e["names"]) + ". Other lines are left alone.",
+        "detail": lambda a: "Removes these names from the hosts file: " + ", ".join(sorted({n for e in a.get("entries", []) for n in e["names"]})) + ". Other lines are left alone.",
         "apply": _remove_hosts,
         "undo": lambda s, u: [s.hosts_add(r["ip"], r["name"]) for r in u.get("removed", [])],
         "admin": True,
@@ -215,8 +215,11 @@ def break_proxy_on(system: System):
 
 
 def break_hosts_block(system: System, domain: str = DEMO_DOMAIN):
+    # Both address families, so the block also holds on networks that have IPv6.
+    # 0.0.0.0 means "nowhere", which fails at once even if this PC runs a web server of its own.
     for n in (domain, "www." + domain):
-        system.hosts_add("127.0.0.1", n)
+        system.hosts_add("0.0.0.0", n)
+        system.hosts_add("::1", n)
     return f"The hosts file now blocks {domain}."
 
 

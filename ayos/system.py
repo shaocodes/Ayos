@@ -6,15 +6,18 @@ model diagnoses faults without breaking a real machine.
 """
 from __future__ import annotations
 
+import atexit
 import base64
 import concurrent.futures
 import json
 import os
+import queue
 import random
 import shutil
 import socket
 import struct
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -174,6 +177,116 @@ class System:
         raise NotImplementedError
 
 
+# ----------------------------------------------------------------- one long-lived PowerShell
+class ShellDown(Exception):
+    """The long-lived PowerShell is not usable. The caller falls back to starting one per command."""
+
+
+class PsShell:
+    """Keeps a single PowerShell process open and feeds it commands.
+
+    Starting PowerShell and loading its networking modules costs one to three seconds every time.
+    Paying that once instead of once per check is the difference between a diagnosis that takes
+    three seconds and one that takes twenty.
+
+    Each command is sent as one ASCII line (the script itself travels as Base64, so names in any
+    language survive) and is answered by a marker line, so we always know where the output ends.
+    """
+
+    ARGS = ["powershell", "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-InputFormat", "Text", "-Command", "-"]
+
+    def __init__(self):
+        self.proc = None
+        self.lock = threading.Lock()
+        self.lines = queue.Queue()
+        self.n = 0
+
+    def _start(self):
+        self.close()
+        self.lines = queue.Queue()
+        try:
+            self.proc = subprocess.Popen(
+                self.ARGS,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except OSError as e:
+            self.proc = None
+            raise ShellDown(str(e))
+        threading.Thread(target=self._pump, args=(self.proc, self.lines), daemon=True).start()
+
+    @staticmethod
+    def _pump(proc, lines):
+        try:
+            for raw in iter(proc.stdout.readline, b""):
+                lines.put(raw.decode("utf-8", "replace").rstrip("\r\n"))
+        except Exception:
+            pass
+        lines.put(None)  # the process ended
+
+    @staticmethod
+    def wrap(script: str, n: int) -> str:
+        b64 = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+        return (
+            "try { $ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; "
+            f"Invoke-Expression ([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('{b64}'))); "
+            f"'<<<AYOS-OK {n}>>>' }} catch {{ '<<<AYOS-ERR {n}>>>' + "
+            "[System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes([string]$_)) }"
+        )
+
+    def run(self, script: str, timeout: float = 20.0) -> str:
+        with self.lock:
+            if self.proc is None or self.proc.poll() is not None:
+                self._start()
+            self.n += 1
+            n = self.n
+            try:
+                self.proc.stdin.write((self.wrap(script, n) + "\n").encode("ascii"))
+                self.proc.stdin.flush()
+            except (OSError, ValueError) as e:
+                self.close()
+                raise ShellDown(str(e))
+            out, end = [], time.time() + timeout
+            ok_mark, err_mark = f"<<<AYOS-OK {n}>>>", f"<<<AYOS-ERR {n}>>>"
+            while True:
+                try:
+                    line = self.lines.get(timeout=max(0.05, end - time.time()))
+                except queue.Empty:
+                    self.close()
+                    raise ShellDown("PowerShell did not answer in time")
+                if line is None:
+                    self.close()
+                    raise ShellDown("PowerShell stopped")
+                if line.startswith(ok_mark):
+                    return "\n".join(out).strip()
+                if line.startswith(err_mark):
+                    try:
+                        msg = base64.b64decode(line[len(err_mark):]).decode("utf-8", "replace")
+                    except Exception:
+                        msg = "PowerShell reported an error"
+                    raise RuntimeError(clean_ps_error(msg))
+                out.append(line)
+
+    def close(self):
+        proc, self.proc = self.proc, None
+        if proc is not None:
+            try:
+                proc.stdin.close()
+            except Exception:
+                pass
+            try:
+                proc.kill()
+                proc.wait(timeout=2)
+            except Exception:
+                pass
+            try:
+                proc.stdout.close()
+            except Exception:
+                pass
+
+
 # ----------------------------------------------------------------- real Windows
 class WindowsSystem(System):
     name = "Windows PC"
@@ -183,10 +296,26 @@ class WindowsSystem(System):
     # Virtual machines sometimes report no "physical" adapter at all; then every visible adapter is used.
     PS_AD = "$ad=@(Get-NetAdapter -Physical -ErrorAction SilentlyContinue); if ($ad.Count -eq 0) { $ad=@(Get-NetAdapter -ErrorAction SilentlyContinue) }; "
     PS_PREFIX = "$ProgressPreference='SilentlyContinue'; try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}; "
-    CACHE_SECONDS = 1.5  # several checks ask for the same lists back to back; PowerShell is slow to start
+    CACHE_SECONDS = 2.5  # several checks ask for the same lists back to back
 
-    def __init__(self):
+    def __init__(self, persistent: bool = True):
         self._cache = {}
+        self._shell = PsShell() if persistent else None
+        self._shell_failures = 0
+        if self._shell:
+            atexit.register(self._shell.close)
+
+    def ps_mode(self) -> str:
+        return "one PowerShell kept open" if self._shell else "a new PowerShell per command"
+
+    def warm(self) -> None:
+        """Start PowerShell and load its networking modules now, so the first real check is fast."""
+        try:
+            self.adapters()
+            self.dns_config()
+            self.ip_config()
+        except Exception:
+            pass
 
     def _cached(self, key: str, fn):
         hit = self._cache.get(key)
@@ -200,6 +329,16 @@ class WindowsSystem(System):
         self._cache.clear()
 
     def _ps(self, script: str, timeout: float = 20.0) -> str:
+        if self._shell is not None:
+            try:
+                return self._shell.run(script, timeout)
+            except ShellDown:
+                self._shell_failures += 1
+                if self._shell_failures >= 2:
+                    self._shell = None  # give up on the shared shell for good; the slow way always works
+        return self._ps_once(script, timeout)
+
+    def _ps_once(self, script: str, timeout: float = 20.0) -> str:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         proc = subprocess.run(
             ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", self.PS_PREFIX + script],
@@ -502,6 +641,11 @@ def clean_ps_error(stderr: str) -> str:
     return first[:300]
 
 
+def is_block_ip(ip: str) -> bool:
+    """Addresses people put in a hosts file to block a site: this PC itself, or 'nowhere'."""
+    return ip.startswith("127.") or ip in ("0.0.0.0", "::", "::1")
+
+
 def _read_text(path: str) -> str:
     for enc in ("utf-8", "mbcs", "latin-1"):
         try:
@@ -660,7 +804,7 @@ class FakeSystem(System):
         ip = self.resolve(host)
         if not ip:
             return {"ok": False, "status": 0, "error": "name could not be resolved", "ms": 900}
-        if ip.startswith("127.") or ip == "0.0.0.0":
+        if is_block_ip(ip):
             return {"ok": False, "status": 0, "error": "connection refused", "ms": 30}
         if not self.tcp_reach(ip, 80):
             return {"ok": False, "status": 0, "error": "network unreachable", "ms": 900}

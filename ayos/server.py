@@ -46,6 +46,8 @@ class App:
         self.log = []
         self._stop = False
         if monitor:
+            if hasattr(system, "warm"):
+                threading.Thread(target=system.warm, daemon=True).start()
             threading.Thread(target=self._monitor, daemon=True).start()
 
     # ------------------------------------------------------------ background

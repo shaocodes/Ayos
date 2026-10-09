@@ -9,11 +9,10 @@ from __future__ import annotations
 import concurrent.futures
 import re
 
-from .system import PUBLIC_DNS, System
+from .system import PUBLIC_DNS, System, is_block_ip
 
 TEST_HOST = "www.msftconnecttest.com"
 TEST_URL = "http://www.msftconnecttest.com/connecttest.txt"
-BLOCK_IPS = ("127.", "0.0.0.0", "::1")
 
 
 def primary_adapter(system: System):
@@ -40,7 +39,7 @@ def snapshot(system: System) -> dict:
             snap["dns"][d["adapter"]] = {"servers": d["servers"], "manual": d["manual"]}
         p = system.proxy_get()
         snap["proxy_enabled"], snap["proxy_server"] = p["enabled"], p["server"]
-        snap["hosts_blocked"] = sorted(n for h in system.hosts_entries() if h["ip"].startswith(BLOCK_IPS) for n in h["names"])
+        snap["hosts_blocked"] = sorted(n for h in system.hosts_entries() if is_block_ip(h["ip"]) for n in h["names"])
         for c in system.ip_config():
             if c.get("gateway"):
                 snap["gateway"] = c["gateway"]
@@ -110,11 +109,16 @@ def check_ip_and_router(system: System, ctx: dict):
     ipv4 = cfg.get("ipv4") if cfg else None
     gateway = cfg.get("gateway") if cfg else None
     apipa = bool(ipv4 and ipv4.startswith("169.254."))
-    ping = system.ping(gateway) if gateway else None
-    passes = None
-    if gateway and not ping:
-        # Some routers (and many public Wi-Fi networks) ignore pings. Traffic getting through proves the router works.
-        passes = bool(system.tcp_reach("1.1.1.1", 443) or system.tcp_reach("8.8.8.8", 53))
+    ping = passes = None
+    if gateway and not apipa:
+        # Some routers (and many public Wi-Fi networks) ignore pings. Traffic getting through proves the router works,
+        # so both are tried at the same time and either one is enough.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+            f_ping = pool.submit(system.ping, gateway)
+            f_tcp = [pool.submit(system.tcp_reach, "1.1.1.1", 443), pool.submit(system.tcp_reach, "8.8.8.8", 53)]
+            ping = bool(f_ping.result())
+            if not ping:
+                passes = any(f.result() for f in f_tcp)
     router_ok = bool(ping or passes) if gateway else None
     if not ipv4:
         summary = "This PC has no IP address, so it is not really on a network."
@@ -153,7 +157,7 @@ def check_dns(system: System, ctx: dict):
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         f_conf = [pool.submit(system.dns_query, TEST_HOST, s) for s in asked]
         f_pub = [pool.submit(system.dns_query, TEST_HOST, s) for s in PUBLIC_DNS]
-        f_res = pool.submit(system.resolve, TEST_HOST, 3.0)
+        f_res = pool.submit(system.resolve, TEST_HOST, 2.5)
         results = [{"server": s, "answered": bool(f.result().get("answered"))} for s, f in zip(asked, f_conf)]
         public_answers = any(f.result().get("answered") for f in f_pub)
         resolves = bool(f_res.result())
@@ -199,17 +203,17 @@ def check_proxy(system: System, ctx: dict):
 
 def check_hosts(system: System, ctx: dict):
     entries = system.hosts_entries()
-    blocked = sorted({n for h in entries if h["ip"].startswith(BLOCK_IPS) for n in h["names"]})
+    blocked = sorted({n for h in entries if is_block_ip(h["ip"]) for n in h["names"]})
     target = ctx.get("target")
     blocks_target = bool(target and any(target == n or target == "www." + n or "www." + target == n for n in blocked))
     if not entries:
         summary = "The hosts file has no extra entries. No website is blocked there."
     elif blocked:
-        summary = "The hosts file blocks these names by pointing them at this PC itself: " + ", ".join(blocked) + "."
+        summary = "The hosts file blocks these names by pointing them at a dead address: " + ", ".join(blocked) + "."
         if target:
             summary += f" That {'includes' if blocks_target else 'does not include'} {target}."
     else:
-        summary = f"The hosts file has {len(entries)} extra entries but none of them block a website."
+        summary = f"The hosts file has {len(entries)} extra " + ("entry" if len(entries) == 1 else "entries") + ", and none of them block a website."
     return summary, {"entries": entries, "blocked_names": blocked, "blocks_target": blocks_target}
 
 

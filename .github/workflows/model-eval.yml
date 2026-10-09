@@ -44,7 +44,12 @@ jobs:
           curl -s http://127.0.0.1:11434/api/tags || (nohup ollama serve > ollama.log 2>&1 & sleep 5)
           ollama --version
       - name: Pull the model
-        run: ollama pull "${{ matrix.model }}"
+        run: |
+          for i in 1 2 3 4 5 6; do
+            ollama pull "${{ matrix.model }}" && break
+            echo "pull failed, trying again in 10 s"; sleep 10
+          done
+          ollama list
       - name: Evaluate with memory
         run: |
           mkdir -p ci_out

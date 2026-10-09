@@ -136,7 +136,7 @@ def main():
         check("no follow-up box without a model", page.is_hidden("#follow"))
         page.click("button:has-text('Leave it')")
         page.wait_for_function("document.querySelector('#ledger').innerText.includes('No change was made')")
-        check("declining changes nothing", len(pc.hosts) == 2)
+        check("declining changes nothing", len(pc.hosts) == 4)
         page.fill("#q", "My laptop is very slow")
         page.click("#askBtn")
         page.wait_for_selector(".stamp")

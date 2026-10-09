@@ -92,7 +92,7 @@ class PsWorld:
 
 def make_pc(world: PsWorld, hosts_text="# hosts\n127.0.0.1 localhost\n"):
     """A WindowsSystem wired to the stand-in PowerShell, a temp hosts file, and a pretend network."""
-    pc = S.WindowsSystem()
+    pc = S.WindowsSystem(persistent=False)
     pc.CACHE_SECONDS = 0
     S.subprocess.run = world.run
     d = tempfile.mkdtemp()
@@ -115,7 +115,7 @@ def make_pc(world: PsWorld, hosts_text="# hosts\n127.0.0.1 localhost\n"):
         if use_system_proxy and world.proxy["enabled"]:
             return {"ok": False, "status": 0, "error": "proxy refused", "ms": 5}
         ip = resolve(S.urlparse(url).hostname)
-        ok = bool(ip) and not ip.startswith("127.")
+        ok = bool(ip) and not S.is_block_ip(ip)
         return {"ok": ok, "status": 200 if ok else 0, "error": "" if ok else "could not connect", "ms": 5}
 
     pc.resolve, pc.http_get = resolve, http_get
@@ -187,6 +187,66 @@ class Reading(unittest.TestCase):
         self.assertEqual(S.WindowsSystem._q("O'Brien LAN"), "'O''Brien LAN'")
 
 
+FAKE_SHELL = r"""
+import base64, re, sys, time
+for line in sys.stdin:
+    m = re.search(r"FromBase64String\('([A-Za-z0-9+/=]+)'\)", line)
+    n = re.search(r"<<<AYOS-OK (\d+)>>>", line).group(1)
+    script = base64.b64decode(m.group(1)).decode("utf-16-le")
+    if script.startswith("ECHO "):
+        print(script[5:]); print(f"<<<AYOS-OK {n}>>>", flush=True)
+    elif script == "FAIL":
+        print(f"<<<AYOS-ERR {n}>>>" + base64.b64encode("Set-Thing : Access is denied.".encode()).decode(), flush=True)
+    elif script == "HANG":
+        time.sleep(30)
+    elif script == "DIE":
+        sys.exit(0)
+"""
+
+
+class LongLivedShell(unittest.TestCase):
+    """The marker protocol, with a stand-in process playing PowerShell."""
+
+    def make(self):
+        sh = S.PsShell()
+        sh.ARGS = [sys.executable, "-c", FAKE_SHELL]
+        self.addCleanup(sh.close)
+        return sh
+
+    def test_commands_reuse_one_process(self):
+        sh = self.make()
+        self.assertEqual(sh.run("ECHO hello"), "hello")
+        pid = sh.proc.pid
+        self.assertEqual(sh.run("ECHO Conexión de red"), "Conexión de red")
+        self.assertEqual(sh.proc.pid, pid)
+
+    def test_script_error_is_reported_and_shell_survives(self):
+        sh = self.make()
+        with self.assertRaises(RuntimeError) as cm:
+            sh.run("FAIL")
+        self.assertIn("administrator rights", str(cm.exception))
+        self.assertEqual(sh.run("ECHO still here"), "still here")
+
+    def test_hang_and_death_raise_shelldown_then_recover(self):
+        sh = self.make()
+        with self.assertRaises(S.ShellDown):
+            sh.run("HANG", timeout=0.5)
+        self.assertEqual(sh.run("ECHO back"), "back")
+        with self.assertRaises(S.ShellDown):
+            sh.run("DIE", timeout=3)
+        self.assertEqual(sh.run("ECHO again"), "again")
+
+    def test_windows_system_falls_back_to_one_shot(self):
+        pc = S.WindowsSystem()
+        pc._shell.ARGS = ["this-program-does-not-exist-ayos"]
+        calls = []
+        pc._ps_once = lambda script, timeout=20.0: calls.append(script) or "x"
+        self.assertEqual(pc._ps("Get-Thing"), "x")
+        self.assertEqual(pc._ps("Get-Thing"), "x")
+        self.assertIsNone(pc._shell)  # gave up on the shared shell after two failures
+        self.assertEqual(len(calls), 2)
+
+
 class WholeFlowOnWindowsLayer(unittest.TestCase):
     def setUp(self):
         self.real_run = S.subprocess.run
@@ -228,7 +288,9 @@ class WholeFlowOnWindowsLayer(unittest.TestCase):
         pc = make_pc(w, "# my hosts\n127.0.0.1 localhost\n10.0.0.5 nas.home\n")
         fixes.apply_fault(pc, "hosts_block")
         with open(pc.HOSTS) as f:
-            self.assertIn("127.0.0.1 example.com # ayos-demo", f.read())
+            text = f.read()
+            self.assertIn("0.0.0.0 example.com # ayos-demo", text)
+            self.assertIn("::1 www.example.com # ayos-demo", text)
         s = Session("t", "I can't open example.com", pc, RuleBrain(), Memory(None), auto_approve=True)
         s.run()
         self.assertEqual(s.cause, "hosts_block")

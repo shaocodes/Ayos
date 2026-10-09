@@ -6,6 +6,8 @@ the checks already run back that cause up. If not, the model is told what is mis
 """
 from __future__ import annotations
 
+from .system import is_block_ip
+
 CAUSES = {
     # id: (title, plain explanation, fix id or None, advice when there is no automatic fix)
     "adapter_disabled": (
@@ -59,7 +61,7 @@ CAUSES = {
     ),
     "hosts_block": (
         "The hosts file is blocking a website",
-        "A line in the Windows hosts file points the website's name back at this PC, so the browser never reaches the real site.",
+        "A line in the Windows hosts file points the website's name at a dead address, so the browser never reaches the real site.",
         "remove_hosts_entry",
         "",
     ),
@@ -243,7 +245,7 @@ def fix_args(cause: str, obs: dict, baseline: dict | None = None) -> dict:
         return {"previous": obs["check_proxy"]["server"]}
     if cause == "hosts_block":
         h = obs["check_hosts"]
-        return {"entries": [e for e in h["entries"] if e["ip"].startswith(("127.", "0.0.0.0", "::1"))]}
+        return {"entries": [e for e in h["entries"] if is_block_ip(e["ip"])]}
     return {}
 
 

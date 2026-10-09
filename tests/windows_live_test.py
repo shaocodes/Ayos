@@ -54,6 +54,13 @@ def main() -> int:
     if not pc.is_admin():
         say("FAILED: run this as administrator.")
         return 1
+    t0 = time.time()
+    pc.warm()
+    say(f"PowerShell mode: {pc.ps_mode()}  (first use took {time.time() - t0:.1f} s)")
+    t0 = time.time()
+    pc._changed()
+    pc.adapters()
+    say(f"PowerShell mode after warm-up: {pc.ps_mode()}  (a repeat read took {time.time() - t0:.2f} s)")
     say(f"Adapters: {pc.adapters()}")
     say(f"Main adapter: {primary_adapter(pc)}")
     say(f"IP: {pc.ip_config()}")

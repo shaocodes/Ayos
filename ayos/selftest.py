@@ -25,6 +25,11 @@ def run_selftest(system, model: str, url: str, api: str) -> int:
     say("Ayos self-test  (read-only, nothing is changed)")
     say(f"Python {platform.python_version()} on {platform.platform()}")
     say(f"PC: {system.name}   Administrator: {'yes' if system.is_admin() else 'no'}")
+    if hasattr(system, "warm"):
+        t0 = time.time()
+        system.warm()
+        say(f"PowerShell: {system.ps_mode()} (start-up took {time.time() - t0:.1f} s; the checks below reuse it)")
+        system._changed()
     try:
         say(f"Main adapter: {primary_adapter(system)}")
     except Exception as e:

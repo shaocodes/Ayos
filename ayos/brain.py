@@ -346,8 +346,11 @@ class LocalModelBrain:
         try:
             out = self._chat(convo, decision_schema(allowed))
         except Exception as e:
+            err = _short_error(e)
+            if "took too long" in err and not self.server_up(1.0):
+                err = "the local model server is not running"  # Windows reports a closed port as a timeout
             d = self.fallback.step(convo, view)
-            d.update({"source": "rules", "model_error": _short_error(e), "seconds": round(time.time() - started, 2)})
+            d.update({"source": "rules", "model_error": err, "seconds": round(time.time() - started, 2)})
             self.record(convo, d)
             return d
         seconds = round(time.time() - started, 2)
