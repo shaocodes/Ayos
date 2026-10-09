@@ -1,7 +1,7 @@
 name: Model evaluation
 
 # Runs real open models through Ollama on a plain CPU machine (no GPU) and measures how well
-# each one diagnoses the simulated faults, with and without Ayos' memory.
+# each one diagnoses the simulated faults, with and without Resolv's memory.
 # The numbers are for THIS machine. Speed on another computer will differ.
 
 on:

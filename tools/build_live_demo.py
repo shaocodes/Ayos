@@ -1,6 +1,6 @@
-"""Build the web page that replays recorded Ayos sessions (docs/index.html).
+"""Build the web page that replays recorded Resolv sessions (docs/index.html).
 
-Ayos is a local Windows program, so it cannot be "hosted". What can be put online is an honest
+Resolv is a local Windows program, so it cannot be "hosted". What can be put online is an honest
 replay: real sessions, recorded event by event on the simulated PC, played back in the real
 interface. Nothing on the page is invented; it shows what the recorded run did, including the
 times it took.
@@ -80,7 +80,7 @@ def record(args) -> int:
 
 
 REPLAY_JS = r"""
-/* ---- Replay of recorded sessions. Replaces the calls to the local Ayos server. ---- */
+/* ---- Replay of recorded sessions. Replaces the calls to the local Resolv server. ---- */
 (function () {
   const REC = window.AYOS_RECORDING;
   const byId = {}; for (const s of REC.scenarios) byId[s.id] = s;
@@ -158,8 +158,8 @@ REPLAY_JS = r"""
 
 BANNER = """
 <div class="replay-note" id="replayNote">
-  <b>You are watching a replay.</b> Ayos is a Windows program that runs on your own PC, so it cannot be hosted on a website.
-  This page plays back real sessions, recorded step by step on Ayos' simulated PC __HOW__.
+  <b>You are watching a replay.</b> Resolv is a Windows program that runs on your own PC, so it cannot be hosted on a website.
+  This page plays back real sessions, recorded step by step on Resolv's simulated PC __HOW__.
   Long waits are shortened here; the times printed in each result are the real ones.
   Pick a fault under <b>Practice bench</b>, then press <b>Check it</b>.
   <a href="https://github.com/shaocodes/Ayos">Code and how to run the real thing</a>
@@ -186,11 +186,11 @@ def build(args) -> int:
     if rec.get("uses_model"):
         how = f"with the open model <b>{rec['model']}</b> running through Ollama on a machine with {rec['machine'].split(', ', 1)[-1]}"
     else:
-        how = "using Ayos' built-in rules (no language model was running for this recording)"
+        how = "using Resolv's built-in rules (no language model was running for this recording)"
     banner = BANNER.replace("__HOW__", how)
     html = html.replace('<header class="top">', banner + '<header class="top">', 1)
     html = html.replace("  @media (prefers-reduced-motion: reduce)", BANNER_CSS + "  @media (prefers-reduced-motion: reduce)", 1)
-    html = html.replace("<title>Ayos repair desk</title>", "<title>Ayos: recorded demo</title>", 1)
+    html = html.replace("<title>Resolv repair desk</title>", "<title>Resolv: recorded demo</title>", 1)
     html = html.replace('<div class="sim-band" id="simBand" hidden><p>Simulated PC. Nothing on this computer is changed.</p></div>', '<div class="sim-band" id="simBand" hidden><p>Recorded replay on a simulated PC.</p></div>', 1)
     # the replay uses the recorded complaint, so typing a different one would be misleading
     picks = [sc["question"] for sc in rec["scenarios"] if not sc["fault"]]

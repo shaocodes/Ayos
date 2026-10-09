@@ -1,6 +1,6 @@
 """Run every read-only check once and print what came back.
 
-This changes nothing. It is the fastest way to see whether Ayos can read this PC correctly
+This changes nothing. It is the fastest way to see whether Resolv can read this PC correctly
 and how fast the local model answers. The output is also saved to ayos_selftest.txt.
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ def run_selftest(system, model: str, url: str, api: str) -> int:
         print(text)
         lines.append(text)
 
-    say("Ayos self-test  (read-only, nothing is changed)")
+    say("Resolv self-test  (read-only, nothing is changed)")
     say(f"Python {platform.python_version()} on {platform.platform()}")
     say(f"PC: {system.name}   Administrator: {'yes' if system.is_admin() else 'no'}")
     if hasattr(system, "warm"):

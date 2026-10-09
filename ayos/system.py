@@ -1,4 +1,4 @@
-"""Everything Ayos knows about the computer goes through a System object.
+"""Everything Resolv knows about the computer goes through a System object.
 
 WindowsSystem talks to the real PC. FakeSystem is a simulated PC used for tests,
 for rehearsing the interface on any computer, and for checking how well a language
@@ -708,7 +708,7 @@ def clean_ps_error(stderr: str) -> str:
     lines = [ln.strip() for ln in text.splitlines() if ln.strip() and not ln.startswith("#< CLIXML")]
     first = lines[0] if lines else "PowerShell reported an error"
     if "access is denied" in text.lower() or "requires elevation" in text.lower() or "PermissionDenied" in text:
-        return "Windows refused: administrator rights are needed. Start Ayos with start_ayos.bat. (" + first[:160] + ")"
+        return "Windows refused: administrator rights are needed. Start Resolv with start_ayos.bat. (" + first[:160] + ")"
     return first[:300]
 
 
@@ -775,7 +775,7 @@ def _server_time(headers):
 def real_http_get(url: str, use_system_proxy: bool, timeout: float) -> dict:
     handlers = [] if use_system_proxy else [urllib.request.ProxyHandler({})]
     opener = urllib.request.build_opener(*handlers)
-    req = urllib.request.Request(url, headers={"User-Agent": "Ayos/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "Resolv/1.0"})
     started = time.monotonic()
 
     def ms():

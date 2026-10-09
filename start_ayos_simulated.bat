@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Ayos (simulated PC)
+title Resolv (simulated PC)
 cd /d "%~dp0"
 rem Rehearsal mode: a pretend PC. Nothing on this computer is changed, and no administrator rights are needed.
 set "PY="

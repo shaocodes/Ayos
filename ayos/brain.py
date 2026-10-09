@@ -22,7 +22,7 @@ DEFAULT_URL = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "gemma3:4b"
 
 # The model server is on this computer. Never send these requests through a system proxy:
-# one of the faults Ayos repairs is a broken proxy setting.
+# one of the faults Resolv repairs is a broken proxy setting.
 _LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
@@ -69,7 +69,7 @@ def classify(question: str) -> dict:
         route = "network"
     else:
         route = "general"
-    # must_check: the complaint is about something Ayos has checks for, so advice without evidence is not acceptable
+    # must_check: the complaint is about something Resolv has checks for, so advice without evidence is not acceptable
     clock_words = ("not private", "certificate", "cert error", "clock", "wrong date", "wrong time", "date and time", "oras", "petsa")
     return {
         "mentions_clock": any(k in q for k in clock_words),
@@ -132,7 +132,7 @@ def system_prompt(compact: bool = False, route: str | None = None) -> str:
     cause_ids = PC_CAUSES if route == "pc" else NETWORK_CAUSES if route == "network" else NETWORK_CAUSES + PC_CAUSES
     causes = "\n".join(f"{cid}: {CAUSE_HINTS[cid]}" for cid in cause_ids)
     if compact:
-        return f"""You are Ayos, a PC repair technician running offline on the user's own Windows PC.
+        return f"""You are Resolv, a PC repair technician running offline on the user's own Windows PC.
 Checks were already run on this PC. Read the results and name the cause. A safety step verifies your conclusion.
 
 Reply with ONE JSON object on one line:
@@ -144,7 +144,7 @@ Causes:
 message: two short plain sentences. Say what is wrong and why it causes what the user sees. Use the user's language."""
     checks = "\n".join(f"{name}: {CHECK_HINTS[name]}" for name in CHECKS)
     causes = "\n".join(f"{cid}: {CAUSE_HINTS[cid]}" for cid in NETWORK_CAUSES + PC_CAUSES)
-    return f"""You are Ayos, a PC repair technician running offline on the user's own Windows PC.
+    return f"""You are Resolv, a PC repair technician running offline on the user's own Windows PC.
 Find the cause by running checks, one per turn, then name the cause. You cannot change anything yourself. A safety step verifies your conclusion.
 
 Reply with ONE JSON object on one line:

@@ -1,8 +1,8 @@
-"""What Ayos remembers about this one PC. Everything stays in a small JSON file on this computer.
+"""What Resolv remembers about this one PC. Everything stays in a small JSON file on this computer.
 
 Two things are kept:
   baseline - a picture of the network settings the last time the internet was working.
-             It lets Ayos answer "what changed since it last worked?".
+             It lets Resolv answer "what changed since it last worked?".
   history  - past problems on this PC: the cause, the fix, and whether it worked.
              Causes seen before are checked first next time, so repeat problems are found faster.
 
@@ -38,7 +38,7 @@ class Memory:
                     self.data["baseline"] = loaded.get("baseline") or None
                     self.data["history"] = list(loaded.get("history") or [])
             except (OSError, ValueError):
-                pass  # a damaged memory file must never stop Ayos from starting
+                pass  # a damaged memory file must never stop Resolv from starting
 
     def _save(self):
         if not self.path:

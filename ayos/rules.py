@@ -1,4 +1,4 @@
-"""Causes Ayos can name, and the safety rules that check a conclusion against the evidence.
+"""Causes Resolv can name, and the safety rules that check a conclusion against the evidence.
 
 The language model proposes a cause. Before any fix is offered, `supports()` confirms that
 the checks already run back that cause up. If not, the model is told what is missing.

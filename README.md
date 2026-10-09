@@ -1,14 +1,14 @@
-# Ayos
+# Resolv
 
 **A local AI technician for your PC. It finds out why your internet or computer is not working, shows you the proof, and fixes it with your approval. It runs on your own computer, so it works when the internet does not.**
 
-"Ayos" is Filipino for *fixed* and for *all good*.
+The name comes from networking: a computer *resolves* a website's name into an address, and Linux keeps that setting in a file called `resolv.conf`. Resolv resolves the problem. The code folder and the start files still carry the working name, `ayos`, which is Filipino for *fixed* and *all good*.
 
 Built for the AppBuildersPH Hackathon 2026 (theme: Local AI).
 
-**See it without installing anything:** [a replay of recorded sessions, in the real interface](https://shaocodes.github.io/Ayos/). Ayos itself is a Windows program that runs on your own PC, so the page plays back real recorded runs.
+**See it without installing anything:** [a replay of recorded sessions, in the real interface](https://shaocodes.github.io/Ayos/). Resolv itself is a Windows program that runs on your own PC, so the page plays back real recorded runs.
 
-![Ayos finds a wrong DNS setting, shows the evidence, and waits for approval](docs/img/diagnosis.png)
+![Resolv finds a wrong DNS setting, shows the evidence, and waits for approval](docs/img/diagnosis.png)
 
 ## The problem
 
@@ -16,15 +16,15 @@ When the internet stops working, the tools that could help are on the internet. 
 
 A repair assistant has to be local, because the fault it repairs is the connection itself.
 
-## What Ayos does
+## What Resolv does
 
 1. You say what is wrong in your own words, in English or Taglish.
-2. **Memory first.** Ayos compares the PC with how it looked the last time the internet worked. If a setting changed, it checks that area at once.
+2. **Memory first.** Resolv compares the PC with how it looked the last time the internet worked. If a setting changed, it checks that area at once.
 3. **A language model running on your PC** reads the results. If more is needed, it chooses the next check from a fixed menu, reads the result, and chooses again. You watch its reasoning being written, word by word.
 4. The model names a cause. **Plain code then checks that the results really show that cause.** If they do not, the conclusion is refused, with the reason, and the model has to look again. If proof is missing, the safety check runs the missing checks itself before it decides.
-5. Ayos shows the cause, the evidence, and the exact change it wants to make.
+5. Resolv shows the cause, the evidence, and the exact change it wants to make.
 6. Nothing changes until you press **Fix it**. After the fix, the checks run again to prove it worked. Every fix can be undone.
-7. Ayos remembers what this PC looks like when it works, and what went wrong before.
+7. Resolv remembers what this PC looks like when it works, and what went wrong before.
 
 ```
   you ──"ayaw mag-load ng mga website"──┐
@@ -48,7 +48,7 @@ A repair assistant has to be local, because the fault it repairs is the connecti
 
 Everything. The language model runs on this computer through [Ollama](https://ollama.com). The checks, the safety check, the fixes and the memory are Python on this computer. Your question, your settings and the diagnosis never leave it.
 
-The only network traffic Ayos makes is the diagnosis itself: it tries to reach a Microsoft test page, public DNS servers and your router, because testing the connection is the job. No cloud AI or other online service is used at any point.
+The only network traffic Resolv makes is the diagnosis itself: it tries to reach a Microsoft test page, public DNS servers and your router, because testing the connection is the job. No cloud AI or other online service is used at any point.
 
 ## Why the model cannot break your PC
 
@@ -57,7 +57,7 @@ The only network traffic Ayos makes is the diagnosis itself: it tries to reach a
 - A cause is only accepted if the check results support it (`ayos/rules.py`, `supports()`). A model that guesses is refused and told why.
 - Fix details (which adapter, which hosts line) come from the check results, never from the model's text.
 - Only 12 fixes exist (`ayos/fixes.py`). Each one states exactly what it changes and needs your approval. The ones that change a setting can be undone, except asking the router for a new address, where there is nothing to undo.
-- The web page talks to a server on `127.0.0.1` only, and every action needs a secret token created at start-up, so a website open in another tab cannot drive Ayos.
+- The web page talks to a server on `127.0.0.1` only, and every action needs a secret token created at start-up, so a website open in another tab cannot drive Resolv.
 - If no model is running, or the model returns something unusable, built-in rules take over that step. The interface always shows who made each decision.
 
 ## Run it
@@ -65,8 +65,8 @@ The only network traffic Ayos makes is the diagnosis itself: it tries to reach a
 You need Windows 10 or 11, Python 3.10 or newer, and Ollama.
 
 1. Install [Ollama](https://ollama.com), then in a terminal: `ollama pull gemma3:4b`
-2. Double-click **`start_ayos.bat`**. It asks for administrator rights (needed to change network settings) and opens Ayos in its own window. Nothing is sent anywhere: the window shows a page served by Ayos on this PC (`http://127.0.0.1:8020`). It uses Microsoft Edge, which is part of Windows, to draw the window; `--browser` opens a normal browser tab instead.
-3. Type what is wrong, or use the **Practice bench** on the right to break one setting on purpose, then ask Ayos to find it.
+2. Double-click **`start_ayos.bat`**. It asks for administrator rights (needed to change network settings) and opens Resolv in its own window. Nothing is sent anywhere: the window shows a page served by Resolv on this PC (`http://127.0.0.1:8020`). It uses Microsoft Edge, which is part of Windows, to draw the window; `--browser` opens a normal browser tab instead.
+3. Type what is wrong, or use the **Practice bench** on the right to break one setting on purpose, then ask Resolv to find it.
 
 Other ways to start:
 
@@ -75,17 +75,17 @@ Other ways to start:
 | `start_ayos.bat` | The real thing, on this PC. |
 | `start_ayos_simulated.bat` | A pretend PC for rehearsing. Changes nothing on this computer. No administrator rights needed. |
 | `selftest.bat` | Runs every read-only check once and times the model. Changes nothing. |
-| `restore_network.bat` | Emergency reset. Undoes the practice faults without Python or Ayos. |
+| `restore_network.bat` | Emergency reset. Undoes the practice faults without Python or Resolv. |
 
 Options: `python -m ayos --model gemma3:1b` picks a model. `python -m ayos --api openai --url http://127.0.0.1:1234` uses LM Studio or any OpenAI-compatible local server.
 
-No Python packages need to be installed. Ayos uses only the Python standard library.
+No Python packages need to be installed. Resolv uses only the Python standard library.
 
-**No Python on the PC?** Download `Ayos.exe` from the [Releases page](https://github.com/shaocodes/Ayos/releases). It is built from this repository by GitHub Actions. Windows may show a SmartScreen warning because the file is not signed: choose *More info*, then *Run anyway*.
+**No Python on the PC?** Download `Resolv.exe` from the [Releases page](https://github.com/shaocodes/Ayos/releases). It is built from this repository by GitHub Actions. Windows may show a SmartScreen warning because the file is not signed: choose *More info*, then *Run anyway*.
 
 ## What it can diagnose
 
-| | Cause | What Ayos does |
+| | Cause | What Resolv does |
 |---|---|---|
 | Internet | Network adapter turned off | Turns it back on |
 | Internet | Wi-Fi not joined to any network | Opens Wi-Fi settings |
@@ -110,9 +110,9 @@ It also answers general computer questions ("what is DNS?") with the local model
 
 ## The practice bench
 
-Real faults are hard to produce on demand, so Ayos can create five safe ones on the real PC. Each is a single setting, and each is undone by **Put everything back** or by `restore_network.bat`.
+Real faults are hard to produce on demand, so Resolv can create five safe ones on the real PC. Each is a single setting, and each is undone by **Put everything back** or by `restore_network.bat`.
 
-| Fault | What you would notice | What Ayos should find | The fix |
+| Fault | What you would notice | What Resolv should find | The fix |
 |---|---|---|---|
 | Wrong DNS server | Wi-Fi shows connected, no website opens | DNS set by hand to a server that does not answer | Set DNS back to automatic |
 | Adapter turned off | No connection at all | The network adapter is turned off | Turn it back on |
@@ -129,7 +129,7 @@ Measured by GitHub Actions on a 4-thread cloud CPU with no graphics card (x86_64
 
 - **Model alone**: the first cause the model named was the right one.
 - **With safety check**: the final diagnosis was right, after plain code checked the model.
-- **With memory**: Ayos has seen this PC healthy before and can compare. This is the normal case.
+- **With memory**: Resolv has seen this PC healthy before and can compare. This is the normal case.
 
 The first three columns after the model name describe the model; the next three are with memory, the last three without.
 
@@ -152,10 +152,12 @@ The first time we measured, the small models reasoned correctly and then kept as
 | `llama3.2:3b` | 2.0 GB | 16.2 | 1/20 | 20/20 | 37.1 s | 4/20 | 20/20 | 39.0 s |
 | `qwen2.5:3b` | 1.9 GB | 11.2 | 7/20 | 19/20 | 44.6 s | 4/20 | 20/20 | 62.8 s |
 
-So we changed the design, not the model. Once the check results already prove a cause, no more checks are offered and the model has to name it. An internet problem is only offered network checks. When memory shows a setting changed, Ayos looks there first. A refused conclusion comes back with the reason. The table at the top is the same models after those changes. The raw result files for both runs are in `docs/results/`, next to the output of the live test on real Windows.
+So we changed the design, not the model. Once the check results already prove a cause, no more checks are offered and the model has to name it. An internet problem is only offered network checks. When memory shows a setting changed, Resolv looks there first. A refused conclusion comes back with the reason. The table at the top is the same models after those changes. The raw result files for both runs are in `docs/results/`, next to the output of the live test on real Windows.
 <!-- /RESULTS -->
 
 On a team member's home PC with a mid-range graphics card (AMD RX 6600, 16 GB RAM), the built-in self-test (`selftest.bat`) measured `gemma3:4b` at about 40 tokens a second, with the first decision in 3.6 seconds. That is one PC measured once, not a benchmark.
+
+<!-- RENAME-NOTE -->The table above was measured at commit `c73c5b0`, when the project was still called Ayos. The only thing the model reads that changed since then is the name. The measurement is running again with the new name.<!-- /RENAME-NOTE -->
 
 To measure a model on your own computer:
 
@@ -171,18 +173,18 @@ It reports two scores. **Model alone** is how often the model's own first conclu
 ## How it is tested
 
 - `python -m unittest discover -s tests` runs 95 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the model client against a stand-in model server, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
-- `tests/windows_live_test.py` runs on real Windows as administrator. It breaks the DNS setting, the proxy and the hosts file for real, lets Ayos find and fix each one, and checks the internet is back. It also switches a network adapter off and on, runs the emergency reset script, and starts Ayos through `start_ayos.bat`.
+- `tests/windows_live_test.py` runs on real Windows as administrator. It breaks the DNS setting, the proxy and the hosts file for real, lets Resolv find and fix each one, and checks the internet is back. It also switches a network adapter off and on, runs the emergency reset script, and starts Resolv through `start_ayos.bat`.
 - `tests/ui_test.py` drives the whole interface in a browser.
-- GitHub Actions runs all of that on a real Windows machine (`.github/workflows/windows.yml`), runs the unit tests on Python 3.8 to 3.13, builds `Ayos.exe`, and measures real models on a CPU-only machine (`model-eval.yml`).
+- GitHub Actions runs all of that on a real Windows machine (`.github/workflows/windows.yml`), runs the unit tests on Python 3.8 to 3.13, builds `Resolv.exe`, and measures real models on a CPU-only machine (`model-eval.yml`).
 - Not covered by automation: the complete "adapter turned off" repair on the PC's only adapter (it would cut the test machine off from its own controller). The switch-off and switch-on commands are tested on a spare adapter, and the complete repair on the simulated PC.
 
 - Before the deadline a second reviewer read the code cold, without having seen it written, and wrote failing cases for what it found: a job replayed in the page, a switched-off adapter missed next to a VPN adapter, old hosts-file lines blamed for an unrelated fault. Each one was fixed and has a test (`FoundInReview` in `tests/test_agent.py`).
 
 Three things the real Windows machine taught us that the simulated PC could not:
 
-- Starting PowerShell for every check cost one to three seconds each time. Ayos now keeps one PowerShell open, and a diagnosis that took 15 seconds takes 3.
-- Its router ignores pings, like many public Wi-Fi networks. Ayos used to call that a dead router. Now traffic passing through the router counts as proof that it works.
-- It had two adapters switched on and only one with an address. Ayos now picks the adapter that has the router.
+- Starting PowerShell for every check cost one to three seconds each time. Resolv now keeps one PowerShell open, and a diagnosis that took 15 seconds takes 3.
+- Its router ignores pings, like many public Wi-Fi networks. Resolv used to call that a dead router. Now traffic passing through the router counts as proof that it works.
+- It had two adapters switched on and only one with an address. Resolv now picks the adapter that has the router.
 
 ## What is in the box
 
@@ -209,13 +211,13 @@ Three things the real Windows machine taught us that the simulated PC could not:
 - "Learning" here means memory: a saved picture of healthy settings and a history of past problems on this PC. No model is trained or fine-tuned. Memory can be switched off in the interface.
 - The models understand a problem described in Taglish. The small ones usually reply in English.
 - Proving that nothing is wrong takes the longest, because every check has to pass first.
-- If your browser's secure DNS is set to a specific provider, the browser may keep working when Windows DNS is broken. Ayos checks the Windows setting.
+- If your browser's secure DNS is set to a specific provider, the browser may keep working when Windows DNS is broken. Resolv checks the Windows setting.
 
 ## Disclosures
 
 **Models.** Any open chat model that Ollama can run. Developed and measured with Google's Gemma 3 (`gemma3:4b`, `gemma3:1b`), Meta's Llama 3.2 (`llama3.2:3b`) and Alibaba's Qwen 2.5 (`qwen2.5:3b`). The models are used as published, each under its own licence. No model was trained or fine-tuned for this project. The default is `gemma3:4b`.
 
-**Frameworks and tools.** Python standard library only for Ayos itself. Ollama serves the model. Windows PowerShell networking cmdlets are used for checks and fixes. Playwright is used in one optional interface test and for the screenshots. PyInstaller builds `Ayos.exe`. GitHub Actions runs the tests, the measurements and the build.
+**Frameworks and tools.** Python standard library only for Resolv itself. Ollama serves the model. Windows PowerShell networking cmdlets are used for checks and fixes. Playwright is used in one optional interface test and for the screenshots. PyInstaller builds `Resolv.exe`. GitHub Actions runs the tests, the measurements and the build.
 
 **External APIs.** None. No cloud AI, no online service.
 

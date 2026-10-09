@@ -81,7 +81,7 @@ class Session:
         try:
             fn()
         except Exception as e:  # a session must always end with something the user can read
-            self.emit("error", message=f"Something went wrong inside Ayos: {type(e).__name__}: {str(e)[:200]}")
+            self.emit("error", message=f"Something went wrong inside Resolv: {type(e).__name__}: {str(e)[:200]}")
             if self.state in ("running", "fixing"):
                 self.state = "done" if self.state == "running" else "awaiting"
                 if self.state == "done":
@@ -155,7 +155,7 @@ class Session:
         self.emit("start", question=self.question, brain=self.brain.label, brain_kind=self.brain.kind, target=self.ctx["target"])
 
         # Step 1 is always memory, with no model call: what changed since the internet last worked?
-        # If memory shows that a setting changed, Ayos looks there straight away, without asking the model where to look.
+        # If memory shows that a setting changed, Resolv looks there straight away, without asking the model where to look.
         # The results are handed to the model as plain facts in its first message.
         if self.memory.baseline and self.cls["route"] == "network":
             summary = self._run_check("compare_with_normal", "memory", "First, compare with how this PC looked the last time the internet worked.")
@@ -406,7 +406,7 @@ class Session:
             self.state = "awaiting"  # nothing changed, so the offer stays open
             return
         if not info["changes_settings"]:
-            self.emit("fix_result", ok=True, verified=None, message="Opened the Settings page. Ayos changed nothing.", can_undo=False, checks=[], seconds=round(time.monotonic() - t0, 1))
+            self.emit("fix_result", ok=True, verified=None, message="Opened the Settings page. Resolv changed nothing.", can_undo=False, checks=[], seconds=round(time.monotonic() - t0, 1))
             self.memory.add_incident(self.question, self.cause, self.fix_id, None, self.diagnosed_after or 0, len(self.obs), self.brain.label)
             self.state = "done"
             self.emit("done")

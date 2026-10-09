@@ -1,4 +1,4 @@
-"""Start Ayos:  python -m ayos            real PC (Windows)
+"""Start Resolv:  python -m ayos            real PC (Windows)
                python -m ayos --sim      simulated PC, safe on any computer
                python -m ayos --selftest run every read-only check once and print the results
 """
@@ -20,7 +20,7 @@ from .system import FakeSystem, WindowsSystem
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if getattr(sys, "frozen", False):
-    ROOT = os.path.dirname(os.path.abspath(sys.executable))  # packaged as Ayos.exe: keep memory next to the program
+    ROOT = os.path.dirname(os.path.abspath(sys.executable))  # packaged as Resolv.exe: keep memory next to the program
 
 
 def find_app_browser(env=None, exists=os.path.isfile, which=shutil.which):
@@ -49,9 +49,9 @@ def window_command(exe: str, url: str, data_dir: str) -> list:
 
 def open_window(url: str, data_dir: str, plain_browser: bool = False, elevated: bool = False, loaded=lambda: False,
                 popen=subprocess.Popen, wait: float = 12.0) -> str:
-    """Show Ayos in its own desktop window. Falls back to a normal browser tab. Returns which way worked.
+    """Show Resolv in its own desktop window. Falls back to a normal browser tab. Returns which way worked.
 
-    Ayos runs as administrator, and a browser started by an administrator shows a warning bar. So on Windows the window
+    Resolv runs as administrator, and a browser started by an administrator shows a warning bar. So on Windows the window
     is first started through Explorer, which runs it as the normal user. `loaded` tells us whether the page really opened.
     """
     exe = "" if plain_browser else find_app_browser()
@@ -82,7 +82,7 @@ def open_window(url: str, data_dir: str, plain_browser: bool = False, elevated: 
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(prog="ayos", description="Ayos: a local AI agent that finds and fixes PC and internet problems, offline.")
+    p = argparse.ArgumentParser(prog="ayos", description="Resolv: a local AI agent that finds and fixes PC and internet problems, offline.")
     p.add_argument("--sim", action="store_true", help="use a simulated PC instead of this one (changes nothing on this computer)")
     p.add_argument("--port", type=int, default=8020)
     p.add_argument("--model", default="auto", help="model name as the local server knows it, e.g. gemma3:4b (default: pick the best one installed)")
@@ -91,12 +91,12 @@ def main(argv=None) -> int:
     p.add_argument("--no-open", action="store_true", help="do not open a window")
     p.add_argument("--browser", action="store_true", help="open in a normal browser tab instead of its own window")
     p.add_argument("--selftest", action="store_true", help="run every read-only check once, print the results, and exit")
-    p.add_argument("--data", default=None, help="folder for Ayos' memory file")
+    p.add_argument("--data", default=None, help="folder for Resolv's memory file")
     args = p.parse_args(argv)
 
     sim = args.sim
     if not sim and os.name != "nt":
-        print("This is not Windows, so Ayos is starting with the simulated PC.")
+        print("This is not Windows, so Resolv is starting with the simulated PC.")
         sim = True
 
     if args.selftest:
@@ -113,11 +113,11 @@ def main(argv=None) -> int:
     try:
         srv = make_server(app, args.port)
     except OSError as e:
-        print(f"Could not start on port {args.port} ({e}). Is Ayos already running? Try: python -m ayos --port 8021")
+        print(f"Could not start on port {args.port} ({e}). Is Resolv already running? Try: python -m ayos --port 8021")
         return _pause_if_packaged(1)
     url = f"http://127.0.0.1:{args.port}/"
     print("")
-    print("  Ayos is running.")
+    print("  Resolv is running.")
     print(f"  Window: opens by itself. If it does not, open {url} in a browser.")
     print(f"  PC:     {'SIMULATED PC (nothing on this computer is changed)' if sim else 'this computer'}")
     if not sim:
@@ -134,7 +134,7 @@ def main(argv=None) -> int:
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
-        print("\nAyos stopped.")
+        print("\nResolv stopped.")
     finally:
         srv.server_close()
     return 0

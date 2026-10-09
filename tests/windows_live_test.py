@@ -1,4 +1,4 @@
-"""Live test on a real Windows PC: break a setting, let Ayos find and fix it, check it is really fixed.
+"""Live test on a real Windows PC: break a setting, let Resolv find and fix it, check it is really fixed.
 
     python tests/windows_live_test.py            DNS, proxy and hosts-file faults
     python tests/windows_live_test.py --adapter  also switch the network adapter off and on
@@ -229,7 +229,7 @@ def main() -> int:
             pc._ps(f"Start-Service -Name {svc} -ErrorAction SilentlyContinue")
         except Exception:
             pass
-    # The launcher: start_ayos.bat must find Python and start Ayos (here it only runs the self-test).
+    # The launcher: start_ayos.bat must find Python and start Resolv (here it only runs the self-test).
     say("")
     say("=== start_ayos.bat --selftest (the launcher)")
     try:

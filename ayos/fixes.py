@@ -1,9 +1,9 @@
 """The only code that changes anything on the PC.
 
 Three groups:
-  FIXES   - repairs Ayos may propose. Each one says exactly what it will change and can be undone.
+  FIXES   - repairs Resolv may propose. Each one says exactly what it will change and can be undone.
   FAULTS  - demo helpers that break a setting on purpose, for testing and for the live demo.
-  restore_all() - puts every network setting Ayos knows about back to normal.
+  restore_all() - puts every network setting Resolv knows about back to normal.
 
 The language model never writes commands. It can only name one of the fix ids below,
 and nothing runs until the user approves it.
@@ -162,7 +162,7 @@ FIXES = {
     },
     "open_login_page": {
         "title": lambda a: "Open the Wi-Fi sign-in page",
-        "detail": lambda a: "Opens a plain web page in your browser so the Wi-Fi can show its sign-in page. Ayos changes nothing.",
+        "detail": lambda a: "Opens a plain web page in your browser so the Wi-Fi can show its sign-in page. Resolv changes nothing.",
         "apply": _open_login_page,
         "undo": None,
         "admin": False,
@@ -170,7 +170,7 @@ FIXES = {
     },
     "open_battery_settings": {
         "title": lambda a: "Open battery settings",
-        "detail": lambda a: "Opens the battery page in Windows Settings, where battery saver can be switched off. Ayos changes nothing.",
+        "detail": lambda a: "Opens the battery page in Windows Settings, where battery saver can be switched off. Resolv changes nothing.",
         "apply": _open("batterysaver"),
         "undo": None,
         "admin": False,
@@ -178,7 +178,7 @@ FIXES = {
     },
     "open_wifi_settings": {
         "title": lambda a: "Open Wi-Fi settings",
-        "detail": lambda a: "Opens the Wi-Fi page in Windows Settings so you can pick your network. Ayos changes nothing.",
+        "detail": lambda a: "Opens the Wi-Fi page in Windows Settings so you can pick your network. Resolv changes nothing.",
         "apply": _open("network-wifi"),
         "undo": None,
         "admin": False,
@@ -186,7 +186,7 @@ FIXES = {
     },
     "open_storage_settings": {
         "title": lambda a: "Open Storage settings",
-        "detail": lambda a: "Opens the Storage page in Windows Settings, which shows what is using space. Ayos deletes nothing.",
+        "detail": lambda a: "Opens the Storage page in Windows Settings, which shows what is using space. Resolv deletes nothing.",
         "apply": _open("storagesense"),
         "undo": None,
         "admin": False,
@@ -194,7 +194,7 @@ FIXES = {
     },
     "open_startup_settings": {
         "title": lambda a: "Open Startup apps settings",
-        "detail": lambda a: "Opens the Startup apps page in Windows Settings so you can switch off what you do not need. Ayos changes nothing.",
+        "detail": lambda a: "Opens the Startup apps page in Windows Settings so you can switch off what you do not need. Resolv changes nothing.",
         "apply": _open("startupapps"),
         "undo": None,
         "admin": False,
@@ -218,7 +218,7 @@ def describe(fix_id: str, args: dict) -> dict:
 def apply_fix(system: System, fix_id: str, args: dict) -> dict:
     f = FIXES[fix_id]
     if f["admin"] and not system.is_admin():
-        raise PermissionError("This fix needs administrator rights. Close Ayos and start it with 'Run as administrator'.")
+        raise PermissionError("This fix needs administrator rights. Close Resolv and start it with 'Run as administrator'.")
     return f["apply"](system, args) or {}
 
 
@@ -293,7 +293,7 @@ FAULTS = {
 def apply_fault(system: System, fault_id: str) -> str:
     title, _desc, fn, needs_admin = FAULTS[fault_id]
     if needs_admin and not system.is_admin():
-        raise PermissionError("Setting this fault needs administrator rights. Start Ayos with 'Run as administrator'.")
+        raise PermissionError("Setting this fault needs administrator rights. Start Resolv with 'Run as administrator'.")
     return fn(system)
 
 

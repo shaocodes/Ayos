@@ -1,4 +1,4 @@
-"""Entry point for the packaged Windows program (Ayos.exe). From source, use:  python -m ayos"""
+"""Entry point for the packaged Windows program (Resolv.exe). From source, use:  python -m ayos"""
 import sys
 
 from ayos.__main__ import main

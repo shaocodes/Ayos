@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ayos repair desk</title>
+<title>Resolv repair desk</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314232b'/%3E%3Cpath d='M17 34l10 10 20-24' fill='none' stroke='%23f0b400' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
   :root {
@@ -166,7 +166,7 @@
 <body>
 <div class="sim-band" id="simBand" hidden><p>Simulated PC. Nothing on this computer is changed.</p></div>
 <header class="top">
-  <h1>Ayos</h1>
+  <h1>Resolv</h1>
   <span class="sub">repair desk for this PC</span>
   <span class="promise">The AI runs on this PC. Your question and your settings never leave it, so it still works when the internet does not.</span>
 </header>
@@ -198,16 +198,16 @@
       </form>
     </div>
     <div class="empty" id="empty">
-      <p><b>Nothing on the bench yet.</b> Describe a problem above. Ayos runs checks on this PC one at a time, shows you each result, names the cause, and asks before it changes anything.</p>
+      <p><b>Nothing on the bench yet.</b> Describe a problem above. Resolv runs checks on this PC one at a time, shows you each result, names the cause, and asks before it changes anything.</p>
     </div>
   </section>
 
   <aside class="rail">
     <section class="panel" id="pcPanel"><h2>This PC</h2><div id="pcBody"><p class="muted">Looking…</p></div></section>
-    <section class="panel"><h2>What Ayos remembers</h2><div id="memBody"></div></section>
+    <section class="panel"><h2>What Resolv remembers</h2><div id="memBody"></div></section>
     <section class="panel">
       <h2>Practice bench</h2>
-      <p class="muted" style="margin-top:0">Break one setting on purpose, then ask Ayos to find it. Every one of these is undone by "Put everything back".</p>
+      <p class="muted" style="margin-top:0">Break one setting on purpose, then ask Resolv to find it. Every one of these is undone by "Put everything back".</p>
       <div class="bench-btns" id="benchBtns" style="margin-top:10px"></div>
       <div class="row-acts"><button class="btn quiet small" id="restoreBtn" type="button">Put everything back</button></div>
       <p class="bench-msg" id="benchMsg" role="status"></p>
@@ -262,7 +262,7 @@ function buildPath(kind) {
     const li = el("li", id === "home" ? "home ok" : ""); li.dataset.node = id;
     li.append(el("i", "", id === "home" ? "" : ""), document.createTextNode(label)); ol.append(li);
   }
-  $("pathCaption").textContent = kind === "pc" ? "What Ayos has looked at on this PC:" : "From this PC to the website. Green passed, red is where it stops, hollow was not needed.";
+  $("pathCaption").textContent = kind === "pc" ? "What Resolv has looked at on this PC:" : "From this PC to the website. Green passed, red is where it stops, hollow was not needed.";
   $("path").hidden = false;
 }
 function setNode(name, state) {
@@ -386,16 +386,16 @@ function renderDiagnosis(ev) {
     ? "Safety check: the model's first answer was refused because the check results did not show it. This cause is the one the results do show."
     : (ev.source === "model" ? "Safety check passed: plain code confirmed that the check results show this cause, so the model's conclusion is not taken on trust." : "Confirmed from the check results by the built-in rules.");
   o.append(safe);
-  if (ev.seen && ev.seen.times) o.append(el("p", "seen", "Ayos has seen this on this PC " + ev.seen.times + (ev.seen.times === 1 ? " time" : " times") + " before, last on " + ev.seen.last + ". That is why it looked here early."));
+  if (ev.seen && ev.seen.times) o.append(el("p", "seen", "Resolv has seen this on this PC " + ev.seen.times + (ev.seen.times === 1 ? " time" : " times") + " before, last on " + ev.seen.last + ". That is why it looked here early."));
   if (ev.fix) {
     const box = el("div", "fixbox"); box.append(el("h3", "", "Proposed fix: " + ev.fix.title), el("p", "", ev.fix.detail));
     const acts = el("div", "acts"); acts.id = "fixActs";
-    if (ev.fix.blocked) acts.append(el("span", "warn", "This needs administrator rights. Close Ayos and start it with start_ayos.bat, then ask again."));
+    if (ev.fix.blocked) acts.append(el("span", "warn", "This needs administrator rights. Close Resolv and start it with start_ayos.bat, then ask again."));
     else {
       const yes = el("button", "btn go", ev.fix.changes_settings ? "Fix it" : "Open it"); yes.type = "button"; yes.id = "approveBtn";
       const no = el("button", "btn quiet", "Leave it"); no.type = "button";
       yes.onclick = () => act("/api/approve"); no.onclick = () => act("/api/decline");
-      acts.append(yes, no, el("span", "muted", ev.fix.changes_settings ? (ev.fix.can_undo ? "Nothing changes until you press Fix it. You can undo it after." : "Nothing changes until you press Fix it.") : "Ayos changes nothing here."));
+      acts.append(yes, no, el("span", "muted", ev.fix.changes_settings ? (ev.fix.can_undo ? "Nothing changes until you press Fix it. You can undo it after." : "Nothing changes until you press Fix it.") : "Resolv changes nothing here."));
     }
     box.append(acts); o.append(box);
     if (ev.advice) o.append(el("p", "seen", ev.advice));
@@ -477,7 +477,7 @@ $("followForm").addEventListener("submit", async (e) => {
   try {
     const r = await api("/api/followup", { id: sid, question: q });
     if (r.ok) $("fq").value = "";
-    else { $("followBtn").disabled = false; $("thread").append(el("p", "a muted", "Ayos is still busy with this job. Ask again when it has finished.")); }
+    else { $("followBtn").disabled = false; $("thread").append(el("p", "a muted", "Resolv is still busy with this job. Ask again when it has finished.")); }
   } catch (err) { $("followBtn").disabled = false; }
   poll();
 });
@@ -505,16 +505,16 @@ function renderPc(s) {
   add("Administrator", s.admin ? "Yes" : "No");
   body.append(dl);
   if (!(m.server_up && m.models.length)) {
-    const p = el("p", "warn", m.server_up ? "The model server is running but has no model yet." : "No local language model is running, so Ayos is using its built-in rules only.");
-    body.append(p); const how = el("p", "muted"); how.append("Start Ollama, then run ", el("code", "", "ollama pull gemma3:4b"), " once. Ayos picks it up by itself."); body.append(how);
+    const p = el("p", "warn", m.server_up ? "The model server is running but has no model yet." : "No local language model is running, so Resolv is using its built-in rules only.");
+    body.append(p); const how = el("p", "muted"); how.append("Start Ollama, then run ", el("code", "", "ollama pull gemma3:4b"), " once. Resolv picks it up by itself."); body.append(how);
   }
-  if (!s.admin) body.append(el("p", "warn", "Ayos can look, but Windows will refuse fixes that change network settings. Close this and start it with start_ayos.bat."));
+  if (!s.admin) body.append(el("p", "warn", "Resolv can look, but Windows will refuse fixes that change network settings. Close this and start it with start_ayos.bat."));
 }
 function renderMem(mem) {
   const body = $("memBody"); body.textContent = "";
   const toggle = async (on) => { try { await api("/api/memory/enabled", { on }); } catch (e) {} refreshStatus(true); };
   if (mem.enabled === false) {
-    body.append(el("p", "", "Memory is switched off. Ayos investigates from scratch, so the model has to choose every check itself, and nothing is saved."));
+    body.append(el("p", "", "Memory is switched off. Resolv investigates from scratch, so the model has to choose every check itself, and nothing is saved."));
     const acts = el("div", "row-acts"); const on = el("button", "btn quiet small", "Switch memory on"); on.type = "button"; on.onclick = () => toggle(true); acts.append(on); body.append(acts);
     return;
   }
@@ -552,7 +552,7 @@ $("restoreBtn").onclick = async () => {
 };
 
 async function refreshStatus(force) {
-  let s; try { s = await api("/api/status"); } catch (e) { $("pcBody").textContent = "Ayos is not answering. Is the black window still open?"; lastStatusKey = ""; return; }
+  let s; try { s = await api("/api/status"); } catch (e) { $("pcBody").textContent = "Resolv is not answering. Is the black window still open?"; lastStatusKey = ""; return; }
   status = s; $("simBand").hidden = !s.simulated;
   const pcKey = JSON.stringify([s.internet, s.model, s.admin]);
   if (force || pcKey !== lastStatusKey) { if (document.activeElement && document.activeElement.tagName === "SELECT" && !force) { /* do not rebuild under an open menu */ } else { lastStatusKey = pcKey; renderPc(s); } }

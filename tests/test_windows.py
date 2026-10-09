@@ -1,8 +1,8 @@
 """Tests for the Windows layer, run anywhere.
 
-PowerShell is replaced by a small stand-in that answers the exact commands Ayos sends, with
+PowerShell is replaced by a small stand-in that answers the exact commands Resolv sends, with
 output shaped like the real cmdlets'. This cannot prove the commands work on Windows (only a
-Windows PC can), but it does prove Ayos reads their output correctly and survives odd shapes.
+Windows PC can), but it does prove Resolv reads their output correctly and survives odd shapes.
 """
 import base64
 import json

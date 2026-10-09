@@ -1,4 +1,4 @@
-"""The desktop window: Ayos opens in its own window when Edge or Chrome is there, else in a browser tab."""
+"""The desktop window: Resolv opens in its own window when Edge or Chrome is there, else in a browser tab."""
 import os
 import unittest
 from unittest import mock

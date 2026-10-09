@@ -1,4 +1,4 @@
-# Ayos emergency reset: undoes the four practice faults without Python and without Ayos running.
+# Resolv emergency reset: undoes the four practice faults without Python and without Resolv running.
 #   restore_network.bat        undo only what the practice bench changes
 #   restore_network.bat -All   also set every adapter's DNS to automatic and turn any proxy off
 param([switch]$All)
@@ -8,7 +8,7 @@ $demoProxy = '127.0.0.1:9'
 $inet = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings'
 $hosts = Join-Path $env:SystemRoot 'System32\drivers\etc\hosts'
 
-Write-Host 'Ayos: putting network settings back...'
+Write-Host 'Resolv: putting network settings back...'
 
 Get-NetAdapter -Physical | Where-Object { $_.Status -eq 'Disabled' } | ForEach-Object {
     Enable-NetAdapter -Name $_.Name -Confirm:$false

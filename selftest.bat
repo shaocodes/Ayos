@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Ayos self-test
+title Resolv self-test
 cd /d "%~dp0"
 rem Runs every read-only check once and times the local model. Changes nothing.
 set "PY="

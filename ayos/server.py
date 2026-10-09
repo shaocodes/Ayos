@@ -1,9 +1,9 @@
-"""The local web server behind the Ayos window.
+"""The local web server behind the Resolv window.
 
-It listens on 127.0.0.1 only, so nothing outside this computer can reach it. Because Ayos
+It listens on 127.0.0.1 only, so nothing outside this computer can reach it. Because Resolv
 can change Windows settings, every request that does anything must carry a secret token that
-only the Ayos page itself knows, and the Host header must be this computer. A random website
-open in another tab cannot drive Ayos.
+only the Resolv page itself knows, and the Host header must be this computer. A random website
+open in another tab cannot drive Resolv.
 """
 from __future__ import annotations
 
@@ -135,7 +135,7 @@ class App:
     def ask(self, question: str) -> Session:
         with self.lock:
             if self.current and self.current.state == "fixing":
-                raise RuntimeError("Ayos is applying a fix right now. Ask again when it has finished.")
+                raise RuntimeError("Resolv is applying a fix right now. Ask again when it has finished.")
             if self.current and self.current.state == "running":
                 self.current.cancelled = True
             sid = secrets.token_hex(6)
@@ -149,7 +149,7 @@ class App:
 
     def break_it(self, fault_id: str) -> str:
         if self.busy():
-            raise RuntimeError("Ayos is in the middle of a check. Wait for it to finish.")
+            raise RuntimeError("Resolv is in the middle of a check. Wait for it to finish.")
         with self.break_lock:
             if not self.memory.baseline:
                 self.save_baseline()  # remember normal before we break anything
@@ -159,7 +159,7 @@ class App:
 
     def restore(self) -> list:
         if self.busy():
-            raise RuntimeError("Ayos is in the middle of a check. Wait for it to finish.")
+            raise RuntimeError("Resolv is in the middle of a check. Wait for it to finish.")
         if getattr(self.system, "simulated", False):
             sim.reset(self.system)
             done = ["Simulated PC put back to healthy."]
@@ -211,7 +211,7 @@ class App:
 
 class Handler(BaseHTTPRequestHandler):
     app: App = None  # set by make_server
-    server_version = "Ayos"
+    server_version = "Resolv"
 
     def log_message(self, fmt, *args):  # keep the console quiet
         pass
@@ -328,8 +328,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def make_server(app: App, port: int = 8020) -> ThreadingHTTPServer:
-    handler = type("AyosHandler", (Handler,), {"app": app})
-    cls = type("AyosServer", (ThreadingHTTPServer,), {"allow_reuse_address": os.name != "nt", "daemon_threads": True})
-    # On Windows, address reuse would let a second Ayos open the same port without an error,
+    handler = type("ResolvHandler", (Handler,), {"app": app})
+    cls = type("ResolvServer", (ThreadingHTTPServer,), {"allow_reuse_address": os.name != "nt", "daemon_threads": True})
+    # On Windows, address reuse would let a second Resolv open the same port without an error,
     # and a forgotten one from rehearsal could keep answering the browser.
     return cls(("127.0.0.1", port), handler)

@@ -78,7 +78,7 @@ def build() -> str:
         "so read each time next to that row's tokens per second.\n\n"
         "- **Model alone**: the first cause the model named was the right one.\n"
         "- **With safety check**: the final diagnosis was right, after plain code checked the model.\n"
-        "- **With memory**: Ayos has seen this PC healthy before and can compare. This is the normal case.\n\n"
+        "- **With memory**: Resolv has seen this PC healthy before and can compare. This is the normal case.\n\n"
         "The first three columns after the model name describe the model; the next three are with memory, the last three without.\n\n"
         + HEAD
         + "\n".join(row(m, runs) for m, runs in sorted(load("current").items(), key=lambda kv: -((kv[1].get("memory") or kv[1].get("nomemory"))["tokens_per_second"] or 0)))
@@ -95,7 +95,7 @@ def build() -> str:
             + "\n\n"
             "So we changed the design, not the model. Once the check results already prove a cause, no more checks are offered and "
             "the model has to name it. An internet problem is only offered network checks. When memory shows a setting changed, "
-            "Ayos looks there first. A refused conclusion comes back with the reason. The table at the top is the same models after those changes. "
+            "Resolv looks there first. A refused conclusion comes back with the reason. The table at the top is the same models after those changes. "
             "The raw result files for both runs are in `docs/results/`, next to the output of the live test on real Windows.\n"
         )
     return text
