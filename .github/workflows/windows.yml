@@ -113,3 +113,40 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python tools/ci_publish.py package "ci_out/*.txt"
 
+
+  window:
+    # Opens Ayos the way a double-click does and checks that it gets its own desktop window.
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Open the desktop window
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ci_out | Out-Null
+          $p = Start-Process python -ArgumentList "-u","-m","ayos","--sim","--port","8032" -RedirectStandardOutput ci_out\window_start.txt -RedirectStandardError ci_out\window_err.txt -PassThru -NoNewWindow
+          Start-Sleep -Seconds 25
+          Get-Content ci_out\window_start.txt | Out-File -Encoding utf8 ci_out\window.txt
+          Get-Content ci_out\window_err.txt -ErrorAction SilentlyContinue | Select-Object -Last 5 | Out-File -Append -Encoding utf8 ci_out\window.txt
+          Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*--app=http://127.0.0.1:8032*" } | ForEach-Object { "process: " + $_.Name + " id " + $_.ProcessId } | Out-File -Append -Encoding utf8 ci_out\window.txt
+          Get-Process | Where-Object { $_.MainWindowTitle } | ForEach-Object { "title: " + $_.ProcessName + " | " + $_.MainWindowTitle } | Out-File -Append -Encoding utf8 ci_out\window.txt
+          try {
+            Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+            $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+            $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+            [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)
+            $bmp.Save("ci_out\window.png")
+            "screenshot: $($b.Width)x$($b.Height)" | Out-File -Append -Encoding utf8 ci_out\window.txt
+          } catch { "screenshot failed: $_" | Out-File -Append -Encoding utf8 ci_out\window.txt }
+          Get-Content ci_out\window.txt
+          Remove-Item ci_out\window_start.txt, ci_out\window_err.txt -ErrorAction SilentlyContinue
+      - name: Publish results
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AYOS_CI_BRANCH: "1"
+        run: python tools/ci_publish.py "window" "ci_out/*.txt" "ci_out/*.png"

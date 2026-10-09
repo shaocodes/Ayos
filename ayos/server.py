@@ -34,6 +34,7 @@ class App:
         self.system = system
         self.memory = memory
         self.token = secrets.token_urlsafe(24)
+        self.page_loads = 0  # how many times the page was served; the launcher uses it to know that a window really opened
         self.wanted_model = model
         self.model_brain = LocalModelBrain(DEFAULT_MODEL if model == "auto" else model, url, api)
         self.rule_brain = RuleBrain()
@@ -259,6 +260,7 @@ class Handler(BaseHTTPRequestHandler):
                     html = f.read().replace("__AYOS_TOKEN__", app.token)
             except OSError:
                 return self._send(500, b"web/index.html is missing", "text/plain")
+            app.page_loads += 1
             return self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
         if u.path == "/api/status":
             return self._json(app.status())
