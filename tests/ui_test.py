@@ -70,9 +70,10 @@ def main():
         print("1. A model drives the investigation, the user approves, undoes, and asks a follow-up")
         pc, app, ms, srv, url, stop = start(
             [
-                J("check_dns", thought="The DNS setting changed, so I will check DNS."),
-                J("conclude", "dns_misconfigured", "Your PC was told to ask a DNS server that does not exist. DNS is what turns a website name into an address, so no page can open."),
+                J("conclude", "dns_misconfigured", "Your PC was told to ask a DNS server that does not exist. DNS is what turns a website name into an address, so no page can open.", thought="DNS was set by hand to dead servers."),
                 json.dumps({"message": "Usually an app, a VPN, or someone changing network settings by hand."}),
+                J("check_ip_and_router", thought="Nothing changed, so start with the router."),
+                J("conclude", "router_unreachable", "The router is not answering."),
             ]
         )
         page = new_page(url)
@@ -83,9 +84,8 @@ def main():
         page.click("#askBtn")
         page.wait_for_selector("#approveBtn")
         text = page.inner_text(".ticket")
-        check("first step came from memory", "from memory" in text)
-        check("model's choice is labelled", "chosen by the AI model" in text)
-        check("model's reason is shown", "The DNS setting changed" in text)
+        check("memory chose both checks", text.count("from memory") == 2)
+        check("evidence-is-enough note is shown", "no more checks are offered" in text)
         check("model's explanation is shown", "does not exist" in text)
         check("safety check line shown", "Safety check passed" in text)
         check("path marks DNS as the break", page.locator("#pathNodes li.bad").inner_text().strip().endswith("DNS"))
@@ -108,6 +108,14 @@ def main():
         page.click("#restoreBtn")
         page.wait_for_selector(".lamp.on")
         check("restore cleared it", pc.manual_dns is None)
+        page.click("#benchBtns button:has-text('Router stops answering')")
+        page.wait_for_selector(".lamp.off")
+        page.click("#askBtn")
+        page.wait_for_function("document.querySelector('#outcome h2') && document.querySelector('#outcome h2').textContent.includes('router')")
+        text = page.inner_text(".ticket")
+        check("with nothing changed, the model chooses the check", "chosen by the AI model" in text and "start with the router" in text)
+        check("no fix is offered for a dead router, only advice", page.locator("#approveBtn").count() == 0 and "Restart the router" in text)
+        shot(page, "1c_model_chooses")
         page.close(); stop.set(); srv.shutdown(); ms.close()
 
         print("2. The safety check refuses a wrong conclusion")

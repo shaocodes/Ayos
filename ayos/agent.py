@@ -19,7 +19,7 @@ import time
 from . import fixes
 from .brain import RuleBrain, classify, peek
 from .memory import Memory
-from .rules import CAUSES, KEY_CHECK, PC_CAUSES, evidence_lines, fix_args, infer, supports, why_not
+from .rules import CAUSES, KEY_CHECK, PC_CAUSES, changed_areas, evidence_lines, fix_args, infer, supports, why_not
 from .system import System
 from .tools import CHECKS, NETWORK_CHECKS, PC_CHECKS, TITLES, find_domain, run_check, snapshot, verdict
 
@@ -156,6 +156,14 @@ class Session:
             self.brain.record(convo, d)
             summary = self._run_check("compare_with_normal", "memory", d["thought"])
             self.brain.observe(convo, f"Result of compare_with_normal: {summary}")
+            # If memory shows that a setting changed, look there straight away. No need to ask the model where to look.
+            areas = changed_areas(self.obs)
+            if areas:
+                name, what = areas[0]
+                d = {"action": name, "cause": "none", "thought": f"Memory shows {what} changed since the internet last worked, so look there first."}
+                self.brain.record(convo, d)
+                summary = self._run_check(name, "memory", d["thought"])
+                self.brain.observe(convo, f"Result of {name}: {summary}")
 
         use_rules = self.brain.kind == "rules"
         refused_answer = False
@@ -166,6 +174,7 @@ class Session:
             view = self._view(force_route=use_rules and self.brain.kind != "rules")
             if view["ready"] and not self._told_ready and not use_rules:
                 self._told_ready = True
+                self.emit("note", message="The results are now enough to prove a cause, so no more checks are offered. The model has to name it.")
                 self.brain.observe(convo, "The results are now enough to name the cause. Conclude.")
             if getattr(brain, "streams", False):
                 d = brain.step(convo, view, on_text=self._on_text)

@@ -248,6 +248,24 @@ KEY_CHECK = {
 }
 
 
+def changed_areas(obs: dict) -> list:
+    """What the comparison with normal points at, most basic first: [(check_name, what_changed)].
+
+    A switched-off adapter also makes the DNS setting look different, so the adapter comes first.
+    """
+    changes = " ".join((obs.get("compare_with_normal") or {}).get("changes", [])).lower()
+    out = []
+    if "adapter" in changes:
+        out.append(("check_adapters", "the network adapter"))
+    if "dns" in changes:
+        out.append(("check_dns", "the DNS setting"))
+    if "proxy" in changes:
+        out.append(("check_proxy", "the proxy setting"))
+    if "hosts" in changes:
+        out.append(("check_hosts", "the hosts file"))
+    return out
+
+
 def next_check(obs: dict, route: str = "network", has_baseline: bool = False, prefer=()):
     """Fallback order of checks when no language model is choosing.
 
@@ -258,18 +276,10 @@ def next_check(obs: dict, route: str = "network", has_baseline: bool = False, pr
     order = list(PC_CHECKS if route == "pc" else NETWORK_CHECKS)
     if route != "pc" and not has_baseline:
         order.remove("compare_with_normal")
-    changes = " ".join((obs.get("compare_with_normal") or {}).get("changes", [])).lower()
     hinted = []
     if route != "pc" and has_baseline and "compare_with_normal" not in obs:
         hinted.append("compare_with_normal")
-    if "dns" in changes:
-        hinted.append("check_dns")
-    if "proxy" in changes:
-        hinted.append("check_proxy")
-    if "hosts" in changes:
-        hinted.append("check_hosts")
-    if "adapter" in changes:
-        hinted.append("check_adapters")
+    hinted += [name for name, _what in changed_areas(obs)]
     allowed = set(order)
     for name in hinted + [p for p in prefer if p in allowed] + order:
         if name not in obs:

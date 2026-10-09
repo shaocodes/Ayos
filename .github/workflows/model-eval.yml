@@ -59,6 +59,11 @@ jobs:
           mkdir -p ci_out
           nproc; free -g | head -2
           python3 -m ayos.evalsim --model "${{ matrix.model }}" --extra --trace --out "ci_out/eval_${{ matrix.label }}_memory.json" 2>&1 | tee "ci_out/eval_${{ matrix.label }}_memory.txt"
+      - name: Publish the first results early
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/ci_publish.py "eval-${{ matrix.label }}" "ci_out/*.txt" "ci_out/*.json"
       - name: Record sessions for the web replay
         if: always()
         run: python3 tools/build_live_demo.py record --model "${{ matrix.model }}" --out "ci_out/recording_${{ matrix.label }}.json" 2>&1 | tee "ci_out/recording_${{ matrix.label }}.txt"

@@ -73,39 +73,60 @@ def classify(question: str) -> dict:
 
 
 # ----------------------------------------------------------------- prompt
+# One line per check and per cause, written for the model. Short on purpose: on a PC without a graphics
+# card the model reads only a few dozen tokens a second, so every line here costs time.
+CHECK_HINTS = {
+    "compare_with_normal": "what changed since the internet last worked on this PC",
+    "check_adapters": "is the Wi-Fi or cable adapter switched on and connected",
+    "check_ip_and_router": "does the PC have an address, and does the router answer",
+    "check_internet_reach": "can internet addresses be reached by number (works even if DNS is broken)",
+    "check_dns": "do the DNS servers answer (DNS turns website names into addresses)",
+    "check_proxy": "is a proxy set, and do pages load with and without it",
+    "check_hosts": "does the hosts file block a website",
+    "test_website": "open a page the way a browser would",
+    "check_disk": "free storage space",
+    "check_memory": "free memory and the apps using the most",
+    "check_startup": "apps that start with Windows",
+}
+CAUSE_HINTS = {
+    "adapter_disabled": "the adapter is turned OFF in Windows",
+    "wifi_not_connected": "the adapter is on but not joined to any network",
+    "no_ip_address": "connected, but the router gave the PC no address",
+    "router_unreachable": "the PC has an address but the router does not answer",
+    "isp_outage": "the router answers but nothing beyond it can be reached",
+    "dns_misconfigured": "DNS was set BY HAND to a server that does not answer",
+    "dns_server_down": "DNS is on AUTOMATIC but the router's DNS does not answer",
+    "proxy_blocking": "a proxy is ON and pages load only without it",
+    "hosts_block": "the hosts file blocks the website",
+    "no_fault_found": "every check passes and a test page loads",
+    "disk_full": "storage is almost full",
+    "low_memory": "memory is almost full",
+    "many_startup_apps": "too many apps start with Windows",
+    "pc_looks_healthy": "storage, memory and start-up apps are all fine",
+}
+
+
 def system_prompt() -> str:
-    checks = "\n".join(f"- {name}: {desc}" for name, (desc, _fn) in CHECKS.items())
-    causes = "\n".join(f"- {cid}: {CAUSES[cid][0]}" for cid in NETWORK_CAUSES + PC_CAUSES)
-    return f"""You are Ayos, a computer repair technician that runs fully offline on the user's own Windows PC.
-You find out why something is not working by running checks one at a time, and then you name the cause.
-You cannot change anything yourself. A separate safety step checks your conclusion and asks the user before any fix.
+    checks = "\n".join(f"{name}: {CHECK_HINTS[name]}" for name in CHECKS)
+    causes = "\n".join(f"{cid}: {CAUSE_HINTS[cid]}" for cid in NETWORK_CAUSES + PC_CAUSES)
+    return f"""You are Ayos, a PC repair technician running offline on the user's own Windows PC.
+Find the cause by running checks, one per turn, then name the cause. You cannot change anything yourself. A safety step verifies your conclusion.
 
-Reply every turn with ONE JSON object and nothing else:
-{{"thought": "one short sentence: what you know so far and what you need next",
- "action": "the name of ONE check, or conclude, or answer",
- "cause": "a cause id when action is conclude, otherwise none",
- "message": "what to tell the user when action is conclude or answer, otherwise empty"}}
+Reply with ONE JSON object on one line:
+{{"thought": "at most 15 words: what the last result means", "action": "a check name, or conclude, or answer", "cause": "a cause id when concluding, otherwise none", "message": "what to tell the user when concluding or answering, otherwise empty"}}
 
-Checks you can run:
+Checks:
 {checks}
 
-Causes you can conclude:
+Causes:
 {causes}
 
 Rules:
-- If the user says something on this PC is not working or is slow, run checks. Do not guess.
-- Only conclude a cause that the check results clearly show. Never conclude from the user's words alone.
-- If a comparison with normal shows a setting changed, check that area next.
-- Otherwise work outward: adapter, then address and router, then the line to the internet, then DNS, proxy, hosts file.
-- For a slow PC use the storage, memory and start-up checks.
-- Do not repeat a check. Two to four checks are usually enough. Stop as soon as a result shows the cause.
-- thought: at most 15 words.
-- Conclude no_fault_found only after test_website loads.
-- If the user asks a general computer question that needs no check, use action answer.
-- If the problem is about something you have no check for (a printer, sound, one app), use action answer:
-  say plainly that you cannot check that yet, and give two or three safe things to try.
-- message: two or three short sentences in plain words. Explain any technical word you use.
-  Say what is wrong and why it causes what the user sees. Reply in the language the user wrote in."""
+- A problem on this PC: run checks, never guess. Conclude only what the results show.
+- If a setting changed since it last worked, check that first. Otherwise work outward: adapter, address and router, internet line, DNS, proxy, hosts file.
+- Never repeat a check. Stop as soon as a result shows the cause.
+- A general question that needs no check, or a problem you have no check for (printer, sound, one app): use answer.
+- message: two short plain sentences. Say what is wrong and why it causes what the user sees. Use the user's language."""
 
 
 def decision_schema(allowed_checks: list, must_conclude: bool = False) -> dict:

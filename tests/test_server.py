@@ -150,20 +150,46 @@ class ModelClient(unittest.TestCase):
         finally:
             ms.close()
 
-    def test_memory_step_is_visible_to_the_model(self):
-        ms = FakeModelServer([J("check_dns"), J("conclude", "dns_misconfigured", "x")])
+    def test_memory_goes_straight_to_what_changed(self):
+        ms = FakeModelServer([J("conclude", "dns_misconfigured", "x")])
         try:
             pc = FakeSystem()
             mem = Memory(None)
             mem.set_baseline(snapshot(pc))
             sim.apply(pc, "wrong_dns")
-            run_session(pc, LocalModelBrain("gemma3:4b", ms.url), memory=mem)
-            msgs = ms.requests[0][1]["messages"]
-            self.assertEqual([m["role"] for m in msgs], ["system", "user", "assistant", "user"])
+            s = run_session(pc, LocalModelBrain("gemma3:4b", ms.url), memory=mem)
+            self.assertEqual(len(ms.requests), 1)  # one model call for the whole diagnosis
+            body = ms.requests[0][1]
+            msgs = body["messages"]
+            self.assertEqual([m["role"] for m in msgs], ["system", "user", "assistant", "user", "assistant", "user"])
             self.assertIn("compare_with_normal", msgs[2]["content"])
             self.assertIn("Changed since the internet last worked", msgs[3]["content"])
+            self.assertIn("check_dns", msgs[4]["content"])
+            self.assertIn("enough to name the cause", msgs[5]["content"])
+            self.assertEqual(body["format"]["properties"]["action"]["enum"], ["conclude"])
+            sources = [e["source"] for e in s.events if e["type"] == "check_start"]
+            self.assertEqual(sources, ["memory", "memory"])
+            self.assertEqual(s.cause, "dns_misconfigured")
         finally:
             ms.close()
+
+    def test_adapter_change_is_checked_before_the_dns_change_it_causes(self):
+        pc = FakeSystem()
+        mem = Memory(None)
+        mem.set_baseline(snapshot(pc))
+        sim.apply(pc, "adapter_off")
+        ms = FakeModelServer([J("conclude", "adapter_disabled", "Naka-off ang adapter.")])
+        try:
+            s = run_session(pc, LocalModelBrain("gemma3:4b", ms.url), "wala akong internet", memory=mem)
+            self.assertEqual([e["name"] for e in s.events if e["type"] == "check_start"], ["compare_with_normal", "check_adapters"])
+            self.assertEqual(s.cause, "adapter_disabled")
+        finally:
+            ms.close()
+
+    def test_system_prompt_stays_short(self):
+        from ayos.brain import system_prompt
+
+        self.assertLess(len(system_prompt()), 2900)  # about 650 tokens; every token costs time on a CPU
 
     def test_unusable_reply_falls_back_for_that_step(self):
         ms = FakeModelServer(["I think you should restart the router!", J("conclude", "proxy_blocking", "A proxy is in the way.")])

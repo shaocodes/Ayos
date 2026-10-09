@@ -69,15 +69,18 @@ def run_selftest(system, model: str, url: str, api: str) -> int:
         if warm["ok"]:
             convo = brain.start("My internet is not working", ["There is no record yet of this PC's normal network settings."])
             view = {"question": "My internet is not working", "obs": {}, "route": "network", "has_baseline": False, "prefer": [], "allowed": list(CHECKS)}
-            d = brain.step(convo, view)
+            d = brain.step(convo, view, on_text=lambda text: None)  # streamed, the same way the app asks
             say(f"  first decision: {d['seconds']} s, source={d['source']}, action={d['action']}, speed={d.get('tok_per_s')} tokens/s")
+            say(f"    read {d.get('prompt_tokens')} tokens in {d.get('prompt_seconds')} s, wrote {d.get('tokens')} tokens in {d.get('gen_seconds')} s")
             say(f"  thought: {d.get('thought')}")
             if d.get("model_error"):
                 say(f"  model error: {d['model_error']}")
                 failed += 1
             brain.observe(convo, "Result of " + d["action"] + ": (self-test, no real result)")
-            d2 = brain.step(convo, {**view, "allowed": [c for c in CHECKS if c != d["action"]]})
+            d2 = brain.step(convo, {**view, "allowed": [c for c in CHECKS if c != d["action"]]}, on_text=lambda text: None)
             say(f"  second decision: {d2['seconds']} s, action={d2['action']}, speed={d2.get('tok_per_s')} tokens/s")
+            say(f"    read {d2.get('prompt_tokens')} tokens in {d2.get('prompt_seconds')} s, wrote {d2.get('tokens')} tokens in {d2.get('gen_seconds')} s")
+            say("  A real diagnosis usually needs 2 or 3 decisions like these, plus one longer one for the conclusion.")
         else:
             failed += 1
     say("")
