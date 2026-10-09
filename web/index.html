@@ -484,14 +484,22 @@ function renderPc(s) {
 }
 function renderMem(mem) {
   const body = $("memBody"); body.textContent = "";
+  const toggle = async (on) => { try { await api("/api/memory/enabled", { on }); } catch (e) {} refreshStatus(true); };
+  if (mem.enabled === false) {
+    body.append(el("p", "", "Memory is switched off. Ayos investigates from scratch, so the model has to choose every check itself, and nothing is saved."));
+    const acts = el("div", "row-acts"); const on = el("button", "btn quiet small", "Switch memory on"); on.type = "button"; on.onclick = () => toggle(true); acts.append(on); body.append(acts);
+    return;
+  }
   body.append(el("p", "", mem.has_baseline ? "It knows what this PC looks like when the internet works (saved " + mem.baseline_saved_at + "). It compares against that first." : "It has not seen this PC with the internet working yet, so it cannot compare."));
   if (mem.recent.length) {
     const ul = el("ul", "history");
     for (const h of mem.recent) { const li = el("li"); li.append(el("span", "", h.title + (h.fixed === true ? " (fixed)" : h.fixed === false ? " (fix did not hold)" : "")), el("small", "num", h.when + ", " + h.seconds + " s")); ul.append(li); }
     body.append(ul);
   } else body.append(el("p", "muted", "No past problems recorded. Problems it has seen before get checked first next time."));
-  const acts = el("div", "row-acts"); const f = el("button", "btn quiet small", "Forget everything"); f.type = "button";
-  f.onclick = async () => { try { await api("/api/memory/clear", {}); } catch (e) {} refreshStatus(true); }; acts.append(f); body.append(acts);
+  const acts = el("div", "row-acts");
+  const off = el("button", "btn quiet small", "Switch memory off"); off.type = "button"; off.onclick = () => toggle(false);
+  const f = el("button", "btn quiet small", "Forget everything"); f.type = "button";
+  f.onclick = async () => { try { await api("/api/memory/clear", {}); } catch (e) {} refreshStatus(true); }; acts.append(off, f); body.append(acts);
 }
 function renderBench(s) {
   const wrap = $("benchBtns"); wrap.textContent = "";

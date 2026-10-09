@@ -112,7 +112,7 @@ REPLAY_JS = r"""
     if (path === "/api/break") { st.fault = body.fault; const s = byId[body.fault]; return { ok: true, message: "Simulated: " + s.title.toLowerCase() + ". " + s.desc }; }
     if (path === "/api/restore") { st.fault = null; return { ok: true, done: ["Simulated PC put back to healthy."] }; }
     if (path === "/api/memory/clear") { st.memory.recent = []; st.memory.incidents = 0; return { ok: true }; }
-    if (path === "/api/model") return { ok: true };
+    if (path === "/api/model" || path === "/api/memory/enabled") return { ok: true };
     if (path === "/api/ask") {
       const sc = pick(body.question);
       const cut = sc.events.findIndex((e) => e.type === "fix_start");

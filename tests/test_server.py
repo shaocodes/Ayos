@@ -418,6 +418,20 @@ class WebServer(unittest.TestCase):
         self.assertEqual(self.call("/api/restore", {})[0], 200)
         self.assertIsNone(self.pc.manual_dns)
 
+    def test_memory_can_be_switched_off(self):
+        self.call("/api/break", {"fault": "proxy_on"})
+        self.assertTrue(self.app.memory.baseline)
+        self.assertTrue(json.loads(self.call("/api/memory/enabled", {"on": False})[1])["ok"])
+        self.assertFalse(json.loads(self.call("/api/status")[1])["memory"]["enabled"])
+        sid = json.loads(self.call("/api/ask", {"question": "my browser cannot open any website"})[1])["id"]
+        self.wait_state(sid, ("awaiting",))
+        s = self.app.sessions[sid]
+        self.assertNotIn("compare_with_normal", s.obs)  # investigated from scratch
+        self.assertEqual(s.cause, "proxy_blocking")
+        self.call("/api/approve", {"id": sid})
+        self.wait_state(sid, ("fixed",))
+        self.assertEqual(self.app.memory.public()["incidents"], 0)  # and nothing was saved
+
     def test_bad_input(self):
         self.assertEqual(self.call("/api/ask", {"question": "   "})[0], 400)
         self.assertEqual(self.call("/api/break", {"fault": "format_c"})[0], 400)

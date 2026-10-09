@@ -25,7 +25,7 @@ from .tools import TEST_URL, snapshot
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
 
 # Small models that follow instructions well, best first. Used when the chosen model is not installed.
-PREFERRED = ["gemma3:4b", "qwen2.5:3b", "llama3.2:3b", "phi4-mini", "gemma3n:e2b", "qwen3:4b", "gemma3:1b", "llama3.2:1b"]
+PREFERRED = ["gemma3:4b", "llama3.2:3b", "qwen2.5:3b", "gemma3:1b", "phi4-mini", "gemma3n:e2b", "qwen3:4b", "llama3.2:1b"]  # the first four are the ones we measured
 NOT_CHAT = ("embed", "bge", "minilm", "nomic", "clip", "whisper")
 
 
@@ -43,6 +43,7 @@ class App:
         self.internet = None
         self.model_state = {"server_up": False, "installed": False, "models": [], "warm": "no", "warm_seconds": None, "warm_error": None}
         self.force_rules = False
+        self.use_memory = True  # off: investigate from scratch and save nothing
         self.log = []
         self._stop = False
         if monitor:
@@ -138,7 +139,8 @@ class App:
             if self.current and self.current.state == "running":
                 self.current.cancelled = True
             sid = secrets.token_hex(6)
-            s = Session(sid, question, self.system, self.pick_brain(), self.memory, on_change=self.kick)
+            memory = self.memory if self.use_memory else Memory(None)
+            s = Session(sid, question, self.system, self.pick_brain(), memory, on_change=self.kick)
             if s.brain.kind == "model":
                 s.on_done = self.reprime
             self.sessions[sid] = s
@@ -202,7 +204,7 @@ class App:
                 "using_model": using_model,
                 "forced_rules": self.force_rules,
             },
-            "memory": self.memory.public(),
+            "memory": {**self.memory.public(), "enabled": self.use_memory},
             "faults": sim.fault_list(bool(getattr(self.system, "simulated", False))),
             "session": self.current.public() if self.current else None,
         }
@@ -309,6 +311,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/memory/clear":
                 app.memory.clear()
                 return self._json({"ok": True})
+            if path == "/api/memory/enabled":
+                app.use_memory = bool(body.get("on"))
+                return self._json({"ok": True, "enabled": app.use_memory})
             if path == "/api/memory/baseline":
                 return self._json({"ok": app.save_baseline()})
         except PermissionError as e:
