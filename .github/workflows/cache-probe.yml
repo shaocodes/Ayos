@@ -1,0 +1,53 @@
+name: Cache probe
+
+# A short measurement: does letting the model re-read its instructions between questions make the
+# next question start faster? Run by hand or when this file changes.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cache-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - model: "gemma3:4b"
+            label: gemma3-4b
+          - model: "llama3.2:3b"
+            label: llama3.2-3b
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          sleep 3
+          curl -s http://127.0.0.1:11434/api/tags || (nohup ollama serve > ollama.log 2>&1 & sleep 5)
+          ollama --version
+      - name: Pull the model
+        run: |
+          for i in 1 2 3 4 5 6; do
+            ollama pull "${{ matrix.model }}" && break
+            sleep 10
+          done
+      - name: Without re-reading
+        run: |
+          mkdir -p ci_out
+          python3 -m ayos.evalsim --model "${{ matrix.model }}" --cases wrong_dns,adapter_off,proxy_on,hosts_block,disk_full,many_startup --trace --out ci_out/probe_plain.json 2>&1 | grep -E "^(case|wrong|adapter|proxy|hosts|disk|many|=== |   call:|Time|Model)" | tee "ci_out/probe_${{ matrix.label }}_plain.txt"
+      - name: With re-reading between questions
+        run: |
+          python3 -m ayos.evalsim --model "${{ matrix.model }}" --cases wrong_dns,adapter_off,proxy_on,hosts_block,disk_full,many_startup --reprime --trace --out ci_out/probe_reprime.json 2>&1 | grep -E "^(case|wrong|adapter|proxy|hosts|disk|many|=== |   call:|Time|Model)" | tee "ci_out/probe_${{ matrix.label }}_reprime.txt"
+      - name: Publish results
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/ci_publish.py "probe-${{ matrix.label }}" "ci_out/*.txt"

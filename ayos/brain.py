@@ -135,7 +135,7 @@ Rules:
 - message: two short plain sentences. Say what is wrong and why it causes what the user sees. Use the user's language."""
 
 
-def decision_schema(allowed_checks: list, must_conclude: bool = False, answer_only: bool = False) -> dict:
+def decision_schema(allowed_checks: list, must_conclude: bool = False, answer_only: bool = False, causes=None) -> dict:
     if must_conclude:
         actions = ["conclude"]
     elif answer_only:
@@ -147,7 +147,7 @@ def decision_schema(allowed_checks: list, must_conclude: bool = False, answer_on
         "properties": {
             "thought": {"type": "string"},
             "action": {"type": "string", "enum": actions},
-            "cause": {"type": "string", "enum": NETWORK_CAUSES + PC_CAUSES + ["none"]},
+            "cause": {"type": "string", "enum": list(causes or NETWORK_CAUSES + PC_CAUSES) + ["none"]},
             "message": {"type": "string"},
         },
         "required": ["thought", "action", "cause", "message"],
@@ -432,7 +432,7 @@ class LocalModelBrain:
         started = time.time()
         allowed = view["allowed"]
         try:
-            schema = decision_schema(allowed, bool(view.get("ready")), bool(view.get("answer_only")))
+            schema = decision_schema(allowed, bool(view.get("ready")), bool(view.get("answer_only")), view.get("causes"))
             out = self._chat(convo, schema, on_text=on_text if self.api == "ollama" else None)
         except Exception as e:
             err = _short_error(e)

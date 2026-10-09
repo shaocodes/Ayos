@@ -107,6 +107,8 @@ def main(argv=None) -> int:
     p.add_argument("--out", default="eval_results.json")
     p.add_argument("--trace", action="store_true", help="also print every step of every case")
     p.add_argument("--extra", action="store_true", help="add phrasing cases: Taglish complaints and a general question")
+    p.add_argument("--cases", default="", help="comma-separated case names to run (default: all)")
+    p.add_argument("--reprime", action="store_true", help="let the model re-read its instructions between cases, as the app does")
     args = p.parse_args(argv)
 
     if args.rules:
@@ -131,7 +133,12 @@ def main(argv=None) -> int:
     rows = []
     print(f"\n{'case':18s} {'expected':20s} {'model said first':20s} {'final':20s} {'ok':3s} {'checks':>6s} {'secs':>6s}")
     todo = cases() + (EXTRA if args.extra else [])
+    if args.cases:
+        want = set(args.cases.split(","))
+        todo = [c for c in todo if c[0] in want]
     for fault, question, expected in todo:
+        if args.reprime and brain.kind == "model":
+            brain.warm_up()
         r = run_case(brain, fault.split("#")[0], question, expected, with_memory)
         r["case"] = fault
         rows.append(r)

@@ -19,7 +19,7 @@ import time
 from . import fixes
 from .brain import RuleBrain, classify, peek
 from .memory import Memory
-from .rules import CAUSES, KEY_CHECK, PC_CAUSES, changed_areas, evidence_lines, fix_args, infer, supports, why_not
+from .rules import CAUSES, KEY_CHECK, NETWORK_CAUSES, PC_CAUSES, changed_areas, evidence_lines, fix_args, infer, supports, why_not
 from .system import System
 from .tools import CHECKS, NETWORK_CHECKS, PC_CHECKS, TITLES, find_domain, run_check, snapshot, verdict
 
@@ -36,6 +36,7 @@ class Session:
         self.memory = memory
         self.auto_approve = auto_approve
         self.on_change = on_change  # called after a setting was changed, so the status light can update at once
+        self.on_done = None  # called when the model's work for this session is over
         self.rules = RuleBrain()
         self.events = []
         self.lock = threading.Lock()
@@ -80,6 +81,8 @@ class Session:
     def _safe(self, fn):
         try:
             fn()
+            if fn == self.run:
+                self._model_idle()
         except Exception as e:  # a session must always end with something the user can read
             self.emit("error", message=f"Something went wrong inside Ayos: {type(e).__name__}: {str(e)[:200]}")
             if self.state in ("running", "fixing"):
@@ -105,8 +108,10 @@ class Session:
         # The menu the model chooses from. For an internet problem only the network checks are offered,
         # and once the results already prove a cause, no more checks are offered: the model has to name it.
         menu = list(CHECKS)
+        causes = None  # None means every cause may be named
         if self.cls["must_check"] and self.cls["route"] in ("network", "pc"):
             menu = PC_CHECKS if self.cls["route"] == "pc" else NETWORK_CHECKS
+            causes = PC_CAUSES if self.cls["route"] == "pc" else NETWORK_CAUSES
         allowed = [c for c in menu if c not in self.obs]
         if not self.memory.baseline and "compare_with_normal" in allowed:
             allowed.remove("compare_with_normal")
@@ -119,6 +124,7 @@ class Session:
             "prefer": self.memory.preferred_checks(),
             "allowed": [] if self.ready else allowed,
             "ready": self.ready,
+            "causes": causes,
             # "What is DNS?" is a question, not a fault report: it gets an answer, not a round of checks.
             "answer_only": bool(self.cls["just_asking"] and not self.obs),
         }
@@ -213,6 +219,8 @@ class Session:
                     self.first_conclusion = cause
                 ok, missing = supports(cause, self.obs)
                 title = CAUSES[cause][0]
+                if view.get("causes") and cause not in view["causes"]:
+                    ok, missing = False, None  # an answer about the wrong kind of problem (a slow PC is not an internet fault)
                 # Not proven yet? The safety check gathers the missing proof itself, then judges the conclusion again.
                 extra = []
                 while not ok and missing and missing not in self.obs and len(extra) < 6:
@@ -345,6 +353,13 @@ class Session:
     def _finish(self):
         self._summary()
         self.emit("done")
+
+    def _model_idle(self):
+        if self.on_done:
+            try:
+                self.on_done()
+            except Exception:
+                pass
 
     def _remember_normal(self):
         """Save the healthy settings, but only when the internet demonstrably works right now."""

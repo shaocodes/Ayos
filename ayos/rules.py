@@ -218,6 +218,10 @@ def why_not(cause: str, obs: dict) -> str:
         return "only a few apps start with Windows"
     if cause == "pc_looks_healthy" and ((disk and disk["low"]) or (mem and mem["low"]) or (start and start["many"])):
         return "one of the checks did find a problem"
+    if cause in PC_CAUSES and any(k in obs for k in ("check_adapters", "check_dns", "check_proxy", "check_hosts", "test_website", "check_internet_reach", "check_ip_and_router")) and not any(k in obs for k in ("check_disk", "check_memory", "check_startup")):
+        return "that cause is about a slow PC, and this is an internet problem"
+    if cause in NETWORK_CAUSES and any(k in obs for k in ("check_disk", "check_memory", "check_startup")) and not any(k in obs for k in ("check_adapters", "check_dns", "check_proxy", "check_hosts", "test_website")):
+        return "that cause is about the internet, and this is a slow-PC problem"
     return "the check results do not show it"
 
 

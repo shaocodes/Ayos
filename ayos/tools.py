@@ -65,7 +65,10 @@ def diff_snapshots(normal: dict, now: dict) -> list:
             changes.append(f"Adapter '{name}' was {was}, now {status}.")
     for name, cur in now.get("dns", {}).items():
         was = normal.get("dns", {}).get(name)
-        if was and (was.get("servers") != cur.get("servers") or was.get("manual") != cur.get("manual")):
+        # Automatic DNS servers differ from one Wi-Fi network to the next; that is normal and not worth reporting.
+        # What matters is a server set by hand, or a hand-set server that changed.
+        hand_set_changed = bool(cur.get("manual")) != bool(was.get("manual")) if was else False
+        if was and (hand_set_changed or (cur.get("manual") and was.get("servers") != cur.get("servers"))):
             a = ", ".join(was.get("servers") or []) or "none"
             b = ", ".join(cur.get("servers") or []) or "none"
             how = "set manually" if cur.get("manual") else "automatic"

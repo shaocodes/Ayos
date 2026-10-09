@@ -112,6 +112,14 @@ class App:
         self.internet = None
         threading.Thread(target=self.refresh_internet, daemon=True).start()
 
+    def reprime(self):
+        """Let the model read its instructions again in the background, so the next question starts fast.
+
+        Some models cannot reuse their cache from the middle of a long conversation. After this short
+        request the cache holds just the instructions, which is exactly what the next question starts with.
+        """
+        threading.Thread(target=self.model_brain.warm_up, daemon=True).start()
+
     def busy(self) -> bool:
         return bool(self.current and self.current.state in ("running", "fixing"))
 
@@ -131,6 +139,8 @@ class App:
                 self.current.cancelled = True
             sid = secrets.token_hex(6)
             s = Session(sid, question, self.system, self.pick_brain(), self.memory, on_change=self.kick)
+            if s.brain.kind == "model":
+                s.on_done = self.reprime
             self.sessions[sid] = s
             self.current = s
             for old in list(self.sessions)[:-20]:

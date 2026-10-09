@@ -280,6 +280,19 @@ class ModelClient(unittest.TestCase):
         finally:
             ms.close()
 
+    def test_a_verdict_about_the_wrong_kind_of_problem_is_refused(self):
+        ms = FakeModelServer([J("conclude", "no_fault_found", "Internet is fine."), J("conclude", "no_fault_found", "Internet is fine.")])
+        try:
+            s = run_session(FakeSystem(), LocalModelBrain("gemma3:4b", ms.url), "My laptop feels slow")
+            self.assertEqual(s.cause, "pc_looks_healthy")
+            self.assertGreaterEqual(s.stats["refusals"], 1)
+            self.assertNotIn("check_dns", s.obs)  # no internet checks were run to "prove" an internet verdict
+            causes = ms.requests[0][1]["format"]["properties"]["cause"]["enum"]
+            self.assertIn("disk_full", causes)
+            self.assertNotIn("dns_misconfigured", causes)
+        finally:
+            ms.close()
+
     def test_a_plain_question_is_only_offered_answer(self):
         ms = FakeModelServer([J("answer", message="DNS turns names into numbers.")])
         try:

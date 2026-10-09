@@ -224,6 +224,23 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(first["name"], "compare_with_normal")
         self.assertIn("DNS servers", first["summary"])
 
+    def test_moving_to_another_wifi_is_not_reported_as_a_change(self):
+        from ayos.tools import diff_snapshots
+
+        pc = FakeSystem()
+        home = snapshot(pc)
+        pc.dhcp_dns = ["10.0.0.1"]  # a different network hands out a different automatic DNS server
+        pc.gateway = "10.0.0.1"
+        pc.GOOD_DNS = {"10.0.0.1", "1.1.1.1", "8.8.8.8"}
+        self.assertEqual(diff_snapshots(home, snapshot(pc)), [])
+        sim.apply(pc, "wrong_dns")
+        self.assertEqual(len(diff_snapshots(home, snapshot(pc))), 1)
+        pc.manual_dns = None
+        pc.adapter["status"] = "Disabled"
+        changes = diff_snapshots(home, snapshot(pc))
+        self.assertEqual(len(changes), 1)
+        self.assertIn("Adapter", changes[0])
+
     def test_repeat_problem_takes_fewer_checks(self):
         mem = Memory(None)
         pc = FakeSystem()
