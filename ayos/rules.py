@@ -65,6 +65,20 @@ CAUSES = {
         "remove_hosts_entry",
         "",
     ),
+    "captive_portal": (
+        "This Wi-Fi needs you to sign in first",
+        "The network is holding every page back until you sign in or accept its terms on its own web page. "
+        "The PC is fine; the Wi-Fi is waiting for you.",
+        "open_login_page",
+        "Open any plain website in your browser and the sign-in page should appear.",
+    ),
+    "clock_wrong": (
+        "The PC's date and time are wrong",
+        "Secure websites prove who they are with a certificate that has dates on it. With the wrong date on this PC, "
+        "every certificate looks expired or not yet valid, so the browser warns that the connection is not private.",
+        "set_clock",
+        "",
+    ),
     "no_fault_found": (
         "No fault found",
         "Every check passed and a test page loads. The connection is working right now.",
@@ -89,9 +103,22 @@ CAUSES = {
         "open_startup_settings",
         "Turn off the ones you do not need at start-up.",
     ),
+    "battery_saver": (
+        "Battery saver is slowing the PC",
+        "The charger is unplugged and battery saver is on. Windows holds the processor back on purpose to make the battery last.",
+        "open_battery_settings",
+        "Plug the charger in, or turn battery saver off when you need speed.",
+    ),
+    "needs_restart": (
+        "Windows needs a restart",
+        "This PC has gone a long time without a real restart, or an update is waiting for one. Leftover programs and "
+        "half-installed updates slow it down.",
+        None,
+        "Save your work, then choose Restart from the Start menu. Restart, not Shut down: Shut down keeps part of Windows asleep.",
+    ),
     "pc_looks_healthy": (
         "No obvious cause found",
-        "Storage, memory and start-up apps all look fine.",
+        "Storage, memory, start-up apps, power settings and uptime all look fine.",
         None,
         "If it is slow only sometimes, note what is open when it happens and ask again then.",
     ),
@@ -102,14 +129,16 @@ NETWORK_CAUSES = [
     "wifi_not_connected",
     "no_ip_address",
     "router_unreachable",
+    "captive_portal",
     "isp_outage",
     "dns_misconfigured",
     "dns_server_down",
     "proxy_blocking",
     "hosts_block",
+    "clock_wrong",
     "no_fault_found",
 ]
-PC_CAUSES = ["disk_full", "low_memory", "many_startup_apps", "pc_looks_healthy"]
+PC_CAUSES = ["disk_full", "low_memory", "many_startup_apps", "battery_saver", "needs_restart", "pc_looks_healthy"]
 
 
 def _ok(obs: dict, name: str):
@@ -141,11 +170,20 @@ def supports(cause: str, obs: dict):
         return (bool((ip["apipa"] or not ip["ipv4"]) and not adapter_off and not not_joined and ad["up"]), None)
     if cause == "router_unreachable":
         return (bool(ip and ip["ipv4"] and not ip["apipa"] and ip["router_ok"] is False), None if ip else "check_ip_and_router")
+    login, clock = _ok(obs, "check_login_page"), _ok(obs, "check_clock")
+    if cause == "captive_portal":
+        return (bool(login and login["portal"]), None if login else "check_login_page")
+    if cause == "clock_wrong":
+        return (bool(clock and clock["wrong"]), None if clock else "check_clock")
     if cause == "isp_outage":
         if not reach:
             return False, "check_internet_reach"
         if not ip:
             return False, "check_ip_and_router"
+        if not login:
+            return False, "check_login_page"  # a Wi-Fi sign-in page blocks everything too, and it is not an outage
+        if login["portal"]:
+            return False, None
         return (not reach["reachable"] and ip["router_ok"] is True, None)  # the router is alive, but nothing beyond it answers
     if cause == "dns_misconfigured":
         if not dns:
@@ -167,10 +205,10 @@ def supports(cause: str, obs: dict):
             return False, "check_hosts"
         return (bool(hosts["relevant"]), None)
     if cause == "no_fault_found":
-        for need in ("check_adapters", "check_dns", "check_proxy", "check_hosts", "test_website"):
+        for need in ("check_adapters", "check_dns", "check_proxy", "check_hosts", "check_login_page", "check_clock", "test_website"):
             if not _ok(obs, need):
                 return False, need
-        return (bool(web["ok"] and not hosts["relevant"] and not proxy["enabled"]), None)
+        return (bool(web["ok"] and not hosts["relevant"] and not proxy["enabled"] and not login["portal"] and not clock["wrong"]), None)
 
     disk, mem, start = _ok(obs, "check_disk"), _ok(obs, "check_memory"), _ok(obs, "check_startup")
     if cause == "disk_full":
@@ -179,11 +217,16 @@ def supports(cause: str, obs: dict):
         return (bool(mem and mem["low"]), None if mem else "check_memory")
     if cause == "many_startup_apps":
         return (bool(start and start["many"]), None if start else "check_startup")
+    batt, up = _ok(obs, "check_battery"), _ok(obs, "check_uptime")
+    if cause == "battery_saver":
+        return (bool(batt and batt["slowing"]), None if batt else "check_battery")
+    if cause == "needs_restart":
+        return (bool(up and up["needs"]), None if up else "check_uptime")
     if cause == "pc_looks_healthy":
-        for need in ("check_disk", "check_memory", "check_startup"):
+        for need in ("check_disk", "check_memory", "check_startup", "check_battery", "check_uptime"):
             if not _ok(obs, need):
                 return False, need
-        return (not disk["low"] and not mem["low"] and not start["many"], None)
+        return (not disk["low"] and not mem["low"] and not start["many"] and not batt["slowing"] and not up["needs"], None)
     return False, None
 
 
@@ -209,7 +252,18 @@ def why_not(cause: str, obs: dict) -> str:
         if not hosts["blocked_names"]:
             return "the hosts file blocks nothing"
         return "the hosts file does not block that website" if hosts.get("target") else "the blocked names were already there when the internet worked"
+    login, clock = _ok(obs, "check_login_page"), _ok(obs, "check_clock")
+    if cause == "captive_portal" and login and not login["portal"]:
+        return "no sign-in page is in the way"
+    if cause == "clock_wrong" and clock and not clock["wrong"]:
+        return "the date and time are right" if clock["skew"] is not None else "the clock could not be compared"
+    if cause == "isp_outage" and login and login["portal"]:
+        return "the Wi-Fi is showing a sign-in page, which is not an outage"
     if cause == "no_fault_found":
+        if login and login["portal"]:
+            return "the Wi-Fi is showing a sign-in page"
+        if clock and clock["wrong"]:
+            return "the PC's date and time are wrong"
         if web and not web["ok"]:
             return "a test page still fails to load"
         if hosts and hosts["relevant"]:
@@ -223,11 +277,16 @@ def why_not(cause: str, obs: dict) -> str:
         return "there is enough free memory"
     if cause == "many_startup_apps" and start and not start["many"]:
         return "only a few apps start with Windows"
-    if cause == "pc_looks_healthy" and ((disk and disk["low"]) or (mem and mem["low"]) or (start and start["many"])):
+    batt, up = _ok(obs, "check_battery"), _ok(obs, "check_uptime")
+    if cause == "battery_saver" and batt and not batt["slowing"]:
+        return "battery saver is not slowing the PC"
+    if cause == "needs_restart" and up and not up["needs"]:
+        return "Windows was restarted recently"
+    if cause == "pc_looks_healthy" and ((disk and disk["low"]) or (mem and mem["low"]) or (start and start["many"]) or (batt and batt["slowing"]) or (up and up["needs"])):
         return "one of the checks did find a problem"
-    if cause in PC_CAUSES and any(k in obs for k in ("check_adapters", "check_dns", "check_proxy", "check_hosts", "test_website", "check_internet_reach", "check_ip_and_router")) and not any(k in obs for k in ("check_disk", "check_memory", "check_startup")):
+    if cause in PC_CAUSES and any(k in obs for k in ("check_adapters", "check_dns", "check_proxy", "check_hosts", "test_website", "check_internet_reach", "check_ip_and_router")) and not any(k in obs for k in ("check_disk", "check_memory", "check_startup", "check_battery", "check_uptime")):
         return "that cause is about a slow PC, and this is an internet problem"
-    if cause in NETWORK_CAUSES and any(k in obs for k in ("check_disk", "check_memory", "check_startup")) and not any(k in obs for k in ("check_adapters", "check_dns", "check_proxy", "check_hosts", "test_website")):
+    if cause in NETWORK_CAUSES and any(k in obs for k in ("check_disk", "check_memory", "check_startup", "check_battery", "check_uptime")) and not any(k in obs for k in ("check_adapters", "check_dns", "check_proxy", "check_hosts", "test_website")):
         return "that cause is about the internet, and this is a slow-PC problem"
     return "the check results do not show it"
 
@@ -256,6 +315,10 @@ KEY_CHECK = {
     "disk_full": "check_disk",
     "low_memory": "check_memory",
     "many_startup_apps": "check_startup",
+    "captive_portal": "check_login_page",
+    "clock_wrong": "check_clock",
+    "battery_saver": "check_battery",
+    "needs_restart": "check_uptime",
 }
 
 
@@ -316,6 +379,8 @@ def fix_args(cause: str, obs: dict, baseline: dict | None = None) -> dict:
         return args
     if cause == "proxy_blocking":
         return {"previous": obs["check_proxy"]["server"]}
+    if cause == "clock_wrong":
+        return {"skew": obs["check_clock"]["skew"]}
     if cause == "hosts_block":
         h = obs["check_hosts"]
         wanted = set(h["relevant"])
@@ -343,10 +408,14 @@ def evidence_lines(cause: str, obs: dict, summaries: dict) -> list:
         "proxy_blocking": ["check_proxy"],
         "hosts_block": ["check_hosts"],
         "no_fault_found": ["test_website"],
+        "captive_portal": ["check_login_page"],
+        "clock_wrong": ["check_clock"],
+        "battery_saver": ["check_battery"],
+        "needs_restart": ["check_uptime"],
         "disk_full": ["check_disk"],
         "low_memory": ["check_memory"],
         "many_startup_apps": ["check_startup"],
-        "pc_looks_healthy": ["check_disk", "check_memory", "check_startup"],
+        "pc_looks_healthy": ["check_disk", "check_memory", "check_startup", "check_battery", "check_uptime"],
     }.get(cause, [])
     if "compare_with_normal" in summaries and (obs.get("compare_with_normal") or {}).get("changes"):
         relevant = ["compare_with_normal"] + relevant

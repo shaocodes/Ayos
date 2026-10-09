@@ -30,6 +30,19 @@ def _wifi_dropped(s: FakeSystem):
     s.adapter["status"] = "Disconnected"
 
 
+def _portal(s: FakeSystem):
+    s.portal = True
+
+
+def _battery_saver(s: FakeSystem):
+    s.batt = {"on_battery": True, "saver": True, "percent": 17}
+
+
+def _needs_restart(s: FakeSystem):
+    s.uptime = 23.4
+    s.pending_restart = True
+
+
 def _disk_full(s: FakeSystem):
     s.disk = [{"drive": "C:", "total_gb": 237.0, "free_gb": 3.1}]
 
@@ -50,6 +63,9 @@ SIM_ONLY = {
     "router_dns_down": ("Router's DNS dies", "Websites stop opening.", _router_dns_down, "Websites will not open", "dns_server_down"),
     "no_ip": ("No address from router", "Connected, but no internet.", _no_ip, "It says connected but there is no internet", "no_ip_address"),
     "wifi_dropped": ("Wi-Fi disconnected", "Not joined to any network.", _wifi_dropped, "I have no internet", "wifi_not_connected"),
+    "captive_portal": ("Wi-Fi wants a sign-in", "Connected, but every page is held back.", _portal, "The wifi is connected but nothing opens", "captive_portal"),
+    "battery_saver": ("Battery saver on", "The laptop is slow on battery.", _battery_saver, "My laptop got slow after I unplugged the charger", "battery_saver"),
+    "needs_restart": ("Not restarted for weeks", "The PC keeps getting slower.", _needs_restart, "My PC has been getting slower and slower", "needs_restart"),
     "disk_full": ("Drive almost full", "The PC is slow.", _disk_full, "My laptop is very slow", "disk_full"),
     "low_memory": ("Memory almost full", "The PC is slow.", _low_memory, "My PC keeps hanging and lagging", "low_memory"),
     "many_startup": ("Too many start-up apps", "Slow to start.", _many_startup, "My computer takes forever to start up", "many_startup_apps"),
@@ -61,6 +77,7 @@ REAL_FAULT_CASES = {
     "adapter_off": ("I have no internet at all", "adapter_disabled"),
     "proxy_on": ("My browser cannot open any website", "proxy_blocking"),
     "hosts_block": ("I cannot open example.com but other sites work", "hosts_block"),
+    "clock_wrong": ("Websites say my connection is not private", "clock_wrong"),
 }
 
 

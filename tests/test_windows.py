@@ -40,6 +40,7 @@ class PsWorld:
         self.router_v6 = ["fe80::1"] if ipv6_dns_from_router else []
         self.scripts = []
         self.proxy = {"enabled": False, "server": "", "auto_config_url": ""}
+        self.clock_ahead = 0.0  # the stand-in cannot move the real clock, so it moves "the internet's" instead
 
     def servers(self, name):
         if self.status[name] != "Up":
@@ -87,6 +88,12 @@ class PsWorld:
             return Proc("")
         if "Clear-DnsClientCache" in script:
             return Proc("")
+        m = re.match(r"Set-Date -Adjust \(New-TimeSpan -Seconds (-?\d+)\) \| Out-Null", script)
+        if m:
+            if not self.admin:
+                return Proc("", "Set-Date : A required privilege is not held by the client.", 1)
+            self.clock_ahead += int(m.group(1))
+            return Proc("")
         raise AssertionError("unexpected PowerShell: " + script)
 
 
@@ -116,7 +123,10 @@ def make_pc(world: PsWorld, hosts_text="# hosts\n127.0.0.1 localhost\n"):
             return {"ok": False, "status": 0, "error": "proxy refused", "ms": 5}
         ip = resolve(S.urlparse(url).hostname)
         ok = bool(ip) and not S.is_block_ip(ip)
-        return {"ok": ok, "status": 200 if ok else 0, "error": "" if ok else "could not connect", "ms": 5}
+        import time as _t
+
+        return {"ok": ok, "status": 200 if ok else 0, "error": "" if ok else "could not connect", "ms": 5,
+                "body": "Microsoft Connect Test" if ok else "", "date": (_t.time() - world.clock_ahead) if ok else None, "final_url": url}
 
     pc.resolve, pc.http_get = resolve, http_get
     pc.proxy_get = lambda: dict(world.proxy)
@@ -125,6 +135,9 @@ def make_pc(world: PsWorld, hosts_text="# hosts\n127.0.0.1 localhost\n"):
     pc.memory = lambda: {"total_gb": 15.8, "free_gb": 7.0}
     pc.top_processes = lambda n=5: [{"name": "chrome", "mem_mb": 900}]
     pc.startup_items = lambda: []
+    pc.battery = lambda: {"on_battery": False, "saver": False, "percent": None}
+    pc.uptime_days = lambda: 0.4
+    pc.restart_pending = lambda: False
     return pc
 
 
@@ -375,17 +388,24 @@ class WholeFlowOnWindowsLayer(unittest.TestCase):
         self.assertIn("administrator", res["message"])
         self.assertTrue(w.manual)  # nothing changed
 
+    def test_wrong_clock(self):
+        w, pc, s = self.run_fault("clock_wrong", "Websites say my connection is not private", "clock_wrong")
+        self.assertLess(abs(w.clock_ahead), 5)
+        self.assertTrue(any(x.startswith("Set-Date -Adjust (New-TimeSpan -Seconds -34560000)") for x in w.scripts))
+        self.assertEqual([e["name"] for e in s.events if e["type"] == "check_start"][:2], ["compare_with_normal", "check_clock"])
+
     def test_restore_all(self):
         w = PsWorld()
         pc = make_pc(w)
-        for f in ("wrong_dns", "proxy_on", "hosts_block", "adapter_off"):
+        for f in ("wrong_dns", "proxy_on", "hosts_block", "adapter_off", "clock_wrong"):
             fixes.apply_fault(pc, f)
         done = fixes.restore_all(pc)
         self.assertEqual(w.status["Wi-Fi"], "Up")
         self.assertEqual(w.manual, {})
         self.assertFalse(w.proxy["enabled"])
         self.assertEqual(pc.hosts_entries(), [])
-        self.assertGreaterEqual(len(done), 4)
+        self.assertLess(abs(w.clock_ahead), 5)
+        self.assertGreaterEqual(len(done), 5)
 
 
 if __name__ == "__main__":

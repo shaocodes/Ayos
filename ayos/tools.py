@@ -288,6 +288,85 @@ def check_hosts(system: System, ctx: dict):
     return summary, {"entries": entries, "blocked_names": blocked, "relevant": relevant, "blocks_target": blocks_target, "target": target}
 
 
+EXPECTED_BODY = "Microsoft Connect Test"  # what the test page says when nothing is in the way
+CLOCK_TOLERANCE = 300  # seconds; secure websites start refusing somewhere beyond this
+
+
+def _span(seconds: float) -> str:
+    seconds = abs(seconds)
+    if seconds >= 2 * 86400:
+        return f"{seconds / 86400:.0f} days"
+    if seconds >= 2 * 3600:
+        return f"{seconds / 3600:.0f} hours"
+    if seconds >= 120:
+        return f"{seconds / 60:.0f} minutes"
+    return f"{seconds:.0f} seconds"
+
+
+def check_login_page(system: System, ctx: dict):
+    """Mall, hotel and school Wi-Fi often answers every page with its own sign-in page until you log in."""
+    r = system.http_get(TEST_URL, use_system_proxy=False, timeout=4.0)
+    answered = bool(r.get("status"))
+    body = r.get("body") or ""
+    moved = "msftconnecttest" not in (r.get("final_url") or TEST_URL)  # we were sent to somebody else's page
+    # A reply only counts as a sign-in page if it really is a different page, not merely an empty one.
+    portal = answered and (moved or (bool(body.strip()) and EXPECTED_BODY not in body))
+    if portal:
+        summary = (
+            "This network answered with its own page instead of the test page. It wants you to sign in or accept "
+            "its terms in a browser before it lets anything through. That is common on mall, hotel and school Wi-Fi."
+        )
+    elif answered:
+        summary = "No sign-in page is in the way: the test page came back unchanged."
+    else:
+        summary = "The test page could not be reached at all, so this is not a sign-in page problem."
+    return summary, {"portal": portal, "answered": answered, "final_url": r.get("final_url")}
+
+
+def check_clock(system: System, ctx: dict):
+    """Compare the PC's clock with the time a web server reports. A wrong date breaks secure (https) websites."""
+    r = system.http_get(TEST_URL, use_system_proxy=False, timeout=4.0)
+    if not r.get("date"):
+        return "The clock could not be compared, because nothing on the internet answered.", {"skew": None, "wrong": False}
+    skew = system.now() - r["date"]
+    wrong = abs(skew) >= CLOCK_TOLERANCE
+    if wrong:
+        summary = (
+            f"The PC's date and time are WRONG: {_span(skew)} {'ahead of' if skew > 0 else 'behind'} the real time. "
+            "Secure websites check the date and refuse to open when it is wrong."
+        )
+    else:
+        summary = "The PC's date and time are right."
+    return summary, {"skew": round(skew, 1), "wrong": wrong}
+
+
+def check_battery(system: System, ctx: dict):
+    b = system.battery()
+    slowing = bool(b.get("saver") and b.get("on_battery"))
+    level = f" Battery at {b['percent']}%." if b.get("percent") is not None else ""
+    if slowing:
+        summary = "Battery saver is ON and the charger is unplugged. Windows slows the PC down on purpose to save power." + level
+    elif b.get("on_battery"):
+        summary = "Running on battery, battery saver is off." + level
+    else:
+        summary = "Plugged in, or a PC without a battery. Power settings are not slowing it down." + level
+    return summary, {"slowing": slowing, **b}
+
+
+def check_uptime(system: System, ctx: dict):
+    days = float(system.uptime_days())
+    pending = bool(system.restart_pending())
+    long = days >= 7
+    summary = f"Windows has been running for {days:.1f} days without a restart."
+    if pending:
+        summary += " An update is waiting for a restart."
+    if long:
+        summary += " That is long: 'Shut down' does not fully restart Windows, so leftovers pile up and slow it."
+    if not (long or pending):
+        summary += " That is fine."
+    return summary, {"days": days, "pending": pending, "long": long, "needs": long or pending}
+
+
 def test_website(system: System, ctx: dict):
     target = ctx.get("target")
     url = f"http://{target}" if target else TEST_URL
@@ -335,22 +414,28 @@ CHECKS = {
     "check_dns": ("See which DNS servers are set and whether they answer. DNS turns website names into addresses.", check_dns),
     "check_proxy": ("See whether a proxy is set and whether pages load with and without it.", check_proxy),
     "check_hosts": ("See whether the hosts file blocks any website names.", check_hosts),
+    "check_login_page": ("See whether this Wi-Fi shows its own sign-in page before it lets anything through.", check_login_page),
+    "check_clock": ("See whether the PC's date and time are right. A wrong date breaks secure websites.", check_clock),
     "test_website": ("Try to open a web page the way a browser would.", test_website),
     "check_disk": ("See how much storage space is free.", check_disk),
     "check_memory": ("See how much memory is free and which apps use the most.", check_memory),
     "check_startup": ("List the apps that start automatically with Windows.", check_startup),
+    "check_battery": ("See whether battery saver is slowing the PC down.", check_battery),
+    "check_uptime": ("See how long Windows has run without a restart.", check_uptime),
 }
 NETWORK_CHECKS = [
     "compare_with_normal",
     "check_adapters",
     "check_ip_and_router",
+    "check_login_page",
     "check_internet_reach",
     "check_dns",
     "check_proxy",
     "check_hosts",
+    "check_clock",
     "test_website",
 ]
-PC_CHECKS = ["check_disk", "check_memory", "check_startup"]
+PC_CHECKS = ["check_disk", "check_memory", "check_startup", "check_battery", "check_uptime"]
 
 TITLES = {
     "compare_with_normal": "Comparing with the last time it worked",
@@ -360,10 +445,14 @@ TITLES = {
     "check_dns": "Checking DNS",
     "check_proxy": "Checking the proxy setting",
     "check_hosts": "Checking the hosts file",
+    "check_login_page": "Checking for a Wi-Fi sign-in page",
+    "check_clock": "Checking the date and time",
     "test_website": "Opening a test page",
     "check_disk": "Checking storage space",
     "check_memory": "Checking memory",
     "check_startup": "Checking start-up apps",
+    "check_battery": "Checking battery saver",
+    "check_uptime": "Checking time since the last restart",
 }
 
 
@@ -398,6 +487,14 @@ def verdict(name: str, data: dict) -> str:
         return "bad" if data.get("relevant") else "ok"
     if name == "test_website":
         return "ok" if data.get("ok") else "bad"
+    if name == "check_login_page":
+        return "bad" if data.get("portal") else ("ok" if data.get("answered") else "info")
+    if name == "check_clock":
+        return "bad" if data.get("wrong") else ("ok" if data.get("skew") is not None else "info")
+    if name == "check_battery":
+        return "bad" if data.get("slowing") else "ok"
+    if name == "check_uptime":
+        return "bad" if data.get("needs") else "ok"
     if name == "check_disk":
         return "bad" if data.get("low") else "ok"
     if name == "check_memory":

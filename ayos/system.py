@@ -72,7 +72,7 @@ def parse_dns_response(buf: bytes) -> dict:
 def udp_dns_query(name: str, server: str, timeout: float = 2.5, port: int = 53) -> dict:
     """Ask one DNS server directly, bypassing Windows settings and the DNS cache."""
     family = socket.AF_INET6 if ":" in server else socket.AF_INET
-    started = time.time()
+    started = time.monotonic()
     try:
         with socket.socket(family, socket.SOCK_DGRAM) as s:
             s.settimeout(timeout)
@@ -81,7 +81,7 @@ def udp_dns_query(name: str, server: str, timeout: float = 2.5, port: int = 53) 
         out = parse_dns_response(data)
     except OSError as e:
         out = {"answered": False, "ip": None, "rcode": -1, "error": type(e).__name__}
-    out["ms"] = int((time.time() - started) * 1000)
+    out["ms"] = int((time.monotonic() - started) * 1000)
     return out
 
 
@@ -176,6 +176,28 @@ class System:
     def open_settings(self, page: str) -> None:
         raise NotImplementedError
 
+    def open_url(self, url: str) -> None:
+        raise NotImplementedError
+
+    # clock, power, uptime
+    def now(self) -> float:
+        """What this PC believes the time is, in seconds since 1970 (UTC)."""
+        return time.time()
+
+    def shift_clock(self, seconds: float) -> None:
+        """Move the PC's clock forward (positive) or back (negative)."""
+        raise NotImplementedError
+
+    def battery(self) -> dict:
+        """{'on_battery': bool | None, 'saver': bool, 'percent': int | None}"""
+        raise NotImplementedError
+
+    def uptime_days(self) -> float:
+        raise NotImplementedError
+
+    def restart_pending(self) -> bool:
+        raise NotImplementedError
+
 
 # ----------------------------------------------------------------- one long-lived PowerShell
 class ShellDown(Exception):
@@ -248,11 +270,11 @@ class PsShell:
             except (OSError, ValueError) as e:
                 self.close()
                 raise ShellDown(str(e))
-            out, end = [], time.time() + timeout
+            out, end = [], time.monotonic() + timeout
             ok_mark, err_mark = f"<<<AYOS-OK {n}>>>", f"<<<AYOS-ERR {n}>>>"
             while True:
                 try:
-                    line = self.lines.get(timeout=max(0.05, end - time.time()))
+                    line = self.lines.get(timeout=max(0.05, end - time.monotonic()))
                 except queue.Empty:
                     self.close()
                     raise ShellDown("PowerShell did not answer in time")
@@ -319,10 +341,10 @@ class WindowsSystem(System):
 
     def _cached(self, key: str, fn):
         hit = self._cache.get(key)
-        if hit and time.time() - hit[0] < self.CACHE_SECONDS:
+        if hit and time.monotonic() - hit[0] < self.CACHE_SECONDS:
             return [dict(x) for x in hit[1]]
         val = fn()
-        self._cache[key] = (time.time(), val)
+        self._cache[key] = (time.monotonic(), val)
         return [dict(x) for x in val]
 
     def _changed(self):
@@ -531,10 +553,10 @@ class WindowsSystem(System):
 
     def http_get(self, url: str, use_system_proxy: bool = True, timeout: float = 6.0) -> dict:
         # Name lookups ignore the socket timeout on Windows and can hang for a long time when DNS is dead.
-        started = time.time()
+        started = time.monotonic()
         out = _with_timeout(lambda: real_http_get(url, use_system_proxy, timeout), timeout + 1.5)
         if out is None:
-            out = {"ok": False, "status": 0, "error": "timed out", "ms": int((time.time() - started) * 1000)}
+            out = {"ok": False, "status": 0, "error": "timed out", "ms": int((time.monotonic() - started) * 1000), "body": "", "date": None, "final_url": url}
         return out
 
     def set_dns(self, adapter: str, servers) -> None:
@@ -613,6 +635,51 @@ class WindowsSystem(System):
 
     def open_settings(self, page: str) -> None:
         os.startfile(f"ms-settings:{page}")  # type: ignore[attr-defined]
+
+    def open_url(self, url: str) -> None:
+        os.startfile(url)  # type: ignore[attr-defined]
+
+    def shift_clock(self, seconds: float) -> None:
+        self._ps(f"Set-Date -Adjust (New-TimeSpan -Seconds {int(round(seconds))}) | Out-Null")
+
+    def battery(self) -> dict:
+        import ctypes
+
+        class Status(ctypes.Structure):
+            _fields_ = [
+                ("ac", ctypes.c_ubyte),
+                ("flag", ctypes.c_ubyte),
+                ("percent", ctypes.c_ubyte),
+                ("saver", ctypes.c_ubyte),
+                ("life", ctypes.c_ulong),
+                ("full", ctypes.c_ulong),
+            ]
+
+        st = Status()
+        if not ctypes.windll.kernel32.GetSystemPowerStatus(ctypes.byref(st)):
+            raise OSError("Windows did not report the power status")
+        return {
+            "on_battery": True if st.ac == 0 else False if st.ac == 1 else None,
+            "saver": st.saver == 1,
+            "percent": int(st.percent) if st.percent <= 100 else None,
+        }
+
+    def uptime_days(self) -> float:
+        import ctypes
+
+        fn = ctypes.windll.kernel32.GetTickCount64
+        fn.restype = ctypes.c_ulonglong
+        return round(fn() / 86400000.0, 2)
+
+    def restart_pending(self) -> bool:
+        import winreg
+
+        key = r"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY):
+                return True
+        except OSError:
+            return False
 
 
 def decode_ps_json(out: str) -> list:
@@ -695,20 +762,34 @@ def remove_hosts_name(text: str, name: str):
     return "\n".join(kept) + "\n", changed
 
 
+def _server_time(headers):
+    """The Date header of a reply, as seconds since 1970, or None."""
+    try:
+        from email.utils import parsedate_to_datetime
+
+        return parsedate_to_datetime(headers.get("Date")).timestamp()
+    except Exception:
+        return None
+
+
 def real_http_get(url: str, use_system_proxy: bool, timeout: float) -> dict:
     handlers = [] if use_system_proxy else [urllib.request.ProxyHandler({})]
     opener = urllib.request.build_opener(*handlers)
     req = urllib.request.Request(url, headers={"User-Agent": "Ayos/1.0"})
-    started = time.time()
+    started = time.monotonic()
+
+    def ms():
+        return int((time.monotonic() - started) * 1000)
+
     try:
         with opener.open(req, timeout=timeout) as res:
-            res.read(256)
-            return {"ok": 200 <= res.status < 400, "status": res.status, "error": "", "ms": int((time.time() - started) * 1000)}
+            body = res.read(300).decode("latin-1", "replace")
+            return {"ok": 200 <= res.status < 400, "status": res.status, "error": "", "ms": ms(), "body": body, "date": _server_time(res.headers), "final_url": res.geturl()}
     except urllib.error.HTTPError as e:
-        return {"ok": e.code < 500, "status": e.code, "error": "", "ms": int((time.time() - started) * 1000)}
+        return {"ok": e.code < 500, "status": e.code, "error": "", "ms": ms(), "body": "", "date": _server_time(e.headers), "final_url": url}
     except Exception as e:
         reason = getattr(e, "reason", e)
-        return {"ok": False, "status": 0, "error": str(reason)[:160], "ms": int((time.time() - started) * 1000)}
+        return {"ok": False, "status": 0, "error": str(reason)[:160], "ms": ms(), "body": "", "date": None, "final_url": url}
 
 
 # ----------------------------------------------------------------- simulated PC
@@ -738,6 +819,11 @@ class FakeSystem(System):
         self.startup = [{"name": "Discord", "command": "Discord.exe"}, {"name": "OneDrive", "command": "OneDrive.exe"}]
         self.opened = []
         self.calls = []
+        self.portal = False  # True: the Wi-Fi shows its own sign-in page until you log in
+        self.clock_skew = 0.0  # seconds this PC's clock is ahead of the true time (negative: behind)
+        self.batt = {"on_battery": False, "saver": False, "percent": 86}
+        self.uptime = 1.6
+        self.pending_restart = False
 
     def _need_admin(self):
         if not self.admin:
@@ -777,7 +863,7 @@ class FakeSystem(System):
             return False
         if host == self.gateway:
             return self.router_up  # the router's own web and DNS ports
-        return self.router_up and self.isp_up
+        return self.router_up and self.isp_up and not self.portal
 
     def dns_query(self, name: str, server: str, timeout: float = 2.5) -> dict:
         ok = self._link() and self.router_up and server in self.GOOD_DNS
@@ -805,16 +891,43 @@ class FakeSystem(System):
 
     def http_get(self, url: str, use_system_proxy: bool = True, timeout: float = 6.0) -> dict:
         host = (urlparse(url).hostname or "").lower()
+
+        def fail(error, ms):
+            return {"ok": False, "status": 0, "error": error, "ms": ms, "body": "", "date": None, "final_url": url}
+
         if use_system_proxy and self.proxy["enabled"]:
-            return {"ok": False, "status": 0, "error": "proxy connection refused", "ms": 40}
+            return fail("proxy connection refused", 40)
         ip = self.resolve(host)
         if not ip:
-            return {"ok": False, "status": 0, "error": "name could not be resolved", "ms": 900}
+            return fail("name could not be resolved", 900)
         if is_block_ip(ip):
-            return {"ok": False, "status": 0, "error": "connection refused", "ms": 30}
+            return fail("connection refused", 30)
+        if self.portal and self._link() and self.router_up:
+            # the network answers every page with its own sign-in page
+            return {"ok": True, "status": 200, "error": "", "ms": 60, "body": "<html><title>Wi-Fi sign in</title>", "date": time.time(), "final_url": "http://login.wifi.example/"}
         if not self.tcp_reach(ip, 80):
-            return {"ok": False, "status": 0, "error": "network unreachable", "ms": 900}
-        return {"ok": True, "status": 200, "error": "", "ms": 120}
+            return fail("network unreachable", 900)
+        body = "Microsoft Connect Test" if "msftconnecttest" in host else "<html>"
+        return {"ok": True, "status": 200, "error": "", "ms": 120, "body": body, "date": time.time(), "final_url": url}
+
+    def now(self) -> float:
+        return time.time() + self.clock_skew
+
+    def shift_clock(self, seconds: float) -> None:
+        self._need_admin()
+        self.clock_skew += float(seconds)
+
+    def battery(self) -> dict:
+        return dict(self.batt)
+
+    def uptime_days(self) -> float:
+        return self.uptime
+
+    def restart_pending(self) -> bool:
+        return self.pending_restart
+
+    def open_url(self, url: str) -> None:
+        self.opened.append(url)
 
     def set_dns(self, adapter: str, servers) -> None:
         self._need_admin()

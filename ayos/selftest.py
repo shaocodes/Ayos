@@ -26,9 +26,9 @@ def run_selftest(system, model: str, url: str, api: str) -> int:
     say(f"Python {platform.python_version()} on {platform.platform()}")
     say(f"PC: {system.name}   Administrator: {'yes' if system.is_admin() else 'no'}")
     if hasattr(system, "warm"):
-        t0 = time.time()
+        t0 = time.monotonic()
         system.warm()
-        say(f"PowerShell: {system.ps_mode()} (start-up took {time.time() - t0:.1f} s; the checks below reuse it)")
+        say(f"PowerShell: {system.ps_mode()} (start-up took {time.monotonic() - t0:.1f} s; the checks below reuse it)")
         system._changed()
     try:
         say(f"Main adapter: {primary_adapter(system)}")
@@ -38,9 +38,9 @@ def run_selftest(system, model: str, url: str, api: str) -> int:
     failed = 0
     ctx = {"target": None, "memory": {"baseline": None}}
     for name in CHECKS:
-        t0 = time.time()
+        t0 = time.monotonic()
         summary, data = run_check(name, system, ctx)
-        ms = int((time.time() - t0) * 1000)
+        ms = int((time.monotonic() - t0) * 1000)
         bad = "error" in data
         failed += bad
         say(f"[{'FAIL' if bad else ' ok '}] {name:22s} {ms:6d} ms  {summary}")

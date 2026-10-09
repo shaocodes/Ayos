@@ -60,7 +60,7 @@ def build() -> str:
     cases = next((s["cases"] for runs in load("current").values() for s in runs.values()), 20)
     text = (
         f"Measured by GitHub Actions on a 4-thread cloud CPU with no graphics card ({machine('current')}). "
-        f"{cases} cases on the simulated PC: 12 faults, 2 healthy PCs, and 6 of the same problems said the way people say them, "
+        f"{cases} cases on the simulated PC: {cases - 8} faults, 2 healthy PCs, and 6 of the same problems said the way people say them, "
         "including Taglish. Simulated checks answer instantly, so the times are almost all model time. "
         "Speed on another computer will differ; accuracy should be close.\n\n"
         "- **Model alone**: the first cause the model named was the right one.\n"

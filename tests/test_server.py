@@ -163,7 +163,7 @@ class ModelClient(unittest.TestCase):
             msgs = body["messages"]
             self.assertEqual([m["role"] for m in msgs], ["system", "user"])  # memory's findings arrive as plain facts
             self.assertIn("Checks were already run", msgs[0]["content"])  # the short instructions
-            self.assertLess(len(msgs[0]["content"]), 1300)
+            self.assertLess(len(msgs[0]["content"]), 1500)
             self.assertIn("Already checked from memory. compare_with_normal: Changed since the internet last worked", msgs[1]["content"])
             self.assertIn("check_dns: DNS servers on 'Wi-Fi'", msgs[1]["content"])
             self.assertIn("enough to name the cause", msgs[1]["content"])
@@ -190,9 +190,9 @@ class ModelClient(unittest.TestCase):
     def test_system_prompt_stays_short(self):
         from ayos.brain import system_prompt
 
-        self.assertLess(len(system_prompt()), 2900)  # about 650 tokens; every token costs time on a CPU
+        self.assertLess(len(system_prompt()), 3400)  # about 780 tokens; every token costs time on a CPU
         short = system_prompt(True, "network")
-        self.assertLess(len(short), 1300)
+        self.assertLess(len(short), 1500)
         self.assertIn("dns_misconfigured", short)
         self.assertNotIn("disk_full", short)  # a slow-PC cause is not offered for an internet problem
         self.assertNotIn("check_proxy", short)  # no list of checks: they were already run
@@ -267,7 +267,7 @@ class ModelClient(unittest.TestCase):
             self.assertEqual(s.stats["refusals"], 0)
             by = [(e["name"], e["source"]) for e in s.events if e["type"] == "check_start"]
             self.assertEqual(by[0], ("check_adapters", "model"))
-            self.assertEqual({n for n, src in by if src == "safety"}, {"check_dns", "check_proxy", "check_hosts", "test_website"})
+            self.assertEqual({n for n, src in by if src == "safety"}, {"check_dns", "check_proxy", "check_hosts", "check_login_page", "check_clock", "test_website"})
             guard = [e for e in s.events if e["type"] == "guard"][0]
             self.assertEqual(guard["kind"], "more_proof")
             self.assertEqual([e for e in s.events if e["type"] == "diagnosis"][0]["source"], "model")
@@ -474,7 +474,7 @@ class WebServer(unittest.TestCase):
         for key in ("simulated", "admin", "internet", "model", "memory", "faults"):
             self.assertIn(key, st)
         self.assertTrue(st["simulated"])
-        self.assertEqual(len([f for f in st["faults"] if f["real"]]), 4)
+        self.assertEqual(len([f for f in st["faults"] if f["real"]]), 5)
 
     def test_page_has_no_external_resources(self):
         html = self.call("/", token=False)[1]

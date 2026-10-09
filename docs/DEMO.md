@@ -32,7 +32,7 @@ Everything the team needs for the live pitch: what to check before, what to clic
 | 1:45 | Point at the red dot on the path, then at the green safety line. | "It found the break: DNS. And here is the part we care about most. The model does not get the last word. Plain code checks that the results really show that cause. If the model guesses, it is refused." |
 | 2:15 | Press **Fix it**. Wait for the Fixed stamp and the green light. Reload the website. | "It tells me exactly what it will change, and nothing happens until I approve. It fixed it, then ran the checks again to prove it." |
 | 2:45 | Press **Switch memory off**. Press **Fake proxy**, ask again. This time the model has to choose every check itself. Fix it, then press **Switch memory on**. | "That was with memory. Now I switch memory off, so it knows nothing about this PC. Watch the model investigate from scratch: it picks a check, reads the result, picks the next one. Slower, same answer." |
-| 3:30 | Point at the right-hand panel: model name, speed, "On this PC". Show the results table in the README if there is time. | "This is an open model running through Ollama on this laptop. The model picks from a fixed menu of eleven checks. It never writes a command. We tested the fixes on a real Windows machine and measured four open models on twenty cases." |
+| 3:30 | Point at the right-hand panel: model name, speed, "On this PC". Show the results table in the README if there is time. | "This is an open model running through Ollama on this laptop. The model picks from a fixed menu of fifteen checks. It never writes a command. We tested the fixes on a real Windows machine and measured four open models on twenty cases." |
 | 4:15 | Back to the green light. | "Who is this for: families, small offices, computer shops, schools, anywhere the person who knows computers is not in the room. It is local because the thing it repairs is the connection itself." |
 
 If you are short on time, cut the 2:45 row. Without memory the model needs three to five thinking steps instead of one, so rehearse it and time it on the demo laptop before you decide to include it.
@@ -60,7 +60,7 @@ The code can only confirm a cause. It cannot understand a person. The model read
 Then it is refused, and told why. A cause is accepted only when the check results show it. We measured this on 20 cases: `gemma3:4b` named the right cause first in 17 of them, and with the safety check all 20 final diagnoses were right. The same held for the three other models we tested, including a 0.8 GB one that was right first time in only 12.
 
 **Is it safe to give an AI administrator rights?**
-The model has none. It can only name a check or a cause from a fixed list. The fixes are nine small functions we wrote, each one reversible, and none runs without a click.
+The model has none. It can only name a check or a cause from a fixed list. The fixes are twelve small functions we wrote. Each one says exactly what it changes, and none runs without a click.
 
 **How is this different from the Windows troubleshooter?**
 Microsoft is retiring the built-in troubleshooters. Ayos explains what it found in plain words, shows the evidence, remembers this PC, and can be asked questions.
@@ -76,6 +76,9 @@ The model is one part, used as published. We built the agent loop, the menu of c
 
 **How fast is it?**
 On a 4-thread cloud CPU with no graphics card, a typical diagnosis took about 10 seconds with `gemma3:4b`. That number is in the README with the raw files. For the demo laptop, give the number you saw on it. Do not quote a number you did not measure.
+
+**Is it only DNS?**
+No. It diagnoses 18 causes: 12 about the internet and 6 about a slow PC. DNS is simply the easiest one to break on stage. The list is in the README. Adding a cause is one check, one rule and one fix, and the safety check covers it automatically.
 
 **What is next?**
 More causes (printers, Bluetooth, drivers), a small installer, and a mode for computer shops that keeps a history per customer PC.

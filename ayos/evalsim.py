@@ -59,7 +59,7 @@ def run_case(brain, fault: str, question: str, expected: str, with_memory: bool)
     if not fault.startswith("healthy"):
         sim.apply(pc, fault)
     s = Session("eval", question, pc, brain, mem, auto_approve=True)
-    t0 = time.time()
+    t0 = time.monotonic()
     s.run()
     fix = [e for e in s.events if e["type"] == "fix_result"]
     trace = []
@@ -90,7 +90,7 @@ def run_case(brain, fault: str, question: str, expected: str, with_memory: bool)
         "checks": len(s.obs),
         "model_steps": s.stats["model_steps"],
         "rule_steps": s.stats["rule_steps"],
-        "seconds": round(time.time() - t0, 1),
+        "seconds": round(time.monotonic() - t0, 1),
         "model_seconds": round(s.stats["model_seconds"], 1),
         "tok_per_s": s.stats["tok_per_s"],
         "fix_verified": bool(fix and fix[-1].get("verified")),

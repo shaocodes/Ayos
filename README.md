@@ -52,11 +52,11 @@ The only network traffic Ayos makes is the diagnosis itself: it tries to reach a
 
 ## Why the model cannot break your PC
 
-- The model never writes commands. Each turn it returns one small JSON object that picks from a fixed menu of 11 read-only checks or names one of 14 known causes. The menu is enforced by the model server's structured output, and checked again in code.
+- The model never writes commands. Each turn it returns one small JSON object that picks from a fixed menu of 15 read-only checks or names one of 18 known causes. The menu is enforced by the model server's structured output, and checked again in code.
 - The menu changes with the evidence. An internet problem is only offered network checks and network causes. Once the results already prove a cause, no more checks are offered: the model has to name it.
 - A cause is only accepted if the check results support it (`ayos/rules.py`, `supports()`). A model that guesses is refused and told why.
 - Fix details (which adapter, which hosts line) come from the check results, never from the model's text.
-- Only 9 fixes exist (`ayos/fixes.py`). Each one states exactly what it changes, needs your approval, and has an undo.
+- Only 12 fixes exist (`ayos/fixes.py`). Each one states exactly what it changes and needs your approval. The ones that change a setting can be undone, except asking the router for a new address, where there is nothing to undo.
 - The web page talks to a server on `127.0.0.1` only, and every action needs a secret token created at start-up, so a website open in another tab cannot drive Ayos.
 - If no model is running, or the model returns something unusable, built-in rules take over that step. The interface always shows who made each decision.
 
@@ -83,9 +83,34 @@ No Python packages need to be installed. Ayos uses only the Python standard libr
 
 **No Python on the PC?** Download `Ayos.exe` from the [Releases page](https://github.com/shaocodes/Ayos/releases). It is built from this repository by GitHub Actions. Windows may show a SmartScreen warning because the file is not signed: choose *More info*, then *Run anyway*.
 
+## What it can diagnose
+
+| | Cause | What Ayos does |
+|---|---|---|
+| Internet | Network adapter turned off | Turns it back on |
+| Internet | Wi-Fi not joined to any network | Opens Wi-Fi settings |
+| Internet | Router gave the PC no address | Asks the router again |
+| Internet | Router not answering | Says so; restart the router |
+| Internet | Wi-Fi needs a sign-in page first (mall, hotel, school) | Opens the sign-in page |
+| Internet | Provider outage | Says so; nothing on the PC needs fixing |
+| Internet | DNS set by hand to a dead server | Sets DNS back to automatic, or to what worked before |
+| Internet | Router's DNS not answering | Switches to a public DNS server |
+| Internet | Proxy setting blocking the browser | Turns the proxy off |
+| Internet | Hosts file blocking a website | Removes that line only |
+| Internet | Date and time wrong (secure sites warn) | Sets the clock right |
+| Internet | Nothing wrong | Proves it: every check passes |
+| Slow PC | Drive almost full | Opens Storage settings |
+| Slow PC | Memory almost full | Names the apps using it |
+| Slow PC | Too many start-up apps | Opens Startup apps settings |
+| Slow PC | Battery saver slowing the laptop | Opens battery settings |
+| Slow PC | Not restarted for a week, or an update waiting | Says to restart, not shut down |
+| Slow PC | Nothing wrong | Says so, with what it checked |
+
+It also answers general computer questions ("what is DNS?") with the local model. Adding a cause means adding one check, one rule in `ayos/rules.py` and, if there is a safe one, a fix. The safety check and the interface pick it up without changes.
+
 ## The practice bench
 
-Real faults are hard to produce on demand, so Ayos can create four safe ones on the real PC. Each is a single setting, and each is undone by **Put everything back** or by `restore_network.bat`.
+Real faults are hard to produce on demand, so Ayos can create five safe ones on the real PC. Each is a single setting, and each is undone by **Put everything back** or by `restore_network.bat`.
 
 | Fault | What you would notice | What Ayos should find | The fix |
 |---|---|---|---|
@@ -93,8 +118,9 @@ Real faults are hard to produce on demand, so Ayos can create four safe ones on 
 | Adapter turned off | No connection at all | The network adapter is turned off | Turn it back on |
 | Fake proxy | The browser reaches nothing | A proxy is on, pages load without it | Turn the proxy off |
 | Block example.com | Only that one site fails | A hosts-file line blocks the site | Remove that line |
+| Wrong date and time | Secure websites say "Your connection is not private" | The PC's clock is wrong | Set the clock from the internet's time |
 
-The simulated PC adds eight more that cannot be staged safely on a real machine, such as a dead router, a provider outage, a full drive and low memory.
+The simulated PC adds eleven more that cannot be staged safely on a real machine, such as a dead router, a provider outage, a Wi-Fi sign-in page, a full drive and a PC that has not been restarted for weeks.
 
 ## Measured results
 
@@ -142,7 +168,7 @@ It reports two scores. **Model alone** is how often the model's own first conclu
 
 ## How it is tested
 
-- `python -m unittest discover -s tests` runs 88 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the model client against a stand-in model server, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
+- `python -m unittest discover -s tests` runs 89 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the model client against a stand-in model server, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
 - `tests/windows_live_test.py` runs on real Windows as administrator. It breaks the DNS setting, the proxy and the hosts file for real, lets Ayos find and fix each one, and checks the internet is back. It also switches a network adapter off and on, runs the emergency reset script, and starts Ayos through `start_ayos.bat`.
 - `tests/ui_test.py` drives the whole interface in a browser.
 - GitHub Actions runs all of that on a real Windows machine (`.github/workflows/windows.yml`), runs the unit tests on Python 3.8 to 3.13, builds `Ayos.exe`, and measures real models on a CPU-only machine (`model-eval.yml`).
@@ -162,9 +188,9 @@ Three things the real Windows machine taught us that the simulated PC could not:
 |---|---|
 | `ayos/brain.py` | The model client (Ollama or OpenAI-compatible), the prompt, the JSON menu, and the rule-based fallback. |
 | `ayos/agent.py` | One repair session: recall, investigate, conclude, safety check, approval, fix, verify, remember. |
-| `ayos/tools.py` | The 11 read-only checks. Each returns a plain-words summary for the model and structured data for the safety check. |
-| `ayos/rules.py` | The 14 causes, and the code that decides whether evidence supports a cause. |
-| `ayos/fixes.py` | The 9 fixes with undo, the 4 practice faults, and "put everything back". |
+| `ayos/tools.py` | The 15 read-only checks. Each returns a plain-words summary for the model and structured data for the safety check. |
+| `ayos/rules.py` | The 18 causes, and the code that decides whether evidence supports a cause. |
+| `ayos/fixes.py` | The 12 fixes, the 5 practice faults, and "put everything back". |
 | `ayos/memory.py` | What normal looks like on this PC, and the history of past problems. A JSON file in `data/`. |
 | `ayos/system.py` | Everything that touches the computer: the real Windows layer and the simulated PC. |
 | `ayos/server.py`, `web/index.html` | The local web server and the interface. |
@@ -175,7 +201,7 @@ Three things the real Windows machine taught us that the simulated PC could not:
 ## Limits, stated plainly
 
 - Windows only. The agent logic runs anywhere on the simulated PC, but the real checks and fixes use Windows commands.
-- It diagnoses the 14 causes in `ayos/rules.py`. For anything else it says it could not find a single cause and lists what it checked. It does not guess.
+- It diagnoses the 18 causes in `ayos/rules.py`. For anything else it says it could not find a single cause and lists what it checked. It does not guess.
 - It cannot fix a dead router or a provider outage. It tells you that is what it is, so you stop changing settings on a PC that is fine.
 - Model speed depends on the computer. On a laptop with no graphics card a small model takes several seconds per decision.
 - "Learning" here means memory: a saved picture of healthy settings and a history of past problems on this PC. No model is trained or fine-tuned. Memory can be switched off in the interface.

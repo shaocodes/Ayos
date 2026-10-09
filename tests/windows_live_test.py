@@ -79,7 +79,10 @@ def main() -> int:
     mem = Memory(None)
     mem.set_baseline(snapshot(pc))
     say(f"Baseline: {mem.baseline['snapshot']}")
-    faults = ["proxy_on", "hosts_block", "wrong_dns"] + (["adapter_off"] if "--adapter" in sys.argv else [])
+    # The practice fault pushes the clock back 400 days. On a remote test machine that would break its own
+    # secure connections, so here it is 10 minutes: enough to be "wrong", small enough to be harmless.
+    fixes.CLOCK_FAULT_SECONDS = 600
+    faults = ["proxy_on", "hosts_block", "wrong_dns", "clock_wrong"] + (["adapter_off"] if "--adapter" in sys.argv else [])
     failed = 0
     for fault in faults:
         question, expected = REAL_FAULT_CASES[fault]
@@ -87,8 +90,13 @@ def main() -> int:
         say(f"=== {fault}: \"{question}\"")
         try:
             say("break:   " + fixes.apply_fault(pc, fault))
-            broke = True if fault == "hosts_block" else wait_internet(pc, want=False, seconds=20)
-            say(f"         internet now {'DOWN (fault took effect)' if fault != 'hosts_block' and broke else 'unchanged' if fault != 'hosts_block' else 'n/a (one site only)'}")
+            if fault == "clock_wrong":
+                summary, data = run_check("check_clock", pc, {})
+                broke = bool(data.get("wrong"))
+                say(f"         clock check now says: {summary}")
+            else:
+                broke = True if fault == "hosts_block" else wait_internet(pc, want=False, seconds=20)
+                say(f"         internet now {'DOWN (fault took effect)' if fault != 'hosts_block' and broke else 'unchanged' if fault != 'hosts_block' else 'n/a (one site only)'}")
             if fault == "hosts_block":
                 # Windows notices a changed hosts file after a moment, not instantly.
                 t1 = time.time()
@@ -173,10 +181,10 @@ def main() -> int:
     try:
         import subprocess
 
-        for fault in ("proxy_on", "hosts_block", "wrong_dns"):
+        for fault in ("clock_wrong", "proxy_on", "hosts_block", "wrong_dns"):
             fixes.apply_fault(pc, fault)
         pc._changed()
-        say(f"broken:  DNS manual={[d['adapter'] for d in pc.dns_config() if d['manual']]}, proxy on={pc.proxy_get()['enabled']}, hosts lines={len(pc.hosts_entries())}")
+        say(f"broken:  DNS manual={[d['adapter'] for d in pc.dns_config() if d['manual']]}, proxy on={pc.proxy_get()['enabled']}, hosts lines={len(pc.hosts_entries())}, clock 10 minutes behind")
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         r = subprocess.run(
             ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", os.path.join(root, "restore_network.ps1")],
@@ -193,6 +201,9 @@ def main() -> int:
             and not any(h.get("demo") for h in pc.hosts_entries())
             and wait_internet(pc, want=True, seconds=40)
         )
+        clock_summary, clock_data = run_check("check_clock", pc, {})
+        say(f"clock:   {clock_summary}")
+        clean = clean and clock_data.get("skew") is not None and not clock_data.get("wrong")
         say(f"result:  {'PASS' if clean else 'FAIL'}  everything back to normal={clean}")
         failed += not clean
     except Exception:

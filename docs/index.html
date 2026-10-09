@@ -313,7 +313,7 @@ const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls)
 const NET_PATH = [["home", "This PC"], ["check_adapters", "Adapter"], ["check_ip_and_router", "Router"], ["check_internet_reach", "Internet line"],
                   ["check_dns", "DNS"], ["check_proxy", "Proxy"], ["check_hosts", "Hosts file"], ["test_website", "Website"]];
 const PC_PATH = [["home", "This PC"], ["check_disk", "Storage"], ["check_memory", "Memory"], ["check_startup", "Start-up apps"]];
-const BY = { model: "chosen by the AI model", memory: "from memory", safety: "required by the safety check", rules: "built-in rules" };
+const BY = { model: "chosen by the AI model", memory: "from memory", hint: "from your own words", safety: "required by the safety check", rules: "built-in rules" };
 const PICKS = ["I think my internet is broken, can you check", "What is DNS?"];
 
 let sid = null, seen = 0, pollTimer = null, running = false, t0 = 0, clockTimer = null;

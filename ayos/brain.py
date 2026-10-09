@@ -37,10 +37,11 @@ def _http_json(url: str, payload=None, timeout: float = 120.0):
 _NET = (
     "internet", "wifi", "wi-fi", "network", "website", "web site", "online", "offline", "connect", "connection", "browser",
     "page", "site", "dns", "router", "net ", "signal", "load", "chrome", "edge", "facebook", "youtube", "google", "lan",
+    "not private", "certificate", "sign in", "sign-in", "log in", "login page",
 )
 _PC = (
     "slow", "lag", "hang", "freez", "storage", "disk", "space", "memory", "ram", "startup", "start-up", "boot",
-    "bagal", "mabagal", "nagha", "loading forever", "takes forever", "sluggish",
+    "bagal", "mabagal", "nagha", "loading forever", "takes forever", "sluggish", "battery", "charger", "restart",
 )
 _FAULT = (
     "not working", "isn't working", "isnt working", "doesn't work", "doesnt work", "won't", "wont", "can't", "cant", "cannot",
@@ -69,7 +70,9 @@ def classify(question: str) -> dict:
     else:
         route = "general"
     # must_check: the complaint is about something Ayos has checks for, so advice without evidence is not acceptable
+    clock_words = ("not private", "certificate", "cert error", "clock", "wrong date", "wrong time", "date and time", "oras", "petsa")
     return {
+        "mentions_clock": any(k in q for k in clock_words),
         "route": route,
         "is_fault": fault and not asking,
         "must_check": route in ("network", "pc") and (net or pc),
@@ -88,10 +91,14 @@ CHECK_HINTS = {
     "check_dns": "do the DNS servers answer (DNS turns website names into addresses)",
     "check_proxy": "is a proxy set, and do pages load with and without it",
     "check_hosts": "does the hosts file block a website",
+    "check_login_page": "does this Wi-Fi show its own sign-in page first (mall, hotel, school)",
+    "check_clock": "is the PC's date and time right (a wrong date breaks secure websites)",
     "test_website": "open a page the way a browser would",
     "check_disk": "free storage space",
     "check_memory": "free memory and the apps using the most",
     "check_startup": "apps that start with Windows",
+    "check_battery": "is battery saver slowing the PC",
+    "check_uptime": "how long since Windows was restarted",
 }
 CAUSE_HINTS = {
     "adapter_disabled": "the adapter is turned OFF in Windows",
@@ -103,11 +110,15 @@ CAUSE_HINTS = {
     "dns_server_down": "DNS is on AUTOMATIC but the router's DNS does not answer",
     "proxy_blocking": "a proxy is ON and pages load only without it",
     "hosts_block": "the hosts file blocks the website",
+    "captive_portal": "the Wi-Fi shows a sign-in page and holds everything back until you log in",
+    "clock_wrong": "the PC's date and time are wrong, so secure websites warn",
     "no_fault_found": "every check passes and a test page loads",
     "disk_full": "storage is almost full",
     "low_memory": "memory is almost full",
     "many_startup_apps": "too many apps start with Windows",
-    "pc_looks_healthy": "storage, memory and start-up apps are all fine",
+    "battery_saver": "battery saver is on and the charger is unplugged",
+    "needs_restart": "not restarted for a week or more, or an update is waiting for a restart",
+    "pc_looks_healthy": "storage, memory, start-up apps, battery saver and uptime are all fine",
 }
 
 
@@ -307,7 +318,7 @@ class LocalModelBrain:
 
     def warm_up(self) -> dict:
         """Load the model into memory and let it read the instructions once, so the first real question is fast."""
-        started = time.time()
+        started = time.monotonic()
         try:
             # The instructions used most often: an internet problem where memory already found what changed.
             self._chat(
@@ -315,9 +326,9 @@ class LocalModelBrain:
                 decision_schema([], must_conclude=True),
                 max_tokens=1,
             )
-            return {"ok": True, "seconds": round(time.time() - started, 1)}
+            return {"ok": True, "seconds": round(time.monotonic() - started, 1)}
         except Exception as e:
-            return {"ok": False, "seconds": round(time.time() - started, 1), "error": _short_error(e)}
+            return {"ok": False, "seconds": round(time.monotonic() - started, 1), "error": _short_error(e)}
 
     # ---- one request
     def _chat(self, messages: list, schema: dict, max_tokens: int = 260, on_text=None) -> dict:
@@ -384,14 +395,14 @@ class LocalModelBrain:
             "stream": False,
             "response_format": {"type": "json_schema", "json_schema": {"name": "ayos_step", "strict": True, "schema": schema}},
         }
-        started = time.time()
+        started = time.monotonic()
         try:
             data = _http_json(self.url + "/v1/chat/completions", body, self.timeout)
         except urllib.error.HTTPError as e:
             raise RuntimeError(f"model server said {e.code}: {e.read().decode('utf-8', 'replace')[:300]}") from None
         text = ((data.get("choices") or [{}])[0].get("message") or {}).get("content", "")
         tokens = int((data.get("usage") or {}).get("completion_tokens") or 0)
-        dur = time.time() - started
+        dur = time.monotonic() - started
         return {"text": text, "tokens": tokens, "tok_per_s": round(tokens / dur, 1) if dur > 0 and tokens > 1 else None}
 
     # ---- conversation
@@ -418,7 +429,7 @@ class LocalModelBrain:
 
     def say(self, convo: list, question: str, on_text=None) -> dict:
         """Answer a follow-up question about this session in plain words. Changes nothing and runs no checks."""
-        started = time.time()
+        started = time.monotonic()
         ask = (
             f'The user now asks a follow-up question: "{question.strip()}"\n'
             "Answer it in two to four short sentences, in plain words, in the language they used. "
@@ -429,7 +440,7 @@ class LocalModelBrain:
         try:
             out = self._chat(convo + [{"role": "user", "content": ask}], schema, max_tokens=320, on_text=on_text if self.api == "ollama" else None)
         except Exception as e:
-            return {"ok": False, "text": "The language model could not answer: " + _short_error(e) + ".", "seconds": round(time.time() - started, 2)}
+            return {"ok": False, "text": "The language model could not answer: " + _short_error(e) + ".", "seconds": round(time.monotonic() - started, 2)}
         text = out["text"] or ""
         try:
             obj = json.loads(re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip())
@@ -440,15 +451,15 @@ class LocalModelBrain:
         if out.get("tok_per_s"):
             self.last_speed = out["tok_per_s"]
         if not text:
-            return {"ok": False, "text": "The language model gave an empty answer. Try asking in a different way.", "seconds": round(time.time() - started, 2)}
+            return {"ok": False, "text": "The language model gave an empty answer. Try asking in a different way.", "seconds": round(time.monotonic() - started, 2)}
         convo.append({"role": "user", "content": f'Follow-up question from the user: "{question.strip()}"'})
         convo.append({"role": "assistant", "content": json.dumps({"thought": "", "action": "answer", "cause": "none", "message": text})})
-        return {"ok": True, "text": text, "seconds": round(time.time() - started, 2), "tok_per_s": out.get("tok_per_s")}
+        return {"ok": True, "text": text, "seconds": round(time.monotonic() - started, 2), "tok_per_s": out.get("tok_per_s")}
 
     streams = True  # step() and say() accept on_text and report the reply while it is being written
 
     def step(self, convo: list, view: dict, on_text=None) -> dict:
-        started = time.time()
+        started = time.monotonic()
         allowed = view["allowed"]
         try:
             schema = decision_schema(allowed, bool(view.get("ready")), bool(view.get("answer_only")), view.get("causes"))
@@ -458,10 +469,10 @@ class LocalModelBrain:
             if "took too long" in err and not self.server_up(1.0):
                 err = "the local model server is not running"  # Windows reports a closed port as a timeout
             d = self.fallback.step(convo, view)
-            d.update({"source": "rules", "model_error": err, "seconds": round(time.time() - started, 2)})
+            d.update({"source": "rules", "model_error": err, "seconds": round(time.monotonic() - started, 2)})
             self.record(convo, d)
             return d
-        seconds = round(time.time() - started, 2)
+        seconds = round(time.monotonic() - started, 2)
         if out.get("tok_per_s"):
             self.last_speed = out["tok_per_s"]
         d = parse_decision(out["text"])

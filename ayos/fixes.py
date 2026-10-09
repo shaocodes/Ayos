@@ -13,15 +13,15 @@ from __future__ import annotations
 import time
 
 from .system import BOGUS_DNS, PUBLIC_DNS, System
-from .tools import primary_adapter
+from .tools import CLOCK_TOLERANCE, TEST_URL, _span, primary_adapter
 
 DEMO_PROXY = "127.0.0.1:9"
 DEMO_DOMAIN = "example.com"
 
 
 def _wait(fn, seconds: float, step: float = 0.5):
-    end = time.time() + seconds
-    while time.time() < end:
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
         if fn():
             return True
         time.sleep(step)
@@ -73,6 +73,21 @@ def _remove_hosts(system: System, args: dict):
 
 def _renew_ip(system: System, args: dict):
     system.renew_ip()
+    return {}
+
+
+def _set_clock(system: System, args: dict):
+    # Measure again at the moment of the fix: the clock keeps running while the user reads the proposal.
+    r = system.http_get(TEST_URL, use_system_proxy=False, timeout=5.0)
+    if not r.get("date"):
+        raise RuntimeError("The correct time could not be read from the internet, so the clock was left alone.")
+    skew = system.now() - r["date"]
+    system.shift_clock(-skew)
+    return {"seconds": skew}
+
+
+def _open_login_page(system: System, args: dict):
+    system.open_url("http://www.msftconnecttest.com/redirect")  # any plain page; the Wi-Fi swaps in its sign-in page
     return {}
 
 
@@ -136,6 +151,30 @@ FIXES = {
         "undo": None,
         "admin": False,
         "changes": True,
+    },
+    "set_clock": {
+        "title": lambda a: "Set the date and time right",
+        "detail": lambda a: f"Moves the PC's clock {_span(a.get('skew') or 0)} {'back' if (a.get('skew') or 0) > 0 else 'forward'} so it matches the real time, read from the internet.",
+        "apply": _set_clock,
+        "undo": lambda s, u: s.shift_clock(u["seconds"]),
+        "admin": True,
+        "changes": True,
+    },
+    "open_login_page": {
+        "title": lambda a: "Open the Wi-Fi sign-in page",
+        "detail": lambda a: "Opens a plain web page in your browser so the Wi-Fi can show its sign-in page. Ayos changes nothing.",
+        "apply": _open_login_page,
+        "undo": None,
+        "admin": False,
+        "changes": False,
+    },
+    "open_battery_settings": {
+        "title": lambda a: "Open battery settings",
+        "detail": lambda a: "Opens the battery page in Windows Settings, where battery saver can be switched off. Ayos changes nothing.",
+        "apply": _open("batterysaver"),
+        "undo": None,
+        "admin": False,
+        "changes": False,
     },
     "open_wifi_settings": {
         "title": lambda a: "Open Wi-Fi settings",
@@ -234,11 +273,20 @@ def break_hosts_block(system: System, domain: str = DEMO_DOMAIN):
     return f"The hosts file now blocks {domain}."
 
 
+CLOCK_FAULT_SECONDS = 400 * 86400  # how far the practice fault pushes the clock back
+
+
+def break_clock(system: System):
+    system.shift_clock(-CLOCK_FAULT_SECONDS)
+    return f"The PC's clock is now {_span(CLOCK_FAULT_SECONDS)} behind. Secure websites will show a warning."
+
+
 FAULTS = {
     "wrong_dns": ("Wrong DNS server", "Websites stop opening, but Wi-Fi still shows connected.", break_wrong_dns, True),
     "adapter_off": ("Adapter turned off", "No connection at all.", break_adapter_off, True),
     "proxy_on": ("Fake proxy", "The browser cannot reach anything.", break_proxy_on, False),
     "hosts_block": (f"Block {DEMO_DOMAIN}", f"Only {DEMO_DOMAIN} fails to open.", break_hosts_block, True),
+    "clock_wrong": ("Wrong date and time", "Secure websites say the connection is not private.", break_clock, True),
 }
 
 
@@ -288,4 +336,11 @@ def restore_all(system: System) -> list:
         system.flush_dns()
     except Exception:
         pass
+    try:  # last, because it needs the internet that the steps above may have just brought back
+        r = system.http_get(TEST_URL, use_system_proxy=False, timeout=5.0)
+        if r.get("date") and abs(system.now() - r["date"]) >= CLOCK_TOLERANCE:
+            system.shift_clock(-(system.now() - r["date"]))
+            done.append("Set the date and time right.")
+    except Exception as e:
+        done.append(f"Could not set the clock: {e}")
     return done or ["Nothing needed putting back."]

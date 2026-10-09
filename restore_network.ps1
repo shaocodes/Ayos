@@ -42,4 +42,17 @@ if (Test-Path $hosts) {
 }
 
 Clear-DnsClientCache
+
+# The clock, last: it needs the internet that the steps above may have just brought back.
+try {
+    $r = Invoke-WebRequest -Uri 'http://www.msftconnecttest.com/connecttest.txt' -UseBasicParsing -TimeoutSec 8
+    $real = [DateTime]::Parse($r.Headers['Date']).ToUniversalTime()
+    $off = ((Get-Date).ToUniversalTime() - $real).TotalSeconds
+    if ([Math]::Abs($off) -gt 300) {
+        Set-Date -Adjust (New-TimeSpan -Seconds ([int](-$off))) | Out-Null
+        Write-Host '  Date and time set right.'
+    }
+} catch {
+    Write-Host '  Could not check the clock yet (no internet). If the date is wrong, run this again in a minute.'
+}
 Write-Host 'Done. If the internet is still down, wait 15 seconds for Wi-Fi to reconnect.'

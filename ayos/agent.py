@@ -51,7 +51,7 @@ class Session:
         self.undo_info = None
         self.stats = {"model_seconds": 0.0, "check_seconds": 0.0, "model_steps": 0, "rule_steps": 0, "refusals": 0, "tok_per_s": None}
         self.steps = []  # one line per model call, for measuring where the time goes
-        self.started = time.time()
+        self.started = time.monotonic()
         self.diagnosed_after = None
         self.first_conclusion = None  # what the model said first, before the safety check
         self.thread = None
@@ -64,7 +64,7 @@ class Session:
     # ------------------------------------------------------------ plumbing
     def emit(self, type_: str, **data) -> dict:
         with self.lock:
-            ev = {"i": len(self.events), "type": type_, "t": round(time.time() - self.started, 2), **data}
+            ev = {"i": len(self.events), "type": type_, "t": round(time.monotonic() - self.started, 2), **data}
             self.events.append(ev)
             return ev
 
@@ -132,12 +132,12 @@ class Session:
 
     def _run_check(self, name: str, source: str, thought: str = "") -> str:
         self.emit("check_start", name=name, title=TITLES.get(name, name), source=source, thought=thought)
-        t0 = time.time()
+        t0 = time.monotonic()
         pace = getattr(self.system, "pace", 0)
         if pace:
             time.sleep(pace)  # simulated PC only: checks on a real PC take time, so rehearsals should too
         summary, data = run_check(name, self.system, self.ctx)
-        took = time.time() - t0
+        took = time.monotonic() - t0
         self.stats["check_seconds"] += took
         self.obs[name] = data
         self.summaries[name] = summary
@@ -165,6 +165,12 @@ class Session:
                 name, what = areas[0]
                 summary = self._run_check(name, "memory", f"Memory shows {what} changed since the internet last worked, so look there first.")
                 notes.append(f"{name}: {summary}")
+
+        # "Your connection is not private" is what a browser says when the PC's date is wrong. If the owner's
+        # words point there and memory found nothing else, check the clock before asking the model.
+        if self.cls.get("mentions_clock") and self.cls["route"] == "network" and len(self.obs) <= 1:
+            summary = self._run_check("check_clock", "hint", "The owner's words point at the date and time, so check the clock first.")
+            notes.append(f"Already checked. check_clock: {summary}")
 
         # If those results already prove a cause, the model gets the short instructions: read, then name it.
         first_view = self._view()
@@ -298,7 +304,7 @@ class Session:
     # ------------------------------------------------------------ conclude
     def _diagnosis(self, cause: str, d: dict):
         self.cause = cause
-        self.diagnosed_after = round(time.time() - self.started, 1)
+        self.diagnosed_after = round(time.monotonic() - self.started, 1)
         title, explanation, fix_id, advice = CAUSES[cause]
         seen = self.memory.seen(cause)
         fix = None
@@ -343,7 +349,7 @@ class Session:
         s = self.stats
         self.emit(
             "summary",
-            seconds=self.diagnosed_after if self.diagnosed_after is not None else round(time.time() - self.started, 1),
+            seconds=self.diagnosed_after if self.diagnosed_after is not None else round(time.monotonic() - self.started, 1),
             model_seconds=round(s["model_seconds"], 1),
             check_seconds=round(s["check_seconds"], 1),
             checks=len(self.obs),
@@ -392,15 +398,15 @@ class Session:
         self.state = "fixing"
         info = fixes.describe(self.fix_id, self.fix_args)
         self.emit("fix_start", title=info["title"])
-        t0 = time.time()
+        t0 = time.monotonic()
         try:
             self.undo_info = fixes.apply_fix(self.system, self.fix_id, self.fix_args)
         except Exception as e:
-            self.emit("fix_result", ok=False, verified=False, message=str(e)[:300], can_undo=False, seconds=round(time.time() - t0, 1))
+            self.emit("fix_result", ok=False, verified=False, message=str(e)[:300], can_undo=False, seconds=round(time.monotonic() - t0, 1))
             self.state = "awaiting"  # nothing changed, so the offer stays open
             return
         if not info["changes_settings"]:
-            self.emit("fix_result", ok=True, verified=None, message="Opened the Settings page. Ayos changed nothing.", can_undo=False, checks=[], seconds=round(time.time() - t0, 1))
+            self.emit("fix_result", ok=True, verified=None, message="Opened the Settings page. Ayos changed nothing.", can_undo=False, checks=[], seconds=round(time.monotonic() - t0, 1))
             self.memory.add_incident(self.question, self.cause, self.fix_id, None, self.diagnosed_after or 0, len(self.obs), self.brain.label)
             self.state = "done"
             self.emit("done")
@@ -415,7 +421,7 @@ class Session:
             message="Fixed. I ran the checks again and the problem is gone." if verified else "The change was made, but the checks still show a problem.",
             checks=lines,
             can_undo=info["can_undo"],
-            seconds=round(time.time() - t0, 1),
+            seconds=round(time.monotonic() - t0, 1),
         )
         self.brain.observe(self.convo, "The user approved the fix. It was applied. " + ("Checked again: the problem is gone." if verified else "Checked again: a problem is still showing."))
         if verified:
