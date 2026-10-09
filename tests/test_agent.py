@@ -93,6 +93,23 @@ class EveryFault(unittest.TestCase):
                 s = run(pc, question)
                 self.assertEqual(s.cause, cause)
 
+    def test_router_that_ignores_pings_is_not_blamed(self):
+        pc = FakeSystem()
+        pc.router_pings = False
+        s = run(pc, "my internet is not working")
+        self.assertEqual(s.cause, "no_fault_found")
+        self.assertIn("ignores pings", s.summaries["check_ip_and_router"])
+        for fault, (question, cause) in sim.REAL_FAULT_CASES.items():
+            with self.subTest(fault=fault):
+                pc = FakeSystem()
+                pc.router_pings = False
+                sim.apply(pc, fault)
+                self.assertEqual(run(pc, question).cause, cause)
+        pc = FakeSystem()
+        pc.router_pings = False
+        pc.isp_up = False  # nothing answers at all: blame the nearest thing, the router
+        self.assertEqual(run(pc, "no internet").cause, "router_unreachable")
+
     def test_healthy_pc_reports_no_fault(self):
         s = run(FakeSystem(), "my internet is not working")
         self.assertEqual(s.cause, "no_fault_found")

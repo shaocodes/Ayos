@@ -5,3 +5,5 @@ ayos_selftest.txt
 eval_results.json
 .DS_Store
 node_modules/
+ci_out/
+ci_branch/

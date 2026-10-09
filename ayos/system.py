@@ -180,6 +180,8 @@ class WindowsSystem(System):
     HOSTS = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "drivers", "etc", "hosts")
     INET_KEY = r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
 
+    # Virtual machines sometimes report no "physical" adapter at all; then every visible adapter is used.
+    PS_AD = "$ad=@(Get-NetAdapter -Physical -ErrorAction SilentlyContinue); if ($ad.Count -eq 0) { $ad=@(Get-NetAdapter -ErrorAction SilentlyContinue) }; "
     PS_PREFIX = "$ProgressPreference='SilentlyContinue'; try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}; "
     CACHE_SECONDS = 1.5  # several checks ask for the same lists back to back; PowerShell is slow to start
 
@@ -234,8 +236,7 @@ class WindowsSystem(System):
 
     def _read_adapters(self) -> list:
         rows = self._ps_json(
-            "Get-NetAdapter -Physical | Select-Object Name,InterfaceDescription,Status,PhysicalMediaType | "
-            "ConvertTo-Json -Compress"
+            self.PS_AD + "$ad | Select-Object Name,InterfaceDescription,Status,PhysicalMediaType | ConvertTo-Json -Compress"
         )
         out = []
         for r in rows:
@@ -259,7 +260,7 @@ class WindowsSystem(System):
 
     def _read_ip_config(self) -> list:
         rows = self._ps_json(
-            "$phys=@(Get-NetAdapter -Physical | ForEach-Object { $_.Name }); "
+            self.PS_AD + "$phys=@($ad | ForEach-Object { $_.Name }); "
             "Get-NetIPConfiguration | Where-Object { $phys -contains $_.InterfaceAlias } | "
             "ForEach-Object { [pscustomobject]@{ adapter=$_.InterfaceAlias; "
             "ipv4=($_.IPv4Address | Select-Object -First 1).IPAddress; "
@@ -275,7 +276,7 @@ class WindowsSystem(System):
 
     def _read_dns_config(self) -> list:
         rows = self._ps_json(
-            "Get-NetAdapter -Physical | ForEach-Object { $a=$_; "
+            self.PS_AD + "$ad | ForEach-Object { $a=$_; "
             "$k='\\Parameters\\Interfaces\\' + $a.InterfaceGuid; "
             "$r4=Get-ItemProperty -Path ('HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip' + $k) -ErrorAction SilentlyContinue; "
             "$r6=Get-ItemProperty -Path ('HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip6' + $k) -ErrorAction SilentlyContinue; "
@@ -582,6 +583,7 @@ class FakeSystem(System):
         self.router_up = True
         self.isp_up = True
         self.router_dns_up = True
+        self.router_pings = True  # False: a router that works but ignores pings, like many public Wi-Fi networks
         self.disk = [{"drive": "C:", "total_gb": 237.0, "free_gb": 61.4}]
         self.mem = {"total_gb": 15.8, "free_gb": 6.2}
         self.procs = [{"name": "chrome", "mem_mb": 1840}, {"name": "Code", "mem_mb": 910}, {"name": "Discord", "mem_mb": 420}]
@@ -619,7 +621,7 @@ class FakeSystem(System):
         if not self._link() or not self.ip or self.ip.startswith("169.254."):
             return False
         if host == self.gateway:
-            return self.router_up
+            return self.router_up and self.router_pings
         return self.router_up and self.isp_up and host in ("1.1.1.1", "8.8.8.8")
 
     def tcp_reach(self, host: str, port: int, timeout: float = 2.5) -> bool:

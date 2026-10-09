@@ -1,0 +1,43 @@
+name: Windows
+
+# Runs Ayos on a real Windows machine: unit tests, a read-only self-test, and a live
+# break-and-repair test of the DNS, proxy and hosts-file faults.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Unit tests
+        shell: bash
+        run: |
+          mkdir -p ci_out
+          python -m unittest discover -s tests -v 2>&1 | tee ci_out/windows_unit.txt
+      - name: Self-test (read-only)
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p ci_out
+          python -m ayos --selftest 2>&1 | tee ci_out/windows_selftest.txt || true
+      - name: Live break-and-repair test
+        if: always()
+        shell: bash
+        run: python tests/windows_live_test.py
+      - name: Publish results
+        if: always()
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tools/ci_publish.py windows "ci_out/*.txt"

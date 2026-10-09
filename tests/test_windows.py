@@ -52,6 +52,9 @@ class PsWorld:
         if cmd[0] == "ipconfig":
             return Proc("")
         script = cmd[-1].replace(S.WindowsSystem.PS_PREFIX, "")
+        m = re.match(r"\$j = & \{ (.*) \}; if \(\$j\)", script, flags=re.S)
+        if m:
+            script = m.group(1)
         self.scripts.append(script)
         if "Select-Object Name,InterfaceDescription,Status,PhysicalMediaType" in script:
             media = {"Wi-Fi": "Native 802.11", "Ethernet": "802.3", "Bluetooth Network Connection": "BlueTooth"}

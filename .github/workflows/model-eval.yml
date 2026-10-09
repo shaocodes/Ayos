@@ -1,0 +1,61 @@
+name: Model evaluation
+
+# Runs real open models through Ollama on a plain CPU machine (no GPU) and measures how well
+# each one diagnoses the simulated faults, with and without Ayos' memory.
+# The numbers are for THIS machine. Speed on another computer will differ.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ayos/brain.py"
+      - "ayos/agent.py"
+      - "ayos/rules.py"
+      - "ayos/tools.py"
+      - "ayos/evalsim.py"
+      - ".github/workflows/model-eval.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - model: "gemma3:4b"
+            label: gemma3-4b
+          - model: "gemma3:1b"
+            label: gemma3-1b
+          - model: "qwen2.5:3b"
+            label: qwen2.5-3b
+          - model: "llama3.2:3b"
+            label: llama3.2-3b
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          sleep 3
+          curl -s http://127.0.0.1:11434/api/tags || (nohup ollama serve > ollama.log 2>&1 & sleep 5)
+          ollama --version
+      - name: Pull the model
+        run: ollama pull "${{ matrix.model }}"
+      - name: Evaluate with memory
+        run: |
+          mkdir -p ci_out
+          nproc; free -g | head -2
+          python3 -m ayos.evalsim --model "${{ matrix.model }}" --extra --trace --out "ci_out/eval_${{ matrix.label }}_memory.json" 2>&1 | tee "ci_out/eval_${{ matrix.label }}_memory.txt"
+      - name: Evaluate without memory
+        if: always()
+        run: |
+          python3 -m ayos.evalsim --model "${{ matrix.model }}" --no-memory --extra --trace --out "ci_out/eval_${{ matrix.label }}_nomemory.json" 2>&1 | tee "ci_out/eval_${{ matrix.label }}_nomemory.txt"
+      - name: Publish results
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/ci_publish.py "eval-${{ matrix.label }}" "ci_out/*.txt" "ci_out/*.json"

@@ -127,13 +127,13 @@ def supports(cause: str, obs: dict):
     if cause == "no_ip_address":
         return (bool(ip and (ip["apipa"] or not ip["ipv4"]) and (not ad or ad["up"])), None if ip else "check_ip_and_router")
     if cause == "router_unreachable":
-        return (bool(ip and ip["ipv4"] and not ip["apipa"] and ip["gateway_ping"] is False), None if ip else "check_ip_and_router")
+        return (bool(ip and ip["ipv4"] and not ip["apipa"] and ip["router_ok"] is False), None if ip else "check_ip_and_router")
     if cause == "isp_outage":
         if not reach:
             return False, "check_internet_reach"
         if not ip:
             return False, "check_ip_and_router"
-        return (not reach["reachable"] and ip["gateway_ping"] is True, None)
+        return (not reach["reachable"] and ip["gateway_ping"] is True, None)  # the router answers, but nothing beyond it does
     if cause == "dns_misconfigured":
         if not dns:
             return False, "check_dns"

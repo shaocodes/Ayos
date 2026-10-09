@@ -34,6 +34,17 @@ HEALTHY = [
 ]
 
 
+# Same faults, said the way people actually say them. "#n" only keeps the case names apart.
+EXTRA = [
+    ("wrong_dns#taglish", "Ayaw mag-load ng mga website pero connected naman yung wifi ko", "dns_misconfigured"),
+    ("proxy_on#taglish", "Di ko mabuksan kahit anong site sa Chrome, pero gumagana naman yung ibang apps", "proxy_blocking"),
+    ("hosts_block#vague", "example.com just shows an error page, everything else is fine", "hosts_block"),
+    ("adapter_off#short", "wifi gone", "adapter_disabled"),
+    ("disk_full#taglish", "Sobrang bagal na ng laptop ko, ano kaya problema", "disk_full"),
+    ("healthy_network#site", "I think my internet is broken, can you check", "no_fault_found"),
+]
+
+
 def cases() -> list:
     out = [(fid, q, cause) for fid, (q, cause) in sim.REAL_FAULT_CASES.items()]
     out += [(fid, q, cause) for fid, (_t, _d, _fn, q, cause) in sim.SIM_ONLY.items()]
@@ -51,7 +62,22 @@ def run_case(brain, fault: str, question: str, expected: str, with_memory: bool)
     t0 = time.time()
     s.run()
     fix = [e for e in s.events if e["type"] == "fix_result"]
+    trace = []
+    for e in s.events:
+        if e["type"] == "check_start":
+            trace.append(f"{e['source']:6s} -> {e['name']}" + (f"   why: {e['thought']}" if e.get("thought") else ""))
+        elif e["type"] == "check_result":
+            trace.append(f"          = {e['summary']}")
+        elif e["type"] == "guard":
+            trace.append(f"REFUSED   {e['message']}" + (f"   why: {e['thought']}" if e.get("thought") else ""))
+        elif e["type"] == "note":
+            trace.append(f"note      {e['message']}")
+        elif e["type"] == "diagnosis":
+            trace.append(f"{e['source']:6s} => {e['cause']}   says: {e['message'] or '(catalogue text)'}")
+        elif e["type"] in ("answer", "inconclusive"):
+            trace.append(f"{e['type']}: {e['message']}")
     return {
+        "trace": trace,
         "case": fault,
         "question": question,
         "expected": expected,
@@ -78,6 +104,8 @@ def main(argv=None) -> int:
     p.add_argument("--rules", action="store_true", help="test the built-in rules instead of a model")
     p.add_argument("--no-memory", action="store_true", help="run without the 'what changed since it last worked' memory")
     p.add_argument("--out", default="eval_results.json")
+    p.add_argument("--trace", action="store_true", help="also print every step of every case")
+    p.add_argument("--extra", action="store_true", help="add phrasing cases: Taglish complaints and a general question")
     args = p.parse_args(argv)
 
     if args.rules:
@@ -101,8 +129,10 @@ def main(argv=None) -> int:
     with_memory = not args.no_memory
     rows = []
     print(f"\n{'case':18s} {'expected':20s} {'model said first':20s} {'final':20s} {'ok':3s} {'checks':>6s} {'secs':>6s}")
-    for fault, question, expected in cases():
-        r = run_case(brain, fault, question, expected, with_memory)
+    todo = cases() + (EXTRA if args.extra else [])
+    for fault, question, expected in todo:
+        r = run_case(brain, fault.split("#")[0], question, expected, with_memory)
+        r["case"] = fault
         rows.append(r)
         print(
             f"{r['case']:18s} {r['expected']:20s} {str(r['model_first'] or '-'):20s} {str(r['final']):20s} "
@@ -110,6 +140,11 @@ def main(argv=None) -> int:
             flush=True,
         )
 
+    if args.trace:
+        for r in rows:
+            print(f"\n=== {r['case']}: \"{r['question']}\"  expected {r['expected']}, got {r['final']}")
+            for line in r["trace"]:
+                print("   " + line)
     n = len(rows)
     final_ok = sum(r["final_correct"] for r in rows)
     first_ok = sum(r["model_first_correct"] for r in rows)

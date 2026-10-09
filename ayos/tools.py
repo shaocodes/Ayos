@@ -111,15 +111,24 @@ def check_ip_and_router(system: System, ctx: dict):
     gateway = cfg.get("gateway") if cfg else None
     apipa = bool(ipv4 and ipv4.startswith("169.254."))
     ping = system.ping(gateway) if gateway else None
+    passes = None
+    if gateway and not ping:
+        # Some routers (and many public Wi-Fi networks) ignore pings. Traffic getting through proves the router works.
+        passes = bool(system.tcp_reach("1.1.1.1", 443) or system.tcp_reach("8.8.8.8", 53))
+    router_ok = bool(ping or passes) if gateway else None
     if not ipv4:
         summary = "This PC has no IP address, so it is not really on a network."
     elif apipa:
         summary = f"This PC gave itself the address {ipv4}, which means the router did not hand out an address."
     elif not gateway:
         summary = f"IP address is {ipv4} but there is no router (gateway) address."
+    elif ping:
+        summary = f"IP address {ipv4}, router {gateway}. The router answers."
+    elif passes:
+        summary = f"IP address {ipv4}, router {gateway}. The router ignores pings, but traffic passes through it, so it is working."
     else:
-        summary = f"IP address {ipv4}, router {gateway}. The router {'answers' if ping else 'does NOT answer'}."
-    return summary, {"ipv4": ipv4, "gateway": gateway, "apipa": apipa, "gateway_ping": ping}
+        summary = f"IP address {ipv4}, router {gateway}. The router does NOT answer and nothing passes through it."
+    return summary, {"ipv4": ipv4, "gateway": gateway, "apipa": apipa, "gateway_ping": ping, "router_ok": router_ok}
 
 
 def check_internet_reach(system: System, ctx: dict):
@@ -299,7 +308,7 @@ def verdict(name: str, data: dict) -> str:
     if name == "check_adapters":
         return "ok" if data.get("up") else "bad"
     if name == "check_ip_and_router":
-        return "ok" if data.get("ipv4") and not data.get("apipa") and data.get("gateway_ping") else "bad"
+        return "ok" if data.get("ipv4") and not data.get("apipa") and data.get("router_ok") else "bad"
     if name == "check_internet_reach":
         return "ok" if data.get("reachable") else "bad"
     if name == "check_dns":
