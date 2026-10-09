@@ -78,12 +78,15 @@ def reset(system: FakeSystem) -> None:
     """Put the simulated PC back to healthy."""
     fresh = FakeSystem(admin=system.admin)
     for k, v in fresh.__dict__.items():
-        if k not in ("opened", "calls"):
+        if k not in ("opened", "calls", "pace"):
             setattr(system, k, v)
 
 
 def fault_list(simulated: bool) -> list:
-    out = [{"id": fid, "title": t, "desc": d, "needs_admin": adm, "real": True} for fid, (t, d, _fn, adm) in fixes.FAULTS.items()]
+    out = [
+        {"id": fid, "title": t, "desc": d, "needs_admin": adm, "real": True, "say": REAL_FAULT_CASES[fid][0]}
+        for fid, (t, d, _fn, adm) in fixes.FAULTS.items()
+    ]
     if simulated:
-        out += [{"id": fid, "title": t, "desc": d, "needs_admin": False, "real": False} for fid, (t, d, _fn, _q, _c) in SIM_ONLY.items()]
+        out += [{"id": fid, "title": t, "desc": d, "needs_admin": False, "real": False, "say": q} for fid, (t, d, _fn, q, _c) in SIM_ONLY.items()]
     return out

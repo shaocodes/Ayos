@@ -21,20 +21,21 @@ from .brain import RuleBrain, classify
 from .memory import Memory
 from .rules import CAUSES, KEY_CHECK, PC_CAUSES, evidence_lines, fix_args, infer, supports
 from .system import System
-from .tools import CHECKS, NETWORK_CHECKS, PC_CHECKS, TITLES, find_domain, run_check, snapshot
+from .tools import CHECKS, NETWORK_CHECKS, PC_CHECKS, TITLES, find_domain, run_check, snapshot, verdict
 
 MAX_MODEL_STEPS = 8
 MAX_REFUSALS = 2
 
 
 class Session:
-    def __init__(self, sid: str, question: str, system: System, brain, memory: Memory, auto_approve: bool = False):
+    def __init__(self, sid: str, question: str, system: System, brain, memory: Memory, auto_approve: bool = False, on_change=None):
         self.id = sid
         self.question = question.strip()
         self.system = system
         self.brain = brain
         self.memory = memory
         self.auto_approve = auto_approve
+        self.on_change = on_change  # called after a setting was changed, so the status light can update at once
         self.rules = RuleBrain()
         self.events = []
         self.lock = threading.Lock()
@@ -107,12 +108,15 @@ class Session:
     def _run_check(self, name: str, source: str, thought: str = "") -> str:
         self.emit("check_start", name=name, title=TITLES.get(name, name), source=source, thought=thought)
         t0 = time.time()
+        pace = getattr(self.system, "pace", 0)
+        if pace:
+            time.sleep(pace)  # simulated PC only: checks on a real PC take time, so rehearsals should too
         summary, data = run_check(name, self.system, self.ctx)
         took = time.time() - t0
         self.stats["check_seconds"] += took
         self.obs[name] = data
         self.summaries[name] = summary
-        self.emit("check_result", name=name, title=TITLES.get(name, name), summary=summary, ms=int(took * 1000), failed="error" in data)
+        self.emit("check_result", name=name, title=TITLES.get(name, name), summary=summary, ms=int(took * 1000), failed="error" in data, verdict=verdict(name, data))
         return summary
 
     # ------------------------------------------------------------ investigate
@@ -338,6 +342,7 @@ class Session:
             self.emit("done")
             return
         verified, lines = self._verify()
+        self._changed()
         self.memory.add_incident(self.question, self.cause, self.fix_id, bool(verified), self.diagnosed_after or 0, len(self.obs), self.brain.label)
         self.emit(
             "fix_result",
@@ -366,7 +371,7 @@ class Session:
                     continue
                 summary, data = run_check(name, self.system, self.ctx)
                 obs[name] = data
-                lines.append(summary)
+                lines.append({"name": name, "summary": summary, "verdict": verdict(name, data)})
             still, _ = supports(self.cause, obs)
             page = obs.get("test_website")
             ok = not still and (page is None or bool(page.get("ok")))
@@ -384,11 +389,19 @@ class Session:
         except Exception as e:
             self.emit("undo_result", ok=False, message=str(e)[:300])
             return False
+        self._changed()
         if done:
             self.memory.mark_last(self.cause, None)
             self.emit("undo_result", ok=True, message="Undone. The setting is back to what it was before the fix.")
         self.state = "done"
         return bool(done)
+
+    def _changed(self):
+        if self.on_change:
+            try:
+                self.on_change()
+            except Exception:
+                pass
 
     def public(self) -> dict:
         return {"id": self.id, "state": self.state, "cause": self.cause, "question": self.question}

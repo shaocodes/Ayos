@@ -105,6 +105,11 @@ class App:
             n += 1
             time.sleep(4)
 
+    def kick(self):
+        """A setting just changed: re-check the internet light now instead of waiting for the next round."""
+        self.internet = None
+        threading.Thread(target=self.refresh_internet, daemon=True).start()
+
     def busy(self) -> bool:
         return bool(self.current and self.current.state in ("running", "fixing"))
 
@@ -123,7 +128,7 @@ class App:
             if self.current and self.current.state == "running":
                 self.current.cancelled = True
             sid = secrets.token_hex(6)
-            s = Session(sid, question, self.system, self.pick_brain(), self.memory)
+            s = Session(sid, question, self.system, self.pick_brain(), self.memory, on_change=self.kick)
             self.sessions[sid] = s
             self.current = s
             for old in list(self.sessions)[:-20]:
@@ -136,14 +141,19 @@ class App:
         if not self.memory.baseline:
             self.save_baseline()  # remember normal before we break anything
         msg = sim.apply(self.system, fault_id)
-        self.internet = None
+        self.kick()
         return msg
 
     def restore(self) -> list:
+        if self.busy():
+            raise RuntimeError("Ayos is in the middle of a check. Wait for it to finish.")
         if getattr(self.system, "simulated", False):
             sim.reset(self.system)
-            return ["Simulated PC put back to healthy."]
-        return fixes.restore_all(self.system)
+            done = ["Simulated PC put back to healthy."]
+        else:
+            done = fixes.restore_all(self.system)
+        self.kick()
+        return done
 
     def set_model(self, model: str):
         if model == "rules":

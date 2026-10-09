@@ -288,3 +288,34 @@ def run_check(name: str, system: System, ctx: dict):
         return CHECKS[name][1](system, ctx)
     except Exception as e:
         return f"This check could not run ({type(e).__name__}: {str(e)[:120]}).", {"error": str(e)[:200]}
+
+
+def verdict(name: str, data: dict) -> str:
+    """'ok', 'bad' or 'info' for one check result. Only used to colour the interface."""
+    if "error" in data:
+        return "info"
+    if name == "compare_with_normal":
+        return "bad" if data.get("changes") else ("ok" if data.get("has_baseline") else "info")
+    if name == "check_adapters":
+        return "ok" if data.get("up") else "bad"
+    if name == "check_ip_and_router":
+        return "ok" if data.get("ipv4") and not data.get("apipa") and data.get("gateway_ping") else "bad"
+    if name == "check_internet_reach":
+        return "ok" if data.get("reachable") else "bad"
+    if name == "check_dns":
+        return "ok" if data.get("configured_answers") and data.get("system_resolves") else "bad"
+    if name == "check_proxy":
+        if data.get("enabled"):
+            return "ok" if data.get("via_proxy_ok") else "bad"
+        return "ok" if data.get("direct_ok") else "info"
+    if name == "check_hosts":
+        return "bad" if data.get("blocked_names") else "ok"
+    if name == "test_website":
+        return "ok" if data.get("ok") else "bad"
+    if name == "check_disk":
+        return "bad" if data.get("low") else "ok"
+    if name == "check_memory":
+        return "bad" if data.get("low") else "ok"
+    if name == "check_startup":
+        return "bad" if data.get("many") else "ok"
+    return "info"

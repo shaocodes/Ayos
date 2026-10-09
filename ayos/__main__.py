@@ -42,6 +42,8 @@ def main(argv=None) -> int:
 
     data_dir = args.data or os.path.join(ROOT, "data")
     system = FakeSystem() if sim else WindowsSystem()
+    if sim:
+        system.pace = 0.7
     memory = Memory(os.path.join(data_dir, "memory_sim.json" if sim else "memory.json"))
     app = App(system, memory, args.model, args.url, args.api)
     try:

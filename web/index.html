@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ayos repair desk</title>
+<style>
+  :root {
+    --bench: #dbe3e7;      /* the work mat */
+    --paper: #ffffff;      /* the job ticket */
+    --ink: #14232b;        /* blue-black ink */
+    --ink-2: #4b5c66;
+    --rule: #c7d1d7;
+    --probe: #f0b400;      /* multimeter yellow: being measured right now */
+    --pass: #17804a;
+    --fault: #c2362b;
+    --pen: #1b4fd6;        /* ballpoint blue: the customer's own words, links, focus */
+    --head: "Bahnschrift", "DIN Alternate", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    --body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 17px; }
+  body { margin: 0; background: var(--bench); color: var(--ink); font-family: var(--body); line-height: 1.45; }
+  h1, h2, h3 { font-family: var(--head); font-weight: 600; margin: 0; letter-spacing: .005em; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .sim-band { background: repeating-linear-gradient(135deg, var(--probe) 0 14px, #14232b 14px 28px); padding: 3px 0; }
+  .sim-band p { margin: 0; background: var(--probe); color: #14232b; font-family: var(--head); font-weight: 600; text-align: center; padding: 5px 16px; }
+
+  header.top { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; padding: 18px 28px 6px; max-width: 1500px; margin: 0 auto; }
+  header.top h1 { font-size: 2.1rem; font-weight: 700; font-stretch: 87%; }
+  header.top .sub { color: var(--ink-2); }
+  header.top .promise { margin-left: auto; color: var(--ink-2); font-size: .92rem; max-width: 34rem; text-align: right; }
+
+  main { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 22px; padding: 12px 28px 40px; max-width: 1500px; margin: 0 auto; align-items: start; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; padding: 12px 16px 32px; } header.top { padding: 14px 16px 4px; } header.top .promise { margin-left: 0; text-align: left; } }
+
+  /* ---------- the job ticket ---------- */
+  .ticket { background: var(--paper); border-radius: 4px; box-shadow: 0 1px 0 #b8c4cb, 0 10px 24px -14px rgba(20, 35, 43, .45); position: relative; }
+  .ticket::before { content: ""; position: absolute; left: 0; right: 0; top: -7px; height: 8px;
+    background: radial-gradient(circle at 8px 0, transparent 5px, var(--paper) 5.5px) 0 0 / 16px 8px repeat-x; }
+  .ticket-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 16px 24px 0; color: var(--ink-2); font-size: .88rem; }
+  .ticket-head b { font-family: var(--head); color: var(--ink); font-weight: 600; font-size: 1rem; }
+
+  form.ask { padding: 10px 24px 6px; }
+  form.ask label { display: block; font-family: var(--head); font-size: 1.25rem; font-weight: 600; margin-bottom: 8px; }
+  .ask-row { display: flex; gap: 10px; }
+  .ask-row input { flex: 1; min-width: 0; padding: 12px 14px; border: 2px solid var(--ink); border-radius: 3px; background: #fbfcfd; color: var(--pen); font-size: 1.12rem; }
+  .ask-row input::placeholder { color: #8a99a2; }
+  .btn { border: 2px solid var(--ink); background: var(--ink); color: #fff; padding: 11px 20px; border-radius: 3px; font-family: var(--head); font-weight: 600; font-size: 1.05rem; cursor: pointer; }
+  .btn:hover { background: #24404f; }
+  .btn[disabled] { opacity: .45; cursor: default; }
+  .btn.quiet { background: transparent; color: var(--ink); }
+  .btn.quiet:hover { background: #eef2f4; }
+  .btn.go { background: var(--pass); border-color: var(--pass); }
+  .btn.go:hover { background: #126a3d; }
+  .btn.small { padding: 6px 12px; font-size: .9rem; }
+  .picks { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 24px 4px; }
+  .picks button { border: 1px solid var(--rule); background: #f4f7f8; border-radius: 3px; padding: 5px 10px; font-size: .9rem; color: var(--ink-2); cursor: pointer; }
+  .picks button:hover { border-color: var(--ink-2); color: var(--ink); }
+
+  /* ---------- the signal path: where does it stop? ---------- */
+  .path { padding: 22px 24px 8px; }
+  .path-caption { color: var(--ink-2); font-size: .88rem; margin: 0 0 12px; }
+  .path ol { list-style: none; margin: 0; padding: 0; display: flex; }
+  .path li { flex: 1; position: relative; text-align: center; font-family: var(--head); font-size: .86rem; color: var(--ink-2); padding-top: 34px; min-width: 0; }
+  .path li::before { content: ""; position: absolute; top: 12px; left: -50%; width: 100%; height: 4px; background: var(--rule); }
+  .path li:first-child::before { display: none; }
+  .path li i { position: absolute; top: 0; left: 50%; width: 28px; height: 28px; margin-left: -14px; border-radius: 50%; background: var(--paper); border: 3px solid var(--rule); z-index: 1;
+    display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: .95rem; color: #fff; }
+  .path li.home i { background: var(--ink); border-color: var(--ink); }
+  .path li.ok { color: var(--ink); } .path li.ok i { background: var(--pass); border-color: var(--pass); } .path li.ok::before { background: var(--pass); }
+  .path li.bad { color: var(--fault); font-weight: 600; } .path li.bad i { background: var(--fault); border-color: var(--fault); box-shadow: 0 0 0 5px rgba(194, 54, 43, .18); }
+  .path li.bad::before { background: linear-gradient(90deg, var(--pass), var(--fault)); }
+  .path li.probing i { border-color: var(--probe); animation: probe 1s ease-in-out infinite; }
+  @keyframes probe { 50% { box-shadow: 0 0 0 7px rgba(240, 180, 0, .3); } }
+
+  /* ---------- the ledger of checks ---------- */
+  .ledger { list-style: none; margin: 6px 0 0; padding: 0 24px; }
+  .ledger > li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid var(--rule); }
+  .ledger .mark { width: 24px; height: 24px; border-radius: 50%; margin-top: 1px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: .85rem; background: var(--rule); }
+  .ledger li.ok .mark { background: var(--pass); } .ledger li.bad .mark { background: var(--fault); } .ledger li.info .mark { background: #7d8d96; }
+  .ledger li.probing .mark, .ledger li.thinking .mark { background: none; border: 3px solid #e6ebee; border-top-color: var(--probe); animation: spin .8s linear infinite; }
+  .ledger li.refused .mark { background: var(--ink); border-radius: 4px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .line1 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .line1 .title { font-family: var(--head); font-weight: 600; font-size: 1.06rem; }
+  .line1 .by { font-size: .8rem; color: var(--ink-2); border: 1px solid var(--rule); border-radius: 3px; padding: 0 6px; }
+  .line1 .by.model { border-color: var(--pen); color: var(--pen); }
+  .line1 .by.safety { border-color: var(--ink); color: var(--ink); }
+  .line1 .ms { margin-left: auto; font-size: .82rem; color: var(--ink-2); }
+  .why { color: var(--ink-2); font-size: .92rem; margin-top: 2px; }
+  .why::before { content: "Why: "; font-weight: 600; }
+  .finding { margin-top: 3px; }
+  .ledger li.thinking, .ledger li.plain { color: var(--ink-2); align-items: center; }
+  .ledger li.customer .finding { color: var(--pen); font-size: 1.1rem; }
+  .ledger li.customer .mark { background: var(--pen); }
+
+  /* ---------- outcome ---------- */
+  .outcome { margin: 4px 24px 0; padding: 20px 0 26px; border-top: 3px solid var(--ink); position: relative; }
+  .outcome:empty { display: none; }
+  .outcome h2 { font-size: 1.7rem; font-weight: 700; font-stretch: 90%; max-width: 20em; padding-right: 150px; }
+  .outcome .say { font-size: 1.1rem; margin: 10px 0 0; max-width: 60ch; }
+  .outcome h3 { font-size: 1rem; margin: 18px 0 6px; }
+  .outcome ul { margin: 0; padding-left: 20px; max-width: 70ch; } .outcome li { margin: 3px 0; }
+  .safe-line { margin: 14px 0 0; padding: 8px 12px; border-left: 4px solid var(--pass); background: #f1f8f4; max-width: 70ch; font-size: .95rem; }
+  .safe-line.caught { border-left-color: var(--ink); background: #f1f4f6; }
+  .seen { color: var(--ink-2); margin: 10px 0 0; font-size: .95rem; }
+  .fixbox { margin-top: 18px; border: 2px solid var(--ink); border-radius: 3px; padding: 14px 16px; max-width: 70ch; }
+  .fixbox h3 { margin: 0 0 4px; font-size: 1.15rem; }
+  .fixbox p { margin: 0 0 12px; }
+  .fixbox .acts { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .warn { color: var(--fault); font-weight: 600; }
+  .result { margin-top: 16px; max-width: 70ch; }
+  .result p { margin: 4px 0; }
+  .tally { margin: 16px 0 0; color: var(--ink-2); font-size: .9rem; }
+  .stamp { position: absolute; right: 4px; top: 18px; transform: rotate(-6deg); border: 4px double currentColor; border-radius: 6px; padding: 4px 14px 2px; font-family: var(--head); font-weight: 700; font-stretch: 80%;
+    font-size: 1.5rem; letter-spacing: .04em; color: var(--fault); opacity: .88; animation: press .22s cubic-bezier(.2, 1.4, .4, 1) both; pointer-events: none; }
+  .stamp.good { color: var(--pass); } .stamp.grey { color: var(--ink-2); }
+  @keyframes press { from { transform: rotate(-6deg) scale(1.9); opacity: 0; } }
+  .empty { padding: 26px 24px 30px; color: var(--ink-2); max-width: 62ch; }
+  .empty b { color: var(--ink); }
+
+  /* ---------- the rail ---------- */
+  .rail { display: grid; gap: 18px; }
+  .panel { background: #f3f6f7; border: 1px solid #c2cdd3; border-radius: 4px; padding: 16px 18px; }
+  .panel h2 { font-size: 1.15rem; margin-bottom: 10px; }
+  .lamp { display: flex; align-items: center; gap: 12px; font-family: var(--head); font-weight: 600; font-size: 1.25rem; padding-bottom: 12px; border-bottom: 1px solid var(--rule); margin-bottom: 10px; }
+  .lamp i { width: 22px; height: 22px; border-radius: 50%; background: #9aa8b0; flex: none; }
+  .lamp.on i { background: var(--pass); box-shadow: 0 0 0 5px rgba(23, 128, 74, .2); }
+  .lamp.off { color: var(--fault); } .lamp.off i { background: var(--fault); box-shadow: 0 0 0 5px rgba(194, 54, 43, .2); }
+  dl.facts { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: .95rem; }
+  dl.facts dt { color: var(--ink-2); } dl.facts dd { margin: 0; }
+  .panel p { margin: 8px 0 0; font-size: .93rem; }
+  .panel p.muted, .muted { color: var(--ink-2); }
+  .panel code { background: #e3e9ec; padding: 1px 5px; border-radius: 3px; font-family: Consolas, "Cascadia Mono", monospace; font-size: .88rem; }
+  select { padding: 4px 6px; border: 1px solid var(--ink-2); border-radius: 3px; background: #fff; max-width: 100%; }
+  .history { list-style: none; margin: 8px 0 0; padding: 0; font-size: .92rem; }
+  .history li { padding: 6px 0; border-top: 1px solid var(--rule); display: flex; gap: 8px; justify-content: space-between; }
+  .history small { color: var(--ink-2); white-space: nowrap; }
+  .bench-btns { display: grid; gap: 8px; }
+  .bench-btns button { text-align: left; border: 1px solid var(--ink-2); background: #fff; border-radius: 3px; padding: 8px 10px; cursor: pointer; }
+  .bench-btns button:hover { border-color: var(--fault); }
+  .bench-btns button b { font-family: var(--head); font-weight: 600; display: block; }
+  .bench-btns button span { color: var(--ink-2); font-size: .86rem; }
+  .bench-btns button[disabled] { opacity: .5; cursor: default; }
+  .bench-msg { min-height: 1.4em; }
+  .row-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="sim-band" id="simBand" hidden><p>Simulated PC. Nothing on this computer is changed.</p></div>
+<header class="top">
+  <h1>Ayos</h1>
+  <span class="sub">repair desk for this PC</span>
+  <span class="promise">The AI runs on this PC. Your question and your settings never leave it, so it still works when the internet does not.</span>
+</header>
+<main>
+  <section class="ticket" aria-label="Job ticket">
+    <div class="ticket-head"><span><b>Job ticket</b> <span id="jobNo"></span></span><span class="num" id="clock"></span></div>
+    <form class="ask" id="askForm" autocomplete="off">
+      <label for="q">What is wrong?</label>
+      <div class="ask-row">
+        <input id="q" name="q" maxlength="400" placeholder="Say it in your own words, e.g. my internet is not working">
+        <button class="btn" id="askBtn" type="submit">Check it</button>
+      </div>
+    </form>
+    <div class="picks" id="picks"></div>
+    <div class="path" id="path" hidden>
+      <p class="path-caption" id="pathCaption"></p>
+      <ol id="pathNodes"></ol>
+    </div>
+    <ol class="ledger" id="ledger"></ol>
+    <div class="outcome" id="outcome"></div>
+    <div class="empty" id="empty">
+      <p><b>Nothing on the bench yet.</b> Describe a problem above. Ayos runs checks on this PC one at a time, shows you each result, names the cause, and asks before it changes anything.</p>
+    </div>
+  </section>
+
+  <aside class="rail">
+    <section class="panel" id="pcPanel"><h2>This PC</h2><div id="pcBody"><p class="muted">Looking…</p></div></section>
+    <section class="panel"><h2>What Ayos remembers</h2><div id="memBody"></div></section>
+    <section class="panel">
+      <h2>Practice bench</h2>
+      <p class="muted" style="margin-top:0">Break one setting on purpose, then ask Ayos to find it. Every one of these is undone by "Put everything back".</p>
+      <div class="bench-btns" id="benchBtns" style="margin-top:10px"></div>
+      <div class="row-acts"><button class="btn quiet small" id="restoreBtn" type="button">Put everything back</button></div>
+      <p class="bench-msg" id="benchMsg" role="status"></p>
+    </section>
+  </aside>
+</main>
+
+<script>
+"use strict";
+const TOKEN = "__AYOS_TOKEN__";
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+
+const NET_PATH = [["home", "This PC"], ["check_adapters", "Adapter"], ["check_ip_and_router", "Router"], ["check_internet_reach", "Internet line"],
+                  ["check_dns", "DNS"], ["check_proxy", "Proxy"], ["check_hosts", "Hosts file"], ["test_website", "Website"]];
+const PC_PATH = [["home", "This PC"], ["check_disk", "Storage"], ["check_memory", "Memory"], ["check_startup", "Start-up apps"]];
+const BY = { model: "chosen by the AI model", memory: "from memory", safety: "required by the safety check", rules: "built-in rules" };
+const PICKS = ["My internet is not working", "I can't open example.com", "My laptop is very slow", "What is DNS?"];
+
+let sid = null, seen = 0, pollTimer = null, running = false, t0 = 0, clockTimer = null;
+let thinkingRow = null, pathKind = null, lastStatusKey = "", lastMemKey = "", lastBenchKey = "", status = null;
+const rows = {}; let outcomeKind = "";
+
+async function api(path, body) {
+  const opt = { headers: { "X-Ayos-Token": TOKEN } };
+  if (body !== undefined) { opt.method = "POST"; opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  const res = await fetch(path, opt);
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error(data.error || ("Request failed (" + res.status + ")"));
+  return data;
+}
+
+/* ---------------- the ticket ---------------- */
+function resetTicket() {
+  $("ledger").textContent = ""; $("outcome").textContent = ""; $("path").hidden = true; $("pathNodes").textContent = "";
+  for (const k in rows) delete rows[k];
+  thinkingRow = null; pathKind = null; seen = 0;
+  $("empty").hidden = true;
+}
+function setRunning(on) {
+  running = on; $("askBtn").disabled = on; $("askBtn").textContent = on ? "Checking…" : "Check it";
+  if (on) { t0 = performance.now(); clearInterval(clockTimer); clockTimer = setInterval(() => { $("clock").textContent = ((performance.now() - t0) / 1000).toFixed(1) + " s"; }, 100); }
+  else clearInterval(clockTimer);
+}
+function buildPath(kind) {
+  if (pathKind === kind) return;
+  pathKind = kind;
+  const ol = $("pathNodes"); ol.textContent = "";
+  for (const [id, label] of (kind === "pc" ? PC_PATH : NET_PATH)) {
+    const li = el("li", id === "home" ? "home ok" : ""); li.dataset.node = id;
+    li.append(el("i", "", id === "home" ? "" : ""), document.createTextNode(label)); ol.append(li);
+  }
+  $("pathCaption").textContent = kind === "pc" ? "What Ayos has looked at on this PC:" : "From this PC to the website. Green passed, red is where it stops, hollow was not needed.";
+  $("path").hidden = false;
+}
+function setNode(name, state) {
+  const isPc = PC_PATH.some((p) => p[0] === name), isNet = NET_PATH.some((p) => p[0] === name);
+  if (!isPc && !isNet) return;
+  buildPath(isPc ? "pc" : "net");
+  const li = $("pathNodes").querySelector('[data-node="' + name + '"]');
+  if (!li) return;
+  li.className = state; li.querySelector("i").textContent = state === "ok" ? "✓" : state === "bad" ? "×" : "";
+}
+function dropThinking() { if (thinkingRow) { thinkingRow.remove(); thinkingRow = null; } }
+function ledgerRow(cls) { const li = el("li", cls); const mark = el("span", "mark"); const body = el("div", "body"); li.append(mark, body); $("ledger").append(li); return { li, mark, body }; }
+function scrollDown(node) { try { node.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {} }
+
+function onEvent(ev) {
+  if (ev.type !== "thinking") dropThinking();
+  switch (ev.type) {
+    case "start": {
+      const r = ledgerRow("customer ok"); r.mark.textContent = "“";
+      const l1 = el("div", "line1"); l1.append(el("span", "title", "The problem, in the owner's words"));
+      r.body.append(l1, el("div", "finding", ev.question));
+      $("jobNo").textContent = "#" + sid.slice(0, 6) + ", " + new Date().toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+      const p = ledgerRow("plain info"); p.mark.textContent = "i";
+      p.body.append(el("div", "", ev.brain_kind === "model" ? "Working with " + ev.brain + "." : "No language model is running, so the built-in rules are doing this job."));
+      break;
+    }
+    case "thinking": {
+      dropThinking();
+      if (ev.who !== "model") break;
+      const r = ledgerRow("thinking"); const txt = el("div", "", "The model is deciding what to do next…"); r.body.append(txt); thinkingRow = r.li;
+      const began = performance.now(); const tick = () => { if (thinkingRow !== r.li) return; txt.textContent = "The model is deciding what to do next… " + ((performance.now() - began) / 1000).toFixed(0) + " s"; setTimeout(tick, 500); }; tick();
+      scrollDown(r.li);
+      break;
+    }
+    case "check_start": {
+      const r = ledgerRow("probing"); rows[ev.name] = r;
+      const l1 = el("div", "line1"); l1.append(el("span", "title", ev.title), el("span", "by " + ev.source, BY[ev.source] || ev.source));
+      r.ms = el("span", "ms num", ""); l1.append(r.ms); r.body.append(l1);
+      if (ev.thought) r.body.append(el("div", "why", ev.thought));
+      r.finding = el("div", "finding muted", "Measuring…"); r.body.append(r.finding);
+      setNode(ev.name, "probing"); scrollDown(r.li);
+      break;
+    }
+    case "check_result": {
+      const r = rows[ev.name]; if (!r) break;
+      r.li.className = ev.verdict; r.mark.textContent = ev.verdict === "ok" ? "✓" : ev.verdict === "bad" ? "×" : "i";
+      r.finding.className = "finding"; r.finding.textContent = ev.summary; r.ms.textContent = ev.ms + " ms";
+      setNode(ev.name, ev.verdict === "info" ? "" : ev.verdict);
+      break;
+    }
+    case "guard": {
+      const r = ledgerRow("refused"); r.mark.textContent = "!";
+      const l1 = el("div", "line1"); l1.append(el("span", "title", "Safety check refused a conclusion"), el("span", "by safety", "plain code, not the model"));
+      r.body.append(l1); if (ev.thought) r.body.append(el("div", "why", ev.thought)); r.body.append(el("div", "finding", ev.message)); scrollDown(r.li);
+      break;
+    }
+    case "note": case "memory": case "declined": case "undo_result": case "error": {
+      const r = ledgerRow("plain " + (ev.type === "error" || ev.ok === false ? "bad" : "info")); r.mark.textContent = ev.type === "error" ? "×" : "i";
+      r.body.append(el("div", ev.type === "error" ? "warn" : "", ev.message)); scrollDown(r.li);
+      if (ev.type === "undo_result" && ev.ok) { const s = $("outcome").querySelector(".stamp"); if (s) { s.className = "stamp grey"; s.textContent = "Undone"; } const u = $("undoBtn"); if (u) u.remove(); refreshStatus(); }
+      break;
+    }
+    case "diagnosis": outcomeKind = "diagnosis"; renderDiagnosis(ev); break;
+    case "answer": {
+      outcomeKind = "answer"; const o = $("outcome"); o.textContent = ""; o.append(el("h2", "", "Answer"));
+      for (const para of String(ev.message).split(/\n+/)) if (para.trim()) o.append(el("p", "say", para));
+      scrollDown(o); break;
+    }
+    case "inconclusive": {
+      outcomeKind = "inconclusive"; const o = $("outcome"); o.textContent = ""; o.append(el("div", "stamp grey", "Not sure"), el("h2", "", "No single cause found"), el("p", "say", ev.message));
+      const ul = el("ul"); for (const f of ev.findings || []) ul.append(el("li", "", f)); o.append(el("h3", "", "What the checks showed"), ul); scrollDown(o); break;
+    }
+    case "summary": {
+      let t = (outcomeKind === "answer" ? "Answered in " : outcomeKind === "inconclusive" ? "Finished in " : "Found in ") + ev.seconds + " s: " + ev.checks + (ev.checks === 1 ? " check" : " checks");
+      if (ev.model_steps) t += ", " + ev.model_steps + " model decision" + (ev.model_steps === 1 ? "" : "s") + " (" + ev.model_seconds + " s of thinking" + (ev.tok_per_s ? ", " + ev.tok_per_s + " tokens a second" : "") + ")";
+      t += ", " + ev.check_seconds + " s running checks";
+      if (ev.refusals) t += ", " + ev.refusals + " conclusion" + (ev.refusals === 1 ? "" : "s") + " refused by the safety check";
+      t += ". Decided by: " + ev.brain + ".";
+      const old = $("outcome").querySelector(".tally"); if (old) old.remove();
+      $("outcome").append(el("p", "tally num", t));
+      $("clock").textContent = ev.seconds + " s"; setRunning(false);
+      break;
+    }
+    case "fix_start": {
+      const box = $("fixActs"); if (box) { box.textContent = ""; box.append(el("span", "muted", "Working: " + ev.title + "…")); }
+      break;
+    }
+    case "fix_result": renderFixResult(ev); break;
+    case "done": setRunning(false); refreshStatus(); break;
+  }
+}
+
+function renderDiagnosis(ev) {
+  const o = $("outcome"); o.textContent = "";
+  o.append(el("div", "stamp" + (ev.healthy ? " good" : ""), ev.healthy ? "All clear" : "Cause found"));
+  o.append(el("h2", "", ev.title));
+  o.append(el("p", "say", ev.message || ev.explanation));
+  if (ev.message && !ev.healthy) o.append(el("p", "seen", ev.explanation));
+  if (ev.evidence && ev.evidence.length) { o.append(el("h3", "", "What the checks showed")); const ul = el("ul"); for (const line of ev.evidence) ul.append(el("li", "", line)); o.append(ul); }
+  const caught = ev.first_conclusion && ev.first_conclusion !== ev.cause;
+  const safe = el("p", "safe-line" + (caught ? " caught" : ""));
+  safe.textContent = caught
+    ? "Safety check: the model's first answer was refused because the check results did not show it. This cause is the one the results do show."
+    : (ev.source === "model" ? "Safety check passed: plain code confirmed that the check results show this cause, so the model's conclusion is not taken on trust." : "Confirmed from the check results by the built-in rules.");
+  o.append(safe);
+  if (ev.seen && ev.seen.times) o.append(el("p", "seen", "Ayos has seen this on this PC " + ev.seen.times + (ev.seen.times === 1 ? " time" : " times") + " before, last on " + ev.seen.last + ". That is why it looked here early."));
+  if (ev.fix) {
+    const box = el("div", "fixbox"); box.append(el("h3", "", "Proposed fix: " + ev.fix.title), el("p", "", ev.fix.detail));
+    const acts = el("div", "acts"); acts.id = "fixActs";
+    if (ev.fix.blocked) acts.append(el("span", "warn", "This needs administrator rights. Close Ayos and start it with start_ayos.bat, then ask again."));
+    else {
+      const yes = el("button", "btn go", ev.fix.changes_settings ? "Fix it" : "Open it"); yes.type = "button"; yes.id = "approveBtn";
+      const no = el("button", "btn quiet", "Leave it"); no.type = "button";
+      yes.onclick = () => act("/api/approve"); no.onclick = () => act("/api/decline");
+      acts.append(yes, no, el("span", "muted", ev.fix.changes_settings ? (ev.fix.can_undo ? "Nothing changes until you press Fix it. You can undo it after." : "Nothing changes until you press Fix it.") : "Ayos changes nothing here."));
+    }
+    box.append(acts); o.append(box);
+    if (ev.advice) o.append(el("p", "seen", ev.advice));
+  } else if (ev.advice) { o.append(el("h3", "", ev.healthy ? "Good to know" : "What to do")); o.append(el("p", "say", ev.advice)); }
+  scrollDown(o);
+}
+
+function renderFixResult(ev) {
+  const o = $("outcome"); const acts = $("fixActs");
+  if (!ev.ok) { if (acts) { acts.textContent = ""; acts.append(el("span", "warn", "Not applied: " + ev.message)); } return; }
+  const box = o.querySelector(".fixbox"); if (acts) acts.textContent = "";
+  const res = el("div", "result");
+  res.append(el("p", ev.verified === false ? "warn" : "", ev.message));
+  if (ev.checks && ev.checks.length) { const ul = el("ul"); for (const c of ev.checks) { ul.append(el("li", "", c.summary)); setNode(c.name, c.verdict === "info" ? "" : c.verdict); } res.append(el("h3", "", "Checked again after the fix"), ul); }
+  if (ev.verified) {
+    const s = o.querySelector(".stamp"); if (s) s.remove();
+    o.prepend(el("div", "stamp good", "Fixed"));
+    if (pathKind === "net") for (const [id] of NET_PATH) { const li = $("pathNodes").querySelector('[data-node="' + id + '"]'); if (li && li.classList.contains("bad")) setNode(id, "ok"); }
+  }
+  if (ev.can_undo) { const u = el("button", "btn quiet small", "Undo this fix"); u.type = "button"; u.id = "undoBtn"; u.onclick = () => act("/api/undo"); const w = el("div", "row-acts"); w.append(u); res.append(w); }
+  if (box) box.after(res); else o.append(res);
+  scrollDown(res);
+}
+
+async function act(path) {
+  for (const b of document.querySelectorAll("#fixActs button, #undoBtn")) b.disabled = true;
+  try { await api(path, { id: sid }); } catch (e) { onEvent({ type: "error", message: e.message }); }
+  poll();
+}
+
+async function poll() {
+  clearTimeout(pollTimer);
+  if (!sid) return;
+  let state = "done";
+  try {
+    const data = await api("/api/events?id=" + sid + "&after=" + seen);
+    for (const ev of data.events) { seen = ev.i + 1; onEvent(ev); }
+    state = data.state;
+  } catch (e) { state = "error"; }
+  if (state === "running" || state === "fixing") pollTimer = setTimeout(poll, 300);
+  else if (state === "awaiting" || state === "fixed") pollTimer = setTimeout(poll, 1200);
+  else setRunning(false);
+}
+
+async function ask(question) {
+  question = (question || "").trim(); if (!question || running) return;
+  resetTicket(); setRunning(true);
+  try { const data = await api("/api/ask", { question }); sid = data.id; poll(); }
+  catch (e) { setRunning(false); const o = $("outcome"); o.append(el("h2", "", "Could not start"), el("p", "say warn", e.message)); }
+}
+$("askForm").addEventListener("submit", (e) => { e.preventDefault(); ask($("q").value); });
+for (const p of PICKS) { const b = el("button", "", p); b.type = "button"; b.onclick = () => { $("q").value = p; ask(p); }; $("picks").append(b); }
+
+/* ---------------- the rail ---------------- */
+function renderPc(s) {
+  const body = $("pcBody"); body.textContent = "";
+  const lamp = el("div", "lamp " + (s.internet === true ? "on" : s.internet === false ? "off" : "")); lamp.append(el("i"), document.createTextNode(s.internet === true ? "Internet is working" : s.internet === false ? "No internet right now" : "Checking the internet…"));
+  body.append(lamp);
+  const dl = el("dl", "facts"); const add = (k, v) => { dl.append(el("dt", "", k)); const dd = el("dd"); if (typeof v === "string") dd.textContent = v; else dd.append(v); dl.append(dd); };
+  const m = s.model;
+  if (m.server_up && m.models.length) {
+    const sel = el("select"); sel.setAttribute("aria-label", "Language model");
+    for (const name of m.models) { const o = el("option", "", name); o.value = name; if (!m.forced_rules && name === m.name) o.selected = true; sel.append(o); }
+    const o = el("option", "", "Built-in rules only (no AI)"); o.value = "rules"; if (m.forced_rules) o.selected = true; sel.append(o);
+    sel.onchange = async () => { try { await api("/api/model", { model: sel.value }); } catch (e) {} refreshStatus(true); };
+    add("AI model", sel);
+    add("Where it runs", m.forced_rules ? "Not used right now" : "On this PC, through " + (m.api === "ollama" ? "Ollama" : "a local server") + " at " + m.url.replace("http://", ""));
+    if (!m.forced_rules) add("State", m.warm === "yes" ? "Loaded and ready" + (m.warm_seconds ? " (took " + m.warm_seconds + " s to load)" : "") : m.warm === "loading" ? "Loading into memory…" : m.warm === "failed" ? "Could not load: " + (m.warm_error || "unknown error") : "Not loaded yet");
+    if (m.speed && !m.forced_rules) add("Speed", m.speed + " tokens a second on this PC");
+  } else {
+    add("AI model", "Not running");
+  }
+  add("Administrator", s.admin ? "Yes" : "No");
+  body.append(dl);
+  if (!(m.server_up && m.models.length)) {
+    const p = el("p", "warn", m.server_up ? "The model server is running but has no model yet." : "No local language model is running, so Ayos is using its built-in rules only.");
+    body.append(p); const how = el("p", "muted"); how.append("Start Ollama, then run ", el("code", "", "ollama pull gemma3:4b"), " once. Ayos picks it up by itself."); body.append(how);
+  }
+  if (!s.admin) body.append(el("p", "warn", "Ayos can look, but Windows will refuse fixes that change network settings. Close this and start it with start_ayos.bat."));
+}
+function renderMem(mem) {
+  const body = $("memBody"); body.textContent = "";
+  body.append(el("p", "", mem.has_baseline ? "It knows what this PC looks like when the internet works (saved " + mem.baseline_saved_at + "). It compares against that first." : "It has not seen this PC with the internet working yet, so it cannot compare."));
+  if (mem.recent.length) {
+    const ul = el("ul", "history");
+    for (const h of mem.recent) { const li = el("li"); li.append(el("span", "", h.title + (h.fixed === true ? " (fixed)" : h.fixed === false ? " (fix did not hold)" : "")), el("small", "num", h.when + ", " + h.seconds + " s")); ul.append(li); }
+    body.append(ul);
+  } else body.append(el("p", "muted", "No past problems recorded. Problems it has seen before get checked first next time."));
+  const acts = el("div", "row-acts"); const f = el("button", "btn quiet small", "Forget everything"); f.type = "button";
+  f.onclick = async () => { try { await api("/api/memory/clear", {}); } catch (e) {} refreshStatus(true); }; acts.append(f); body.append(acts);
+}
+function renderBench(s) {
+  const wrap = $("benchBtns"); wrap.textContent = "";
+  let split = false;
+  for (const f of s.faults) {
+    if (!f.real && !split) { split = true; wrap.append(el("p", "muted", "Only on the simulated PC:")); }
+    const b = el("button"); b.type = "button"; b.append(el("b", "", f.title), el("span", "", f.desc)); b.disabled = f.needs_admin && !s.admin;
+    b.onclick = async () => {
+      $("benchMsg").className = "bench-msg"; $("benchMsg").textContent = "Breaking it…";
+      try { const r = await api("/api/break", { fault: f.id }); $("benchMsg").textContent = r.message; if (f.say && !running) $("q").value = f.say; }
+      catch (e) { $("benchMsg").className = "bench-msg warn"; $("benchMsg").textContent = e.message; }
+      refreshStatus(true);
+    };
+    wrap.append(b);
+  }
+}
+$("restoreBtn").onclick = async () => {
+  $("benchMsg").className = "bench-msg"; $("benchMsg").textContent = "Putting everything back…";
+  try { const r = await api("/api/restore", {}); $("benchMsg").textContent = r.done.join(" "); }
+  catch (e) { $("benchMsg").className = "bench-msg warn"; $("benchMsg").textContent = e.message; }
+  refreshStatus(true);
+};
+
+async function refreshStatus(force) {
+  let s; try { s = await api("/api/status"); } catch (e) { $("pcBody").textContent = "Ayos is not answering. Is the black window still open?"; lastStatusKey = ""; return; }
+  status = s; $("simBand").hidden = !s.simulated;
+  const pcKey = JSON.stringify([s.internet, s.model, s.admin]);
+  if (force || pcKey !== lastStatusKey) { if (document.activeElement && document.activeElement.tagName === "SELECT" && !force) { /* do not rebuild under an open menu */ } else { lastStatusKey = pcKey; renderPc(s); } }
+  const memKey = JSON.stringify(s.memory); if (force || memKey !== lastMemKey) { lastMemKey = memKey; renderMem(s.memory); }
+  const benchKey = JSON.stringify([s.faults, s.admin]); if (force || benchKey !== lastBenchKey) { lastBenchKey = benchKey; renderBench(s); }
+}
+refreshStatus(true); setInterval(refreshStatus, 2000);
+$("q").focus();
+</script>
+</body>
+</html>
