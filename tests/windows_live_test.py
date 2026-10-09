@@ -98,6 +98,12 @@ def main() -> int:
                     if not broke:
                         time.sleep(1)
                 say(f"         example.com stopped loading: {broke} (after {time.time() - t1:.1f} s)")
+                try:  # what Windows itself now answers for the name, per address family
+                    for kind in ("A", "AAAA"):
+                        ans = pc._ps(f"(Resolve-DnsName example.com -Type {kind} -ErrorAction SilentlyContinue | ForEach-Object {{ $_.IPAddress }}) -join ','")
+                        say(f"         Windows resolves example.com ({kind}) to: {ans or '(nothing)'}")
+                except Exception as e:
+                    say(f"         could not ask Windows: {e}")
             t0 = time.time()
             s = Session("live", question, pc, RuleBrain(), mem, auto_approve=True)
             s.run()

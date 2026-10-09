@@ -216,10 +216,11 @@ def break_proxy_on(system: System):
 
 def break_hosts_block(system: System, domain: str = DEMO_DOMAIN):
     # Both address families, so the block also holds on networks that have IPv6.
-    # 0.0.0.0 means "nowhere", which fails at once even if this PC runs a web server of its own.
+    # 0.0.0.0 and :: mean "nowhere". Pointing at this PC itself (127.0.0.1, ::1) is not a reliable block:
+    # on a real Windows test machine a local web service answered and the site appeared to load.
     for n in (domain, "www." + domain):
         system.hosts_add("0.0.0.0", n)
-        system.hosts_add("::1", n)
+        system.hosts_add("::", n)
     return f"The hosts file now blocks {domain}."
 
 

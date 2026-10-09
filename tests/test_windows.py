@@ -342,7 +342,7 @@ class WholeFlowOnWindowsLayer(unittest.TestCase):
         with open(pc.HOSTS) as f:
             text = f.read()
             self.assertIn("0.0.0.0 example.com # ayos-demo", text)
-            self.assertIn("::1 www.example.com # ayos-demo", text)
+            self.assertIn(":: www.example.com # ayos-demo", text)
         s = Session("t", "I can't open example.com", pc, RuleBrain(), Memory(None), auto_approve=True)
         s.run()
         self.assertEqual(s.cause, "hosts_block")
