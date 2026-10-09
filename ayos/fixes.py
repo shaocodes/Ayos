@@ -201,7 +201,15 @@ def break_adapter_off(system: System):
     return f"Adapter '{name}' is now turned off."
 
 
+_stash = {}  # settings a practice fault overwrote, so "put everything back" can return them
+
+
 def break_proxy_on(system: System):
+    before = system.proxy_get()
+    if before["enabled"] and before["server"] != DEMO_PROXY:
+        raise RuntimeError("This PC already uses a proxy, so this practice fault was skipped to keep your setting safe.")
+    if before["server"] != DEMO_PROXY:
+        _stash["proxy_server"] = before["server"]
     system.proxy_set(True, DEMO_PROXY)
     return f"Windows now sends web traffic to a proxy that does not exist ({DEMO_PROXY})."
 
@@ -228,7 +236,7 @@ def apply_fault(system: System, fault_id: str) -> str:
 
 
 def restore_all(system: System) -> list:
-    """Put every setting Ayos can touch back to normal. Safe to run at any time."""
+    """Undo every practice fault. Settings the owner chose on purpose are left alone."""
     done = []
     for a in system.adapters():
         if a["status"] == "Disabled":
@@ -237,18 +245,21 @@ def restore_all(system: System) -> list:
                 done.append(f"Turned adapter '{a['name']}' back on.")
             except Exception as e:
                 done.append(f"Could not turn on '{a['name']}': {e}")
-    for d in system.dns_config():
-        if d["manual"]:
-            try:
-                system.set_dns(d["adapter"], None)
-                done.append(f"Set DNS on '{d['adapter']}' back to automatic.")
-            except Exception as e:
-                done.append(f"Could not reset DNS on '{d['adapter']}': {e}")
+    try:
+        for d in system.dns_config():
+            if d["manual"] and any(s in BOGUS_DNS for s in d["servers"]):
+                try:
+                    system.set_dns(d["adapter"], None)
+                    done.append(f"Set DNS on '{d['adapter']}' back to automatic.")
+                except Exception as e:
+                    done.append(f"Could not reset DNS on '{d['adapter']}': {e}")
+    except Exception as e:
+        done.append(f"Could not read DNS settings: {e}")
     try:
         p = system.proxy_get()
-        if p["enabled"]:
-            system.proxy_set(False)
-            done.append("Turned the proxy off.")
+        if p["server"] == DEMO_PROXY:
+            system.proxy_set(False, _stash.pop("proxy_server", ""))
+            done.append("Turned the practice proxy off.")
     except Exception as e:
         done.append(f"Could not check the proxy: {e}")
     try:
@@ -256,8 +267,11 @@ def restore_all(system: System) -> list:
         for n in demo:
             system.hosts_remove(n)
         if demo:
-            done.append("Removed demo lines from the hosts file: " + ", ".join(demo) + ".")
+            done.append("Removed practice lines from the hosts file: " + ", ".join(demo) + ".")
     except Exception as e:
         done.append(f"Could not clean the hosts file: {e}")
-    system.flush_dns()
-    return done or ["Nothing needed restoring."]
+    try:
+        system.flush_dns()
+    except Exception:
+        pass
+    return done or ["Nothing needed putting back."]

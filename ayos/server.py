@@ -86,7 +86,7 @@ class App:
         try:
             snap = snapshot(self.system)
             demo_block = any(h.get("demo") for h in self.system.hosts_entries())
-            if "error" in snap or snap["proxy_enabled"] or demo_block:
+            if "error" in snap or snap["proxy_server"] == fixes.DEMO_PROXY and snap["proxy_enabled"] or demo_block:
                 return False
             self.memory.set_baseline(snap)
             return True

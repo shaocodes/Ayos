@@ -206,7 +206,10 @@ class Session:
                     use_rules = True
 
             elif action == "answer":
-                if self.cls["is_fault"] and not refused_answer and d.get("source") == "model":
+                if self.cls["is_fault"] and d.get("source") == "model":
+                    # A fault report gets a diagnosis from evidence, never general advice from the model.
+                    if refused_answer:
+                        use_rules = True
                     refused_answer = True
                     self.brain.observe(convo, "The user is reporting a problem on this PC. Run a check before you answer.")
                     continue
@@ -300,7 +303,7 @@ class Session:
             return
         try:
             snap = snapshot(self.system)
-            if "error" not in snap and not snap["proxy_enabled"]:
+            if "error" not in snap and not (snap["proxy_enabled"] and snap["proxy_server"] == fixes.DEMO_PROXY):
                 self.memory.set_baseline(snap)
                 self.ctx["memory"] = self.memory.ctx()
                 self.emit("memory", message="Remembered: this is what this PC looks like when the internet works.")

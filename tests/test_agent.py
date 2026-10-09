@@ -254,6 +254,17 @@ class RestoreTests(unittest.TestCase):
         self.assertEqual(pc.hosts, [])
         self.assertTrue(pc.http_get("http://example.com")["ok"])
 
+    def test_restore_leaves_the_owners_own_dns_and_proxy(self):
+        pc = FakeSystem()
+        pc.manual_dns = ["9.9.9.9"]
+        pc.proxy = {"enabled": True, "server": "proxy.school.edu:8080", "auto_config_url": ""}
+        with self.assertRaises(RuntimeError):
+            sim.apply(pc, "proxy_on")
+        fixes.restore_all(pc)
+        self.assertEqual(pc.manual_dns, ["9.9.9.9"])
+        self.assertEqual(pc.proxy["server"], "proxy.school.edu:8080")
+        self.assertTrue(pc.proxy["enabled"])
+
     def test_restore_leaves_the_users_own_hosts_lines(self):
         pc = FakeSystem()
         pc.hosts.append({"ip": "10.0.0.5", "names": ["nas.home"], "demo": False})

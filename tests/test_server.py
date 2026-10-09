@@ -1,0 +1,311 @@
+"""Tests for the model client (against a stand-in model server) and for the local web server."""
+import json
+import os
+import re
+import sys
+import threading
+import time
+import unittest
+import urllib.error
+import urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from ayos import sim  # noqa: E402
+from ayos.agent import Session  # noqa: E402
+from ayos.brain import LocalModelBrain  # noqa: E402
+from ayos.memory import Memory  # noqa: E402
+from ayos.server import App, make_server  # noqa: E402
+from ayos.system import FakeSystem, build_dns_query, parse_dns_response, parse_hosts, remove_hosts_name, udp_dns_query  # noqa: E402
+from ayos.tools import snapshot  # noqa: E402
+
+NO_PROXY = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+class FakeModelServer:
+    """Speaks just enough of the Ollama and OpenAI chat APIs to test our side of the conversation."""
+
+    def __init__(self, replies, models=("gemma3:4b",), reject_think=False):
+        self.replies = list(replies)
+        self.requests = []
+        outer = self
+
+        class H(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def _send(self, code, obj):
+                body = json.dumps(obj).encode()
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def do_GET(self):
+                if self.path == "/api/tags":
+                    return self._send(200, {"models": [{"name": m} for m in models]})
+                if self.path == "/v1/models":
+                    return self._send(200, {"data": [{"id": m} for m in models]})
+                self._send(404, {})
+
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                outer.requests.append((self.path, body))
+                if reject_think and "think" in body:
+                    return self._send(400, {"error": '"gemma3:4b" does not support thinking'})
+                text = outer.replies.pop(0) if outer.replies else '{"thought":"","action":"answer","cause":"none","message":"out of script"}'
+                if self.path == "/api/chat":
+                    return self._send(200, {"message": {"role": "assistant", "content": text}, "eval_count": 40, "eval_duration": 2_000_000_000})
+                if self.path == "/v1/chat/completions":
+                    return self._send(200, {"choices": [{"message": {"content": text}}], "usage": {"completion_tokens": 40}})
+                self._send(404, {})
+
+        self.srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+        self.url = f"http://127.0.0.1:{self.srv.server_address[1]}"
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.srv.shutdown()
+        self.srv.server_close()
+
+
+def J(action, cause="none", message="", thought="because"):
+    return json.dumps({"thought": thought, "action": action, "cause": cause, "message": message})
+
+
+def run_session(pc, brain, question="my internet is not working", memory=None):
+    s = Session("t", question, pc, brain, memory or Memory(None), auto_approve=True)
+    s.run()
+    return s
+
+
+class ModelClient(unittest.TestCase):
+    def test_full_session_with_a_model(self):
+        ms = FakeModelServer([J("check_dns"), J("conclude", "dns_misconfigured", "Your DNS setting points to a server that is not there.")])
+        try:
+            pc = FakeSystem()
+            sim.apply(pc, "wrong_dns")
+            brain = LocalModelBrain("gemma3:4b", ms.url)
+            self.assertTrue(brain.available())
+            s = run_session(pc, brain)
+            diag = [e for e in s.events if e["type"] == "diagnosis"][0]
+            self.assertEqual(diag["cause"], "dns_misconfigured")
+            self.assertEqual(diag["source"], "model")
+            self.assertIn("not there", diag["message"])
+            self.assertEqual(s.stats["model_steps"], 2)
+            self.assertEqual(s.stats["tok_per_s"], 20.0)
+            # what we sent
+            (p1, b1), (p2, b2) = ms.requests
+            self.assertEqual(p1, "/api/chat")
+            self.assertIs(b1["stream"], False)
+            self.assertEqual(b1["options"]["temperature"], 0)
+            self.assertIn("check_dns", b1["format"]["properties"]["action"]["enum"])
+            self.assertNotIn("check_dns", b2["format"]["properties"]["action"]["enum"])  # no repeats offered
+            self.assertEqual(b2["messages"][: len(b1["messages"])], b1["messages"])  # only ever appended: cache friendly
+            self.assertEqual(b2["messages"][-1]["role"], "user")
+            self.assertIn("Result of check_dns", b2["messages"][-1]["content"])
+        finally:
+            ms.close()
+
+    def test_memory_step_is_visible_to_the_model(self):
+        ms = FakeModelServer([J("check_dns"), J("conclude", "dns_misconfigured", "x")])
+        try:
+            pc = FakeSystem()
+            mem = Memory(None)
+            mem.set_baseline(snapshot(pc))
+            sim.apply(pc, "wrong_dns")
+            run_session(pc, LocalModelBrain("gemma3:4b", ms.url), memory=mem)
+            msgs = ms.requests[0][1]["messages"]
+            self.assertEqual([m["role"] for m in msgs], ["system", "user", "assistant", "user"])
+            self.assertIn("compare_with_normal", msgs[2]["content"])
+            self.assertIn("Changed since the internet last worked", msgs[3]["content"])
+        finally:
+            ms.close()
+
+    def test_unusable_reply_falls_back_for_that_step(self):
+        ms = FakeModelServer(["I think you should restart the router!", J("conclude", "proxy_blocking", "A proxy is in the way.")])
+        try:
+            pc = FakeSystem()
+            sim.apply(pc, "proxy_on")
+            s = run_session(pc, LocalModelBrain("gemma3:4b", ms.url), "browser cannot open any site")
+            self.assertEqual(s.cause, "proxy_blocking")
+            self.assertTrue(any(e["type"] == "note" for e in s.events))
+            self.assertGreaterEqual(s.stats["rule_steps"], 1)
+        finally:
+            ms.close()
+
+    def test_wrong_model_conclusion_is_caught(self):
+        ms = FakeModelServer([J("conclude", "isp_outage", "Your provider is down."), J("conclude", "isp_outage", "Still the provider."), J("conclude", "isp_outage", "Provider.")])
+        try:
+            pc = FakeSystem()
+            sim.apply(pc, "hosts_block")
+            s = run_session(pc, LocalModelBrain("gemma3:4b", ms.url), "I can't open example.com")
+            self.assertEqual(s.first_conclusion, "isp_outage")
+            self.assertEqual(s.cause, "hosts_block")
+            self.assertGreaterEqual(s.stats["refusals"], 1)
+        finally:
+            ms.close()
+
+    def test_think_flag_is_dropped_when_the_model_rejects_it(self):
+        ms = FakeModelServer([J("check_adapters")], reject_think=True)
+        try:
+            brain = LocalModelBrain("gemma3:4b", ms.url)
+            convo = brain.start("no internet", [])
+            d = brain.step(convo, {"question": "no internet", "obs": {}, "route": "network", "has_baseline": False, "prefer": [], "allowed": ["check_adapters", "check_dns"]})
+            self.assertEqual((d["action"], d["source"]), ("check_adapters", "model"))
+            self.assertFalse(brain.use_think_flag)
+            self.assertEqual(len(ms.requests), 2)
+        finally:
+            ms.close()
+
+    def test_server_down_uses_rules_and_says_so(self):
+        brain = LocalModelBrain("gemma3:4b", "http://127.0.0.1:9", timeout=2)
+        self.assertFalse(brain.available())
+        pc = FakeSystem()
+        sim.apply(pc, "adapter_off")
+        s = run_session(pc, brain, "no internet at all")
+        self.assertEqual(s.cause, "adapter_disabled")
+        self.assertEqual(s.stats["model_steps"], 0)
+        self.assertTrue(any(e["type"] == "note" and "not running" in e["message"] for e in s.events))
+
+    def test_openai_compatible_server(self):
+        ms = FakeModelServer([J("check_proxy"), J("conclude", "proxy_blocking", "Proxy.")], models=("local-model",))
+        try:
+            brain = LocalModelBrain("local-model", ms.url, api="openai")
+            self.assertEqual(brain.list_models(), ["local-model"])
+            pc = FakeSystem()
+            sim.apply(pc, "proxy_on")
+            s = run_session(pc, brain, "browser cannot open any site")
+            self.assertEqual(s.cause, "proxy_blocking")
+            path, body = ms.requests[0]
+            self.assertEqual(path, "/v1/chat/completions")
+            self.assertEqual(body["response_format"]["type"], "json_schema")
+        finally:
+            ms.close()
+
+    def test_general_question_is_answered_by_the_model(self):
+        ms = FakeModelServer([J("answer", message="DNS is the phone book of the internet.")])
+        try:
+            s = run_session(FakeSystem(), LocalModelBrain("gemma3:4b", ms.url), "What is DNS?")
+            self.assertEqual([e["message"] for e in s.events if e["type"] == "answer"], ["DNS is the phone book of the internet."])
+            self.assertEqual(s.obs, {})
+        finally:
+            ms.close()
+
+
+class WebServer(unittest.TestCase):
+    def setUp(self):
+        self.pc = FakeSystem()
+        self.app = App(self.pc, Memory(None), monitor=False)
+        self.app.force_rules = True
+        self.srv = make_server(self.app, 0)
+        self.base = f"http://127.0.0.1:{self.srv.server_address[1]}"
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.srv.shutdown()
+        self.srv.server_close()
+
+    def call(self, path, body=None, token=True, host=None):
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["X-Ayos-Token"] = self.app.token
+        if host:
+            headers["Host"] = host
+        req = urllib.request.Request(self.base + path, data=json.dumps(body).encode() if body is not None else None, headers=headers)
+        try:
+            with NO_PROXY.open(req, timeout=5) as r:
+                return r.status, r.read().decode()
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode()
+
+    def wait_state(self, sid, states, timeout=5):
+        s = self.app.sessions[sid]
+        end = time.time() + timeout
+        while time.time() < end and s.state not in states:
+            time.sleep(0.02)
+        return s.state
+
+    def test_page_carries_the_token_and_api_needs_it(self):
+        code, html = self.call("/", token=False)
+        self.assertEqual(code, 200)
+        self.assertIn(self.app.token, html)
+        self.assertNotIn("__AYOS_TOKEN__", html)
+        self.assertEqual(self.call("/api/ask", {"question": "x"}, token=False)[0], 403)
+        self.assertEqual(self.call("/api/break", {"fault": "wrong_dns"}, token=False)[0], 403)
+        self.assertIsNone(self.pc.manual_dns)
+
+    def test_requests_for_another_host_are_refused(self):
+        self.assertEqual(self.call("/api/status", host="evil.example.com")[0], 403)
+        self.assertEqual(self.call("/api/break", {"fault": "wrong_dns"}, host="evil.example.com")[0], 403)
+
+    def test_break_ask_approve_undo_restore(self):
+        code, body = self.call("/api/break", {"fault": "wrong_dns"})
+        self.assertEqual(code, 200, body)
+        self.assertTrue(self.app.memory.baseline)  # normal was remembered before breaking
+        code, body = self.call("/api/ask", {"question": "my internet is not working"})
+        sid = json.loads(body)["id"]
+        self.assertEqual(self.wait_state(sid, ("awaiting",)), "awaiting")
+        self.assertIsNotNone(self.pc.manual_dns)
+        code, body = self.call(f"/api/events?id={sid}&after=0")
+        events = json.loads(body)["events"]
+        self.assertIn("diagnosis", [e["type"] for e in events])
+        self.assertTrue(json.loads(self.call("/api/approve", {"id": sid})[1])["ok"])
+        self.assertEqual(self.wait_state(sid, ("fixed",)), "fixed")
+        self.assertIsNone(self.pc.manual_dns)
+        self.assertTrue(json.loads(self.call("/api/undo", {"id": sid})[1])["ok"])
+        self.assertIsNotNone(self.pc.manual_dns)
+        self.assertEqual(self.call("/api/restore", {})[0], 200)
+        self.assertIsNone(self.pc.manual_dns)
+
+    def test_bad_input(self):
+        self.assertEqual(self.call("/api/ask", {"question": "   "})[0], 400)
+        self.assertEqual(self.call("/api/break", {"fault": "format_c"})[0], 400)
+        self.assertEqual(self.call("/api/approve", {"id": "nope"})[0], 404)
+        self.assertEqual(self.call("/api/nothing", {})[0], 404)
+
+    def test_status_shape(self):
+        st = json.loads(self.call("/api/status")[1])
+        for key in ("simulated", "admin", "internet", "model", "memory", "faults"):
+            self.assertIn(key, st)
+        self.assertTrue(st["simulated"])
+        self.assertEqual(len([f for f in st["faults"] if f["real"]]), 4)
+
+    def test_page_has_no_external_resources(self):
+        html = self.call("/", token=False)[1]
+        self.assertEqual(re.findall(r"""(?:src|href)\s*=\s*["']https?://""", html), [])
+
+
+class LowLevel(unittest.TestCase):
+    def test_dns_packet_round_trip(self):
+        q = build_dns_query("www.example.com", qid=0x1234)
+        self.assertEqual(q[:2], b"\x12\x34")
+        self.assertIn(b"\x03www\x07example\x03com\x00", q)
+        answer = q[:2] + b"\x81\x80" + b"\x00\x01\x00\x01\x00\x00\x00\x00" + q[12:] + b"\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\x3c\x00\x04\x5d\xb8\xd8\x22"
+        self.assertEqual(parse_dns_response(answer), {"answered": True, "ip": "93.184.216.34", "rcode": 0})
+        self.assertFalse(parse_dns_response(b"\x00")["answered"])
+
+    def test_dns_query_to_a_dead_server_fails_fast(self):
+        t0 = time.time()
+        r = udp_dns_query("example.com", "127.0.0.1", timeout=0.5, port=9)
+        self.assertFalse(r["answered"])
+        self.assertLess(time.time() - t0, 2)
+
+    def test_hosts_file_parsing(self):
+        text = "# comment\n127.0.0.1 localhost\n127.0.0.1 example.com www.example.com # ayos-demo\n10.0.0.5 nas.home\n\n::1 localhost\n"
+        entries = parse_hosts(text)
+        self.assertEqual([e["names"] for e in entries], [["example.com", "www.example.com"], ["nas.home"]])
+        self.assertTrue(entries[0]["demo"])
+        kept, n = remove_hosts_name(text, "example.com")
+        self.assertEqual(n, 1)
+        self.assertIn("127.0.0.1 www.example.com", kept)
+        self.assertIn("10.0.0.5 nas.home", kept)
+        self.assertIn("127.0.0.1 localhost", kept)
+        kept, n = remove_hosts_name(kept, "www.example.com")
+        self.assertNotIn("example.com", kept)
+
+
+if __name__ == "__main__":
+    unittest.main()
