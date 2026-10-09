@@ -163,6 +163,8 @@ class SafetyCheck(unittest.TestCase):
         self.assertEqual(supports("dns_misconfigured", {}), (False, "check_dns"))
         self.assertEqual(supports("proxy_blocking", {}), (False, "check_proxy"))
         self.assertEqual(supports("made_up_cause", {}), (False, None))
+        no_address = {"check_ip_and_router": {"ipv4": None, "gateway": None, "apipa": False, "gateway_ping": None, "router_ok": None}}
+        self.assertEqual(supports("no_ip_address", no_address), (False, "check_adapters"))  # could also be a switched-off adapter
 
 
 class Approval(unittest.TestCase):

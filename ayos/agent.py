@@ -19,7 +19,7 @@ import time
 from . import fixes
 from .brain import RuleBrain, classify, peek
 from .memory import Memory
-from .rules import CAUSES, KEY_CHECK, PC_CAUSES, evidence_lines, fix_args, infer, supports
+from .rules import CAUSES, KEY_CHECK, PC_CAUSES, evidence_lines, fix_args, infer, supports, why_not
 from .system import System
 from .tools import CHECKS, NETWORK_CHECKS, PC_CHECKS, TITLES, find_domain, run_check, snapshot, verdict
 
@@ -58,6 +58,8 @@ class Session:
         self.convo = []
         self.pending = 0  # follow-up answers still being written
         self.live = {}  # what the model has written so far in the reply it is working on right now
+        self.ready = False  # True once the check results are enough to prove a cause
+        self._told_ready = False
 
     # ------------------------------------------------------------ plumbing
     def emit(self, type_: str, **data) -> dict:
@@ -100,13 +102,23 @@ class Session:
         route = self._route()
         if force_route and route == "general":
             route = "network"
+        # The menu the model chooses from. For an internet problem only the network checks are offered,
+        # and once the results already prove a cause, no more checks are offered: the model has to name it.
+        menu = list(CHECKS)
+        if self.cls["must_check"] and self.cls["route"] in ("network", "pc"):
+            menu = PC_CHECKS if self.cls["route"] == "pc" else NETWORK_CHECKS
+        allowed = [c for c in menu if c not in self.obs]
+        if not self.memory.baseline and "compare_with_normal" in allowed:
+            allowed.remove("compare_with_normal")
+        self.ready = bool(self.obs) and infer(self.obs, "pc" if route == "pc" else "network") is not None
         return {
             "question": self.question,
             "obs": self.obs,
             "route": route,
             "has_baseline": bool(self.memory.baseline),
             "prefer": self.memory.preferred_checks(),
-            "allowed": [c for c in CHECKS if c not in self.obs],
+            "allowed": [] if self.ready else allowed,
+            "ready": self.ready,
         }
 
     def _on_text(self, text: str) -> None:
@@ -152,6 +164,9 @@ class Session:
             brain = self.rules if use_rules else self.brain
             self.emit("thinking", who="rules" if use_rules else self.brain.kind)
             view = self._view(force_route=use_rules and self.brain.kind != "rules")
+            if view["ready"] and not self._told_ready and not use_rules:
+                self._told_ready = True
+                self.brain.observe(convo, "The results are now enough to name the cause. Conclude.")
             if getattr(brain, "streams", False):
                 d = brain.step(convo, view, on_text=self._on_text)
             else:
@@ -212,7 +227,8 @@ class Session:
                     )
                     self.brain.observe(
                         convo,
-                        f"Safety check: the results do not show '{cause}'. Read the results again, then run another check or name a different cause.",
+                        f"Safety check: '{cause}' is refused because {why_not(cause, self.obs)}. Read the results again and name a different cause"
+                        + ("." if self.ready else ", or run another check."),
                     )
                 if self.stats["refusals"] >= MAX_REFUSALS + 3 or (not missing and self.stats["refusals"] >= MAX_REFUSALS):
                     use_rules = True

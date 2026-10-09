@@ -132,7 +132,11 @@ def supports(cause: str, obs: dict):
     if cause == "wifi_not_connected":
         return (not_joined, None if ad else "check_adapters")
     if cause == "no_ip_address":
-        return (bool(ip and (ip["apipa"] or not ip["ipv4"]) and not adapter_off and not not_joined and (not ad or ad["up"])), None if ip else "check_ip_and_router")
+        if not ip:
+            return False, "check_ip_and_router"
+        if not ad:
+            return False, "check_adapters"  # no address is also what a switched-off adapter looks like; rule that out first
+        return (bool((ip["apipa"] or not ip["ipv4"]) and not adapter_off and not not_joined and ad["up"]), None)
     if cause == "router_unreachable":
         return (bool(ip and ip["ipv4"] and not ip["apipa"] and ip["router_ok"] is False), None if ip else "check_ip_and_router")
     if cause == "isp_outage":
@@ -176,6 +180,45 @@ def supports(cause: str, obs: dict):
                 return False, need
         return (not disk["low"] and not mem["low"] and not start["many"], None)
     return False, None
+
+
+# Why a cause the model suggested does not fit, in words the model can use. Only facts already in the results.
+def why_not(cause: str, obs: dict) -> str:
+    ad, ip, reach = _ok(obs, "check_adapters"), _ok(obs, "check_ip_and_router"), _ok(obs, "check_internet_reach")
+    dns, proxy, hosts, web = _ok(obs, "check_dns"), _ok(obs, "check_proxy"), _ok(obs, "check_hosts"), _ok(obs, "test_website")
+    if cause in ("adapter_disabled", "wifi_not_connected") and ad:
+        return "an adapter is connected and has an address" if ad["online"] else "the adapter results say something else"
+    if cause == "no_ip_address" and ip and ip["ipv4"] and not ip["apipa"]:
+        return f"the PC does have an address ({ip['ipv4']})"
+    if cause == "router_unreachable" and ip and ip.get("router_ok"):
+        return "the router is working"
+    if cause == "isp_outage" and reach and reach["reachable"]:
+        return "internet addresses can be reached, so the line is up"
+    if cause in ("dns_misconfigured", "dns_server_down") and dns:
+        if dns["configured_answers"]:
+            return "the DNS servers answer"
+        return "the DNS servers were set by hand" if cause == "dns_server_down" and dns["manual"] else "the DNS servers are on automatic, not set by hand" if not dns["manual"] else "no DNS server answers at all, not even a public one"
+    if cause == "proxy_blocking" and proxy:
+        return "no proxy is turned on" if not proxy["enabled"] else "pages fail even without the proxy"
+    if cause == "hosts_block" and hosts and not hosts["blocked_names"]:
+        return "the hosts file blocks nothing"
+    if cause == "no_fault_found":
+        if web and not web["ok"]:
+            return "a test page still fails to load"
+        if hosts and hosts["blocked_names"]:
+            return "the hosts file blocks a website"
+        if proxy and proxy["enabled"]:
+            return "a proxy is turned on"
+    disk, mem, start = _ok(obs, "check_disk"), _ok(obs, "check_memory"), _ok(obs, "check_startup")
+    if cause == "disk_full" and disk and not disk["low"]:
+        return "there is enough free storage"
+    if cause == "low_memory" and mem and not mem["low"]:
+        return "there is enough free memory"
+    if cause == "many_startup_apps" and start and not start["many"]:
+        return "only a few apps start with Windows"
+    if cause == "pc_looks_healthy" and ((disk and disk["low"]) or (mem and mem["low"]) or (start and start["many"])):
+        return "one of the checks did find a problem"
+    return "the check results do not show it"
 
 
 def infer(obs: dict, route: str = "network"):

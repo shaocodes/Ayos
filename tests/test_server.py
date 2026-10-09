@@ -130,6 +130,26 @@ class ModelClient(unittest.TestCase):
         finally:
             ms.close()
 
+    def test_once_the_evidence_is_enough_the_model_must_name_the_cause(self):
+        ms = FakeModelServer([J("check_dns"), J("conclude", "dns_server_down", "Router DNS."), J("conclude", "dns_misconfigured", "DNS.")])
+        try:
+            pc = FakeSystem()
+            sim.apply(pc, "wrong_dns")
+            s = run_session(pc, LocalModelBrain("gemma3:4b", ms.url))
+            b1, b2, b3 = [b for _p, b in ms.requests]
+            menu = b1["format"]["properties"]["action"]["enum"]
+            self.assertIn("check_dns", menu)
+            self.assertNotIn("check_disk", menu)  # an internet problem is not offered the slow-PC checks
+            self.assertNotIn("compare_with_normal", menu)  # nothing to compare with yet
+            self.assertEqual(b2["format"]["properties"]["action"]["enum"], ["conclude"])
+            self.assertIn("enough to name the cause", b2["messages"][-1]["content"])
+            self.assertIn("refused because the DNS servers were set by hand", b3["messages"][-1]["content"])
+            self.assertEqual(s.cause, "dns_misconfigured")
+            self.assertEqual(s.first_conclusion, "dns_server_down")
+            self.assertEqual(s.stats["model_steps"], 3)
+        finally:
+            ms.close()
+
     def test_memory_step_is_visible_to_the_model(self):
         ms = FakeModelServer([J("check_dns"), J("conclude", "dns_misconfigured", "x")])
         try:

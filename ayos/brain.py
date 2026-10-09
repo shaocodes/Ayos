@@ -98,7 +98,8 @@ Rules:
 - If a comparison with normal shows a setting changed, check that area next.
 - Otherwise work outward: adapter, then address and router, then the line to the internet, then DNS, proxy, hosts file.
 - For a slow PC use the storage, memory and start-up checks.
-- Do not repeat a check. Two to five checks are usually enough.
+- Do not repeat a check. Two to four checks are usually enough. Stop as soon as a result shows the cause.
+- thought: at most 15 words.
 - Conclude no_fault_found only after test_website loads.
 - If the user asks a general computer question that needs no check, use action answer.
 - If the problem is about something you have no check for (a printer, sound, one app), use action answer:
@@ -107,12 +108,12 @@ Rules:
   Say what is wrong and why it causes what the user sees. Reply in the language the user wrote in."""
 
 
-def decision_schema(allowed_checks: list) -> dict:
+def decision_schema(allowed_checks: list, must_conclude: bool = False) -> dict:
     return {
         "type": "object",
         "properties": {
             "thought": {"type": "string"},
-            "action": {"type": "string", "enum": list(allowed_checks) + ["conclude", "answer"]},
+            "action": {"type": "string", "enum": ["conclude"] if must_conclude else list(allowed_checks) + ["conclude", "answer"]},
             "cause": {"type": "string", "enum": NETWORK_CAUSES + PC_CAUSES + ["none"]},
             "message": {"type": "string"},
         },
@@ -398,7 +399,7 @@ class LocalModelBrain:
         started = time.time()
         allowed = view["allowed"]
         try:
-            out = self._chat(convo, decision_schema(allowed), on_text=on_text if self.api == "ollama" else None)
+            out = self._chat(convo, decision_schema(allowed, bool(view.get("ready"))), on_text=on_text if self.api == "ollama" else None)
         except Exception as e:
             err = _short_error(e)
             if "took too long" in err and not self.server_up(1.0):
