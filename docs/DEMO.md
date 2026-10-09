@@ -19,7 +19,7 @@ Everything the team needs for the live pitch: what to check before, what to clic
 1. Connect to Wi-Fi or a phone hotspot and check the light says **Internet is working**.
 2. Start Ayos and ask "what is DNS?" once. That first question loads the model into memory, so the real demo starts fast.
 3. Press **Forget everything** only if you want to show memory from zero. Otherwise leave it.
-4. Set the browser zoom so the back row can read it. 125% works on most projectors.
+4. Zoom the Ayos window so the back row can read it: hold Ctrl and press +. 125% works on most projectors.
 5. Close every other app. The model needs the memory.
 
 ## The five minutes
@@ -57,7 +57,7 @@ A strong extra if you have 30 spare seconds: press **Adapter turned off** instea
 The code can only confirm a cause. It cannot understand a person. The model reads "ayaw mag-load ng YouTube" and decides where to look, picks checks in a sensible order instead of running all of them, explains the result in plain words, and answers follow-up questions. The code is the inspector that keeps the model honest.
 
 **What if the model is wrong?**
-Then it is refused, and told why. A cause is accepted only when the check results show it. We measured this on 20 cases: `gemma3:4b` named the right cause first in 17 of them, and with the safety check all 20 final diagnoses were right. The same held for the three other models we tested, including a 0.8 GB one that was right first time in only 12.
+Then it is refused, and told why. A cause is accepted only when the check results show it. We measured this on 24 cases: `gemma3:4b` named the right cause first in 19 of them, and with the safety check all 24 final diagnoses were right. The same held for the three other models we tested, including a 0.8 GB one that was right first time in only 11.
 
 **Is it safe to give an AI administrator rights?**
 The model has none. It can only name a check or a cause from a fixed list. The fixes are twelve small functions we wrote. Each one says exactly what it changes, and none runs without a click.
@@ -75,7 +75,7 @@ Yes. The model and all the logic are on the laptop. The only things that touch t
 The model is one part, used as published. We built the agent loop, the menu of checks, the safety check, the fixes with undo, the memory, the Windows layer, the simulated PC, the evaluation tool and the interface.
 
 **How fast is it?**
-On a 4-thread cloud CPU with no graphics card, a typical diagnosis took about 10 seconds with `gemma3:4b`. That number is in the README with the raw files. For the demo laptop, give the number you saw on it. Do not quote a number you did not measure.
+On a 4-thread cloud CPU with no graphics card, the four practice faults took 21 to 26 seconds each with `gemma3:4b`, at about 10 tokens a second. On our home PC with an RX 6600 graphics card the same model ran at about 40 tokens a second, four times faster. Both numbers are in the README, the first with its raw files. For the demo laptop, give the number you saw on it. Do not quote a number you did not measure.
 
 **Is it only DNS?**
 No. It diagnoses 18 causes: 12 about the internet and 6 about a slow PC. DNS is simply the easiest one to break on stage. The list is in the README. Adding a cause is one check, one rule and one fix, and the safety check covers it automatically.

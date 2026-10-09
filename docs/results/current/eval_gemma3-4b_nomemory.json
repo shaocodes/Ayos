@@ -2,71 +2,71 @@
   "summary": {
     "brain": "gemma3:4b (local, via Ollama)",
     "computer": "x86_64, Linux 6.17.0-1022-azure",
-    "date": "2026-10-09 19:59",
+    "date": "2026-10-09 23:23",
     "with_memory": false,
-    "cases": 20,
-    "final_correct": 20,
-    "model_first_correct": 17,
-    "model_reached_a_conclusion": 19,
-    "conclusions_refused_by_safety_check": 2,
-    "median_seconds": 27.6,
-    "slowest_seconds": 49.4,
-    "tokens_per_second": 14.1
+    "cases": 24,
+    "final_correct": 24,
+    "model_first_correct": 19,
+    "model_reached_a_conclusion": 23,
+    "conclusions_refused_by_safety_check": 6,
+    "median_seconds": 61.9,
+    "slowest_seconds": 106.5,
+    "tokens_per_second": 9.2
   },
   "rows": [
     {
       "trace": [
         "model  -> check_adapters   why: Let's start with the basics of the network connection.",
         "          = Network adapters: Wi-Fi: connected.",
-        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's see if the PC has an IP address.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's check if the PC has an IP address and can communicate with the router.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so let\u2019s check if the internet is reachable.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so let\u2019s check if the internet can be reached.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: The internet line is working, but DNS is likely the issue.",
+        "model  -> check_dns   why: Since the internet line is working, the problem must be with DNS resolution.",
         "          = DNS servers on 'Wi-Fi': 192.0.2.53, 2001:db8::53 (set manually). None of them answer. A public DNS server (1.1.1.1) answers when asked directly. Windows CANNOT turn website names into addresses.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => dns_misconfigured   says: It looks like you\u2019ve manually set the DNS servers to incorrect addresses. This is preventing your PC from translating website names into addresses, which is why you can\u2019t load websites."
+        "model  => dns_misconfigured   says: It looks like you\u2019ve manually set the DNS servers to incorrect addresses. This prevents your computer from translating website names into numbers, which is why websites aren\u2019t loading."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 9.91,
-          "tokens": 57,
-          "gen_seconds": 3.7,
-          "prompt_tokens": 687,
-          "prompt_seconds": 6.19
+          "seconds": 24.18,
+          "tokens": 58,
+          "gen_seconds": 6.13,
+          "prompt_tokens": 841,
+          "prompt_seconds": 18.02
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.46,
-          "tokens": 77,
-          "gen_seconds": 5.13,
-          "prompt_tokens": 770,
-          "prompt_seconds": 1.32
+          "seconds": 12.42,
+          "tokens": 83,
+          "gen_seconds": 8.64,
+          "prompt_tokens": 925,
+          "prompt_seconds": 3.77
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.29,
-          "tokens": 75,
-          "gen_seconds": 5.16,
-          "prompt_tokens": 907,
-          "prompt_seconds": 2.12
+          "seconds": 13.65,
+          "tokens": 72,
+          "gen_seconds": 7.67,
+          "prompt_tokens": 1068,
+          "prompt_seconds": 5.96
         },
         {
           "action": "check_dns",
-          "seconds": 6.66,
-          "tokens": 68,
-          "gen_seconds": 4.71,
-          "prompt_tokens": 1029,
-          "prompt_seconds": 1.94
+          "seconds": 11.94,
+          "tokens": 69,
+          "gen_seconds": 7.69,
+          "prompt_tokens": 1187,
+          "prompt_seconds": 4.23
         },
         {
           "action": "conclude",
-          "seconds": 7.75,
-          "tokens": 81,
-          "gen_seconds": 5.84,
-          "prompt_tokens": 1205,
-          "prompt_seconds": 1.9
+          "seconds": 14.47,
+          "tokens": 82,
+          "gen_seconds": 9.41,
+          "prompt_tokens": 1359,
+          "prompt_seconds": 5.04
         }
       ],
       "case": "wrong_dns",
@@ -80,9 +80,9 @@
       "checks": 4,
       "model_steps": 5,
       "rule_steps": 0,
-      "seconds": 38.1,
-      "model_seconds": 38.1,
-      "tok_per_s": 13.9,
+      "seconds": 76.7,
+      "model_seconds": 76.7,
+      "tok_per_s": 8.7,
       "fix_verified": true
     },
     {
@@ -90,24 +90,24 @@
         "model  -> check_adapters   why: Let's start with the basics of the network connection.",
         "          = Network adapters: Wi-Fi: turned OFF in Windows.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => adapter_disabled   says: It looks like your Wi-Fi adapter is turned off. This is preventing you from connecting to the internet."
+        "model  => adapter_disabled   says: It looks like your Wi-Fi adapter is turned off. This prevents you from connecting to the internet."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 9.78,
-          "tokens": 57,
-          "gen_seconds": 3.72,
-          "prompt_tokens": 683,
-          "prompt_seconds": 6.06
+          "seconds": 23.56,
+          "tokens": 56,
+          "gen_seconds": 5.73,
+          "prompt_tokens": 837,
+          "prompt_seconds": 17.81
         },
         {
           "action": "conclude",
-          "seconds": 5.56,
-          "tokens": 60,
-          "gen_seconds": 4.0,
-          "prompt_tokens": 783,
-          "prompt_seconds": 1.56
+          "seconds": 10.77,
+          "tokens": 61,
+          "gen_seconds": 6.47,
+          "prompt_tokens": 936,
+          "prompt_seconds": 4.29
         }
       ],
       "case": "adapter_off",
@@ -121,54 +121,74 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 15.3,
-      "model_seconds": 15.3,
-      "tok_per_s": 15.0,
+      "seconds": 34.3,
+      "model_seconds": 34.3,
+      "tok_per_s": 9.4,
       "fix_verified": true
     },
     {
       "trace": [
-        "model  -> check_internet_reach   why: The user's browser cannot open websites, so I need to check the basics of network connectivity.",
+        "model  -> check_adapters   why: Let's start with the basics of the network connection.",
+        "          = Network adapters: Wi-Fi: connected.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's see if the PC has an IP address and can communicate with the router.",
+        "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so let\u2019s check if it can reach the internet.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: The internet line is working, but the browser still can't access websites. This suggests a DNS issue.",
+        "model  -> check_dns   why: The internet line is working, but DNS might be the issue. Let\u2019s investigate DNS.",
         "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.",
-        "model  -> check_proxy   why: The DNS servers are responding correctly, indicating a problem elsewhere in the DNS resolution process.",
+        "model  -> check_proxy   why: DNS is working correctly, so let\u2019s investigate if a proxy is interfering.",
         "          = A proxy is turned ON (127.0.0.1:9). Through the proxy a test page FAILS. Without the proxy the same page loads fine.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => proxy_blocking   says: The proxy server is blocking access to websites, preventing you from browsing."
+        "model  => proxy_blocking   says: The proxy is causing the problem. It\u2019s blocking access to websites."
       ],
       "model_calls": [
         {
+          "action": "check_adapters",
+          "seconds": 24.13,
+          "tokens": 57,
+          "gen_seconds": 6.24,
+          "prompt_tokens": 837,
+          "prompt_seconds": 17.88
+        },
+        {
+          "action": "check_ip_and_router",
+          "seconds": 12.8,
+          "tokens": 83,
+          "gen_seconds": 9.06,
+          "prompt_tokens": 920,
+          "prompt_seconds": 3.72
+        },
+        {
           "action": "check_internet_reach",
-          "seconds": 10.32,
-          "tokens": 63,
-          "gen_seconds": 4.22,
-          "prompt_tokens": 683,
-          "prompt_seconds": 6.09
+          "seconds": 14.57,
+          "tokens": 76,
+          "gen_seconds": 8.59,
+          "prompt_tokens": 1063,
+          "prompt_seconds": 5.96
         },
         {
           "action": "check_dns",
-          "seconds": 5.9,
-          "tokens": 63,
-          "gen_seconds": 4.32,
-          "prompt_tokens": 783,
-          "prompt_seconds": 1.57
+          "seconds": 11.34,
+          "tokens": 64,
+          "gen_seconds": 6.93,
+          "prompt_tokens": 1186,
+          "prompt_seconds": 4.39
         },
         {
           "action": "check_proxy",
-          "seconds": 6.06,
+          "seconds": 11.74,
           "tokens": 59,
-          "gen_seconds": 4.02,
-          "prompt_tokens": 918,
-          "prompt_seconds": 2.03
+          "gen_seconds": 6.49,
+          "prompt_tokens": 1332,
+          "prompt_seconds": 5.23
         },
         {
           "action": "conclude",
-          "seconds": 5.76,
-          "tokens": 55,
-          "gen_seconds": 3.8,
-          "prompt_tokens": 1044,
-          "prompt_seconds": 1.94
+          "seconds": 10.79,
+          "tokens": 53,
+          "gen_seconds": 5.66,
+          "prompt_tokens": 1468,
+          "prompt_seconds": 5.1
         }
       ],
       "case": "proxy_on",
@@ -179,70 +199,57 @@
       "model_first": "proxy_blocking",
       "model_first_correct": true,
       "refused": 0,
-      "checks": 3,
-      "model_steps": 4,
+      "checks": 5,
+      "model_steps": 6,
       "rule_steps": 0,
-      "seconds": 28.0,
-      "model_seconds": 28.0,
-      "tok_per_s": 14.5,
+      "seconds": 85.4,
+      "model_seconds": 85.4,
+      "tok_per_s": 9.4,
       "fix_verified": true
     },
     {
       "trace": [
-        "model  -> check_internet_reach   why: The user can't access one website, but others work. Let's start with the basics.",
+        "model  -> check_internet_reach   why: The user can't reach example.com, but other sites work. Let's check the basics.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: The internet line itself is working, so the problem must be with resolving the domain name.",
+        "model  -> check_dns   why: The internet line is working, but example.com is not. Let's investigate DNS.",
         "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.",
-        "model  -> check_adapters   why: Okay, let's run a check to see if there's a local issue affecting the connection.",
-        "          = Network adapters: Wi-Fi: connected.",
-        "rules  -> check_ip_and_router",
-        "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "rules  -> check_proxy",
-        "          = No proxy is set. A test page loads.",
-        "rules  -> check_hosts",
+        "model  -> check_hosts   why: The DNS servers are responding, but only the router's DNS. This suggests a problem with the way Windows is resolving the domain name.",
         "          = The hosts file blocks these names by pointing them at a dead address: example.com, www.example.com. That includes example.com.",
-        "rules  => hosts_block   says: (catalogue text)"
+        "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
+        "model  => hosts_block   says: The hosts file is blocking example.com. This is preventing your browser from accessing the website."
       ],
       "model_calls": [
         {
           "action": "check_internet_reach",
-          "seconds": 10.95,
+          "seconds": 26.0,
           "tokens": 69,
-          "gen_seconds": 4.54,
-          "prompt_tokens": 697,
-          "prompt_seconds": 6.4
+          "gen_seconds": 7.47,
+          "prompt_tokens": 851,
+          "prompt_seconds": 18.53
         },
         {
           "action": "check_dns",
-          "seconds": 5.92,
+          "seconds": 11.51,
           "tokens": 64,
-          "gen_seconds": 4.25,
-          "prompt_tokens": 803,
-          "prompt_seconds": 1.66
+          "gen_seconds": 6.94,
+          "prompt_tokens": 957,
+          "prompt_seconds": 4.56
         },
         {
-          "action": "answer",
-          "seconds": 5.85,
-          "tokens": 55,
-          "gen_seconds": 3.78,
-          "prompt_tokens": 939,
-          "prompt_seconds": 2.05
+          "action": "check_hosts",
+          "seconds": 15.18,
+          "tokens": 84,
+          "gen_seconds": 9.32,
+          "prompt_tokens": 1093,
+          "prompt_seconds": 5.85
         },
         {
-          "action": "check_adapters",
-          "seconds": 5.88,
-          "tokens": 64,
-          "gen_seconds": 4.51,
-          "prompt_tokens": 1022,
-          "prompt_seconds": 1.37
-        },
-        {
-          "action": "answer",
-          "seconds": 4.63,
-          "tokens": 57,
-          "gen_seconds": 3.97,
-          "prompt_tokens": 1112,
-          "prompt_seconds": 0.64
+          "action": "conclude",
+          "seconds": 10.76,
+          "tokens": 70,
+          "gen_seconds": 7.6,
+          "prompt_tokens": 1238,
+          "prompt_seconds": 3.14
         }
       ],
       "case": "hosts_block",
@@ -250,50 +257,83 @@
       "expected": "hosts_block",
       "final": "hosts_block",
       "final_correct": true,
-      "model_first": null,
-      "model_first_correct": false,
+      "model_first": "hosts_block",
+      "model_first_correct": true,
       "refused": 0,
-      "checks": 6,
-      "model_steps": 5,
-      "rule_steps": 4,
-      "seconds": 33.2,
-      "model_seconds": 33.2,
-      "tok_per_s": 14.3,
+      "checks": 3,
+      "model_steps": 4,
+      "rule_steps": 0,
+      "seconds": 63.5,
+      "model_seconds": 63.4,
+      "tok_per_s": 9.2,
+      "fix_verified": true
+    },
+    {
+      "trace": [
+        "hint   -> check_clock   why: The owner's words point at the date and time, so check the clock first.",
+        "          = The PC's date and time are WRONG: 400 days behind the real time. Secure websites check the date and refuse to open when it is wrong.",
+        "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
+        "model  => clock_wrong   says: Your date and time are way off \u2013 it\u2019s 400 days behind! That\u2019s why websites are saying your connection isn\u2019t private; they need the correct date and time to verify the website\u2019s security certificate."
+      ],
+      "model_calls": [
+        {
+          "action": "conclude",
+          "seconds": 23.21,
+          "tokens": 84,
+          "gen_seconds": 8.04,
+          "prompt_tokens": 430,
+          "prompt_seconds": 15.04
+        }
+      ],
+      "case": "clock_wrong",
+      "question": "Websites say my connection is not private",
+      "expected": "clock_wrong",
+      "final": "clock_wrong",
+      "final_correct": true,
+      "model_first": "clock_wrong",
+      "model_first_correct": true,
+      "refused": 0,
+      "checks": 1,
+      "model_steps": 1,
+      "rule_steps": 0,
+      "seconds": 23.2,
+      "model_seconds": 23.2,
+      "tok_per_s": 10.4,
       "fix_verified": true
     },
     {
       "trace": [
         "model  -> check_adapters   why: Let's start with the basics of the network connection.",
         "          = Network adapters: Wi-Fi: connected.",
-        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's see if the PC has an IP address.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's see if the PC has an IP address and can communicate with the router.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router does NOT answer and nothing passes through it.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => router_unreachable   says: It seems the router isn\u2019t responding to your PC\u2019s requests. This means your PC can\u2019t access the internet."
+        "model  => router_unreachable   says: It seems the router isn\u2019t responding to your PC. This means the connection isn\u2019t working properly."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 9.78,
+          "seconds": 23.83,
           "tokens": 57,
-          "gen_seconds": 3.72,
-          "prompt_tokens": 682,
-          "prompt_seconds": 6.05
+          "gen_seconds": 6.24,
+          "prompt_tokens": 836,
+          "prompt_seconds": 17.55
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.47,
-          "tokens": 77,
-          "gen_seconds": 5.15,
-          "prompt_tokens": 765,
-          "prompt_seconds": 1.31
+          "seconds": 12.79,
+          "tokens": 83,
+          "gen_seconds": 9.07,
+          "prompt_tokens": 919,
+          "prompt_seconds": 3.71
         },
         {
           "action": "conclude",
-          "seconds": 7.64,
-          "tokens": 74,
-          "gen_seconds": 5.26,
-          "prompt_tokens": 923,
-          "prompt_seconds": 2.37
+          "seconds": 14.74,
+          "tokens": 71,
+          "gen_seconds": 7.94,
+          "prompt_tokens": 1083,
+          "prompt_seconds": 6.78
         }
       ],
       "case": "router_down",
@@ -307,44 +347,92 @@
       "checks": 2,
       "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 23.9,
-      "model_seconds": 23.9,
-      "tok_per_s": 14.1,
+      "seconds": 51.4,
+      "model_seconds": 51.4,
+      "tok_per_s": 8.9,
       "fix_verified": false
     },
     {
       "trace": [
-        "model  -> check_ip_and_router   why: The user reports connected WiFi but no internet access. Let's check the basics.",
+        "model  -> check_adapters   why: The user reports a connected Wi-Fi with no internet. Let's check the basics.",
+        "          = Network adapters: Wi-Fi: connected.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so the adapter is not disabled.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, so the connection is established locally.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, so the basic connection is established.",
         "          = Internet addresses cannot be reached even by number, so traffic is not getting out to the internet.",
-        "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => isp_outage   says: It seems there's a problem with your internet service. Your provider may be experiencing an outage."
+        "model  -> check_dns   why: The PC can reach the router, but not the internet. This suggests a problem beyond the router.",
+        "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). None of them answer. A public DNS server (1.1.1.1) does not answer either. Windows CANNOT turn website names into addresses.",
+        "REFUSED   The model's conclusion: \"The router's DNS is not answering\". Refused: the DNS servers are on automatic, not set by hand. Looking again.   why: The DNS servers are not answering, which prevents the PC from translating website names into addresses.",
+        "model  -> check_proxy   why: The DNS is set automatically, so it's not a misconfiguration. Let's check if a proxy is interfering.",
+        "          = No proxy is set. A test page fails to load (name could not be resolved).",
+        "REFUSED   The model's conclusion: \"No fault found\". Not proven yet, so the safety check runs what is missing before it decides.   why: No proxy is set, and the test page still fails, so the problem isn't a proxy.",
+        "safety -> check_hosts",
+        "          = The hosts file has no extra entries. No website is blocked there.",
+        "safety -> check_login_page",
+        "          = The test page could not be reached at all, so this is not a sign-in page problem.",
+        "safety -> check_clock",
+        "          = The clock could not be compared, because nothing on the internet answered.",
+        "safety -> test_website",
+        "          = Opening http://www.msftconnecttest.com/connecttest.txt: it FAILS (name could not be resolved).",
+        "REFUSED   The model's conclusion: \"No fault found\". Refused: a test page still fails to load. Looking again.",
+        "rules  => isp_outage   says: (catalogue text)"
       ],
       "model_calls": [
         {
+          "action": "check_adapters",
+          "seconds": 24.72,
+          "tokens": 64,
+          "gen_seconds": 7.02,
+          "prompt_tokens": 838,
+          "prompt_seconds": 17.69
+        },
+        {
           "action": "check_ip_and_router",
-          "seconds": 10.71,
-          "tokens": 69,
-          "gen_seconds": 4.55,
-          "prompt_tokens": 684,
-          "prompt_seconds": 6.15
+          "seconds": 11.71,
+          "tokens": 71,
+          "gen_seconds": 7.71,
+          "prompt_tokens": 928,
+          "prompt_seconds": 3.99
         },
         {
           "action": "check_internet_reach",
-          "seconds": 6.5,
+          "seconds": 13.58,
+          "tokens": 73,
+          "gen_seconds": 8.24,
+          "prompt_tokens": 1054,
+          "prompt_seconds": 5.32
+        },
+        {
+          "action": "check_dns",
+          "seconds": 9.6,
           "tokens": 69,
-          "gen_seconds": 4.59,
-          "prompt_tokens": 808,
-          "prompt_seconds": 1.9
+          "gen_seconds": 7.51,
+          "prompt_tokens": 1165,
+          "prompt_seconds": 2.07
         },
         {
           "action": "conclude",
-          "seconds": 6.94,
-          "tokens": 70,
-          "gen_seconds": 5.1,
-          "prompt_tokens": 929,
-          "prompt_seconds": 1.83
+          "seconds": 11.34,
+          "tokens": 72,
+          "gen_seconds": 7.91,
+          "prompt_tokens": 1309,
+          "prompt_seconds": 3.41
+        },
+        {
+          "action": "check_proxy",
+          "seconds": 10.26,
+          "tokens": 71,
+          "gen_seconds": 7.66,
+          "prompt_tokens": 1432,
+          "prompt_seconds": 2.58
+        },
+        {
+          "action": "conclude",
+          "seconds": 9.92,
+          "tokens": 73,
+          "gen_seconds": 8.04,
+          "prompt_tokens": 1538,
+          "prompt_seconds": 1.86
         }
       ],
       "case": "isp_down",
@@ -352,70 +440,70 @@
       "expected": "isp_outage",
       "final": "isp_outage",
       "final_correct": true,
-      "model_first": "isp_outage",
-      "model_first_correct": true,
-      "refused": 0,
-      "checks": 2,
-      "model_steps": 3,
-      "rule_steps": 0,
-      "seconds": 24.2,
-      "model_seconds": 24.2,
-      "tok_per_s": 13.7,
+      "model_first": "dns_server_down",
+      "model_first_correct": false,
+      "refused": 2,
+      "checks": 9,
+      "model_steps": 7,
+      "rule_steps": 1,
+      "seconds": 91.1,
+      "model_seconds": 91.1,
+      "tok_per_s": 9.1,
       "fix_verified": false
     },
     {
       "trace": [
-        "model  -> check_adapters   why: The user is experiencing a general network issue. Let's start with the basics.",
+        "model  -> check_adapters   why: Let's start with the basics of the network connection.",
         "          = Network adapters: Wi-Fi: connected.",
-        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so the problem isn't a disabled adapter.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's investigate the IP address and router.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so the problem isn't a lack of connectivity to the router.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, so let\u2019s check if the internet is reachable.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: The internet line is working, but DNS is likely the issue.",
+        "model  -> check_dns   why: The internet line is working, so let\u2019s investigate DNS.",
         "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). None of them answer. A public DNS server (1.1.1.1) answers when asked directly. Windows CANNOT turn website names into addresses.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => dns_server_down   says: The DNS servers provided by your router are not working. This prevents your computer from translating website names into addresses, which is why websites won't open."
+        "model  => dns_server_down   says: It seems the DNS servers your computer is using aren\u2019t working correctly. This prevents your computer from translating website names into addresses, which is why you can\u2019t access websites."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.45,
-          "tokens": 64,
-          "gen_seconds": 4.34,
-          "prompt_tokens": 682,
-          "prompt_seconds": 6.1
+          "seconds": 23.82,
+          "tokens": 57,
+          "gen_seconds": 6.21,
+          "prompt_tokens": 836,
+          "prompt_seconds": 17.6
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.33,
-          "tokens": 74,
-          "gen_seconds": 4.9,
-          "prompt_tokens": 772,
-          "prompt_seconds": 1.43
+          "seconds": 11.92,
+          "tokens": 75,
+          "gen_seconds": 8.19,
+          "prompt_tokens": 919,
+          "prompt_seconds": 3.72
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.16,
+          "seconds": 14.69,
           "tokens": 78,
-          "gen_seconds": 5.25,
-          "prompt_tokens": 901,
-          "prompt_seconds": 1.9
+          "gen_seconds": 8.85,
+          "prompt_tokens": 1054,
+          "prompt_seconds": 5.82
         },
         {
           "action": "check_dns",
-          "seconds": 6.02,
-          "tokens": 62,
-          "gen_seconds": 4.23,
-          "prompt_tokens": 1021,
-          "prompt_seconds": 1.79
+          "seconds": 11.45,
+          "tokens": 61,
+          "gen_seconds": 6.59,
+          "prompt_tokens": 1189,
+          "prompt_seconds": 4.84
         },
         {
           "action": "conclude",
-          "seconds": 6.92,
+          "seconds": 14.93,
           "tokens": 82,
-          "gen_seconds": 5.54,
-          "prompt_tokens": 1172,
-          "prompt_seconds": 1.36
+          "gen_seconds": 8.89,
+          "prompt_tokens": 1349,
+          "prompt_seconds": 6.03
         }
       ],
       "case": "router_dns_down",
@@ -429,36 +517,36 @@
       "checks": 4,
       "model_steps": 5,
       "rule_steps": 0,
-      "seconds": 36.9,
-      "model_seconds": 36.9,
-      "tok_per_s": 14.8,
+      "seconds": 76.8,
+      "model_seconds": 76.8,
+      "tok_per_s": 9.2,
       "fix_verified": true
     },
     {
       "trace": [
-        "model  -> check_ip_and_router   why: The user reports being connected but without internet access. Let's start with the basics.",
+        "model  -> check_ip_and_router   why: The PC reports being connected, but no internet access is present. Let's investigate the connection itself.",
         "          = This PC gave itself the address 169.254.31.7, which means the router did not hand out an address.",
-        "REFUSED   The model's conclusion: \"The router did not give this PC an address\". Not proven yet, so the safety check runs what is missing before it decides.   why: The PC has an IP address, but it's a reserved address (169.254.x.x) indicating it didn't get one from the router.",
+        "REFUSED   The model's conclusion: \"The router did not give this PC an address\". Not proven yet, so the safety check runs what is missing before it decides.   why: The PC has an address, but it's a reserved one, indicating the router isn't assigning it an IP.",
         "safety -> check_adapters",
         "          = Network adapters: Wi-Fi: connected, but the router gave it no address.",
-        "model  => no_ip_address   says: It seems your PC isn't receiving an IP address from the router. This is preventing internet access."
+        "model  => no_ip_address   says: The PC has an IP address, but it's not the one assigned by your router. This prevents internet access."
       ],
       "model_calls": [
         {
           "action": "check_ip_and_router",
-          "seconds": 11.27,
+          "seconds": 26.86,
           "tokens": 83,
-          "gen_seconds": 5.39,
-          "prompt_tokens": 685,
-          "prompt_seconds": 5.88
+          "gen_seconds": 9.09,
+          "prompt_tokens": 839,
+          "prompt_seconds": 17.76
         },
         {
           "action": "conclude",
-          "seconds": 7.66,
-          "tokens": 86,
-          "gen_seconds": 5.73,
-          "prompt_tokens": 820,
-          "prompt_seconds": 1.92
+          "seconds": 14.18,
+          "tokens": 76,
+          "gen_seconds": 8.43,
+          "prompt_tokens": 974,
+          "prompt_seconds": 5.74
         }
       ],
       "case": "no_ip",
@@ -472,9 +560,9 @@
       "checks": 2,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 18.9,
-      "model_seconds": 18.9,
-      "tok_per_s": 15.0,
+      "seconds": 41.0,
+      "model_seconds": 41.0,
+      "tok_per_s": 9.0,
       "fix_verified": true
     },
     {
@@ -482,24 +570,24 @@
         "model  -> check_adapters   why: Let's start with the basics of the network connection.",
         "          = Network adapters: Wi-Fi: on but not connected to any network.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => wifi_not_connected   says: The Wi-Fi adapter is switched on, but it\u2019s not connected to a network. This is why you have no internet."
+        "model  => wifi_not_connected   says: It seems your Wi-Fi adapter is switched on, but it\u2019s not connected to a network. This is why you have no internet."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 9.59,
-          "tokens": 56,
-          "gen_seconds": 3.67,
-          "prompt_tokens": 681,
-          "prompt_seconds": 5.91
+          "seconds": 24.0,
+          "tokens": 58,
+          "gen_seconds": 6.35,
+          "prompt_tokens": 835,
+          "prompt_seconds": 17.64
         },
         {
           "action": "conclude",
-          "seconds": 6.44,
-          "tokens": 74,
-          "gen_seconds": 4.89,
-          "prompt_tokens": 783,
-          "prompt_seconds": 1.55
+          "seconds": 12.9,
+          "tokens": 76,
+          "gen_seconds": 8.43,
+          "prompt_tokens": 939,
+          "prompt_seconds": 4.46
         }
       ],
       "case": "wifi_dropped",
@@ -513,34 +601,308 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 16.0,
-      "model_seconds": 16.0,
-      "tok_per_s": 15.1,
+      "seconds": 36.9,
+      "model_seconds": 36.9,
+      "tok_per_s": 9.0,
       "fix_verified": false
     },
     {
       "trace": [
-        "model  -> check_disk   why: The user reports slowness, so I need to investigate network issues first.",
-        "          = Storage: C: 3.1 GB free of 237.0 GB. Space is running low.",
-        "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => disk_full   says: The low storage space is making your laptop slow."
+        "model  -> check_adapters   why: Let's check the basics of the Wi-Fi connection.",
+        "          = Network adapters: Wi-Fi: connected.",
+        "model  -> test_website   why: The Wi-Fi adapter is connected, but that doesn't explain why nothing opens.",
+        "          = Opening http://www.msftconnecttest.com/connecttest.txt: it loads.",
+        "model  -> check_dns   why: The test website loads, so the problem isn't a general internet issue. It must be related to the specific website.",
+        "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.",
+        "model  -> check_hosts   why: The DNS servers are responding, which suggests the problem isn't with the DNS itself, but with how Windows is resolving the names.",
+        "          = The hosts file has no extra entries. No website is blocked there.",
+        "model  -> check_proxy   why: The hosts file is clear, so it's not blocking anything. Let's investigate further.",
+        "          = No proxy is set. A test page loads.",
+        "model  -> check_clock   why: No proxy is active, and the test page loads. This points to a more fundamental problem.",
+        "          = The PC's date and time are right.",
+        "model  -> check_internet_reach   why: The user is reporting a problem, so I need to run a check to confirm the issue.",
+        "          = Internet addresses cannot be reached even by number, so traffic is not getting out to the internet.",
+        "rules  -> check_ip_and_router",
+        "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
+        "rules  -> check_login_page",
+        "          = This network answered with its own page instead of the test page. It wants you to sign in or accept its terms in a browser before it lets anything through. That is common on mall, hotel and school Wi-Fi.",
+        "rules  => captive_portal   says: (catalogue text)"
       ],
       "model_calls": [
         {
-          "action": "check_disk",
-          "seconds": 9.58,
-          "tokens": 54,
-          "gen_seconds": 3.56,
-          "prompt_tokens": 682,
-          "prompt_seconds": 6.02
+          "action": "check_adapters",
+          "seconds": 23.87,
+          "tokens": 57,
+          "gen_seconds": 6.05,
+          "prompt_tokens": 838,
+          "prompt_seconds": 17.81
+        },
+        {
+          "action": "test_website",
+          "seconds": 10.97,
+          "tokens": 69,
+          "gen_seconds": 7.24,
+          "prompt_tokens": 921,
+          "prompt_seconds": 3.72
+        },
+        {
+          "action": "check_dns",
+          "seconds": 12.22,
+          "tokens": 70,
+          "gen_seconds": 7.62,
+          "prompt_tokens": 1027,
+          "prompt_seconds": 4.58
+        },
+        {
+          "action": "check_hosts",
+          "seconds": 11.19,
+          "tokens": 76,
+          "gen_seconds": 7.91,
+          "prompt_tokens": 1169,
+          "prompt_seconds": 3.27
+        },
+        {
+          "action": "check_proxy",
+          "seconds": 8.81,
+          "tokens": 66,
+          "gen_seconds": 6.99,
+          "prompt_tokens": 1276,
+          "prompt_seconds": 1.8
+        },
+        {
+          "action": "check_clock",
+          "seconds": 8.46,
+          "tokens": 65,
+          "gen_seconds": 6.84,
+          "prompt_tokens": 1369,
+          "prompt_seconds": 1.6
+        },
+        {
+          "action": "answer",
+          "seconds": 9.23,
+          "tokens": 72,
+          "gen_seconds": 7.6,
+          "prompt_tokens": 1461,
+          "prompt_seconds": 1.61
+        },
+        {
+          "action": "check_internet_reach",
+          "seconds": 8.87,
+          "tokens": 67,
+          "gen_seconds": 7.18,
+          "prompt_tokens": 1561,
+          "prompt_seconds": 1.67
+        }
+      ],
+      "case": "captive_portal",
+      "question": "The wifi is connected but nothing opens",
+      "expected": "captive_portal",
+      "final": "captive_portal",
+      "final_correct": true,
+      "model_first": null,
+      "model_first_correct": false,
+      "refused": 0,
+      "checks": 9,
+      "model_steps": 8,
+      "rule_steps": 3,
+      "seconds": 93.6,
+      "model_seconds": 93.6,
+      "tok_per_s": 9.3,
+      "fix_verified": false
+    },
+    {
+      "trace": [
+        "model  -> check_uptime   why: The user's complaint suggests a performance issue after a power change. Let's start with the basics of the network connection.",
+        "          = Windows has been running for 1.6 days without a restart. That is fine.",
+        "model  -> check_battery   why: The uptime is normal, so let's investigate the network connection itself.",
+        "          = Battery saver is ON and the charger is unplugged. Windows slows the PC down on purpose to save power. Battery at 17%.",
+        "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
+        "model  => battery_saver   says: The battery saver mode is on and the charger is unplugged, which is causing the slowdown."
+      ],
+      "model_calls": [
+        {
+          "action": "check_uptime",
+          "seconds": 25.2,
+          "tokens": 68,
+          "gen_seconds": 6.91,
+          "prompt_tokens": 841,
+          "prompt_seconds": 17.97
+        },
+        {
+          "action": "check_battery",
+          "seconds": 10.43,
+          "tokens": 57,
+          "gen_seconds": 5.97,
+          "prompt_tokens": 944,
+          "prompt_seconds": 4.46
         },
         {
           "action": "conclude",
-          "seconds": 4.51,
-          "tokens": 44,
-          "gen_seconds": 2.84,
-          "prompt_tokens": 791,
-          "prompt_seconds": 1.66
+          "seconds": 12.06,
+          "tokens": 66,
+          "gen_seconds": 7.14,
+          "prompt_tokens": 1060,
+          "prompt_seconds": 4.91
+        }
+      ],
+      "case": "battery_saver",
+      "question": "My laptop got slow after I unplugged the charger",
+      "expected": "battery_saver",
+      "final": "battery_saver",
+      "final_correct": true,
+      "model_first": "battery_saver",
+      "model_first_correct": true,
+      "refused": 0,
+      "checks": 2,
+      "model_steps": 3,
+      "rule_steps": 0,
+      "seconds": 47.7,
+      "model_seconds": 47.7,
+      "tok_per_s": 9.2,
+      "fix_verified": false
+    },
+    {
+      "trace": [
+        "model  -> check_startup   why: Let's start with the basics of the network connection.",
+        "          = 2 apps start automatically with Windows: Discord, OneDrive.",
+        "REFUSED   The model's conclusion: \"Too many apps start with Windows\". Refused: only a few apps start with Windows. Looking again.   why: Too many apps starting up can slow down a PC.",
+        "model  -> check_disk   why: The startup apps check didn't reveal the issue, let's investigate the PC's overall health.",
+        "          = Storage: C: 61.4 GB free of 237.0 GB. Space is fine.",
+        "model  -> check_memory   why: The disk space is fine, so let's look at the memory usage.",
+        "          = Memory: 6.2 GB free of 15.8 GB. Memory is fine. Biggest users: chrome 1840 MB, Code 910 MB, Discord 420 MB.",
+        "model  -> check_battery   why: Memory usage seems normal, let's investigate the adapter.",
+        "          = Plugged in, or a PC without a battery. Power settings are not slowing it down. Battery at 86%.",
+        "model  -> check_uptime   why: The battery is fully charged and not slowing things down, let's check the adapter.",
+        "          = Windows has been running for 23.4 days without a restart. An update is waiting for a restart. That is long: 'Shut down' does not fully restart Windows, so leftovers pile up and slow it.",
+        "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
+        "model  => needs_restart   says: Your PC has been running for a very long time without a restart, and an update is waiting. This is causing slowdowns."
+      ],
+      "model_calls": [
+        {
+          "action": "check_startup",
+          "seconds": 23.61,
+          "tokens": 54,
+          "gen_seconds": 5.68,
+          "prompt_tokens": 839,
+          "prompt_seconds": 17.91
+        },
+        {
+          "action": "conclude",
+          "seconds": 9.27,
+          "tokens": 54,
+          "gen_seconds": 5.62,
+          "prompt_tokens": 920,
+          "prompt_seconds": 3.64
+        },
+        {
+          "action": "check_disk",
+          "seconds": 11.08,
+          "tokens": 61,
+          "gen_seconds": 6.69,
+          "prompt_tokens": 1021,
+          "prompt_seconds": 4.38
+        },
+        {
+          "action": "check_memory",
+          "seconds": 9.48,
+          "tokens": 59,
+          "gen_seconds": 6.32,
+          "prompt_tokens": 1128,
+          "prompt_seconds": 3.15
+        },
+        {
+          "action": "check_battery",
+          "seconds": 8.8,
+          "tokens": 53,
+          "gen_seconds": 5.58,
+          "prompt_tokens": 1249,
+          "prompt_seconds": 3.2
+        },
+        {
+          "action": "check_uptime",
+          "seconds": 8.87,
+          "tokens": 62,
+          "gen_seconds": 6.54,
+          "prompt_tokens": 1344,
+          "prompt_seconds": 2.31
+        },
+        {
+          "action": "conclude",
+          "seconds": 10.98,
+          "tokens": 70,
+          "gen_seconds": 7.49,
+          "prompt_tokens": 1482,
+          "prompt_seconds": 3.47
+        }
+      ],
+      "case": "needs_restart",
+      "question": "My PC has been getting slower and slower",
+      "expected": "needs_restart",
+      "final": "needs_restart",
+      "final_correct": true,
+      "model_first": "many_startup_apps",
+      "model_first_correct": false,
+      "refused": 1,
+      "checks": 5,
+      "model_steps": 7,
+      "rule_steps": 0,
+      "seconds": 82.1,
+      "model_seconds": 82.1,
+      "tok_per_s": 9.3,
+      "fix_verified": false
+    },
+    {
+      "trace": [
+        "model  -> check_startup   why: Let's start with the basics of the network connection.",
+        "          = 2 apps start automatically with Windows: Discord, OneDrive.",
+        "REFUSED   The model's conclusion: \"Too many apps start with Windows\". Refused: only a few apps start with Windows. Looking again.   why: Discord and OneDrive are known to use resources. Let's investigate these.",
+        "model  -> check_battery   why: The startup check was misleading. Let's investigate the network connection.",
+        "          = Plugged in, or a PC without a battery. Power settings are not slowing it down. Battery at 86%.",
+        "model  -> check_disk   why: The battery status is normal, so let's investigate the network connection.",
+        "          = Storage: C: 3.1 GB free of 237.0 GB. Space is running low.",
+        "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
+        "model  => disk_full   says: Your laptop\u2019s storage is almost full, which is causing it to run slowly."
+      ],
+      "model_calls": [
+        {
+          "action": "check_startup",
+          "seconds": 23.73,
+          "tokens": 57,
+          "gen_seconds": 5.92,
+          "prompt_tokens": 836,
+          "prompt_seconds": 17.8
+        },
+        {
+          "action": "conclude",
+          "seconds": 9.46,
+          "tokens": 55,
+          "gen_seconds": 5.7,
+          "prompt_tokens": 920,
+          "prompt_seconds": 3.75
+        },
+        {
+          "action": "check_battery",
+          "seconds": 9.92,
+          "tokens": 51,
+          "gen_seconds": 5.48,
+          "prompt_tokens": 1022,
+          "prompt_seconds": 4.42
+        },
+        {
+          "action": "check_disk",
+          "seconds": 7.99,
+          "tokens": 54,
+          "gen_seconds": 5.71,
+          "prompt_tokens": 1115,
+          "prompt_seconds": 2.27
+        },
+        {
+          "action": "conclude",
+          "seconds": 9.07,
+          "tokens": 53,
+          "gen_seconds": 5.45,
+          "prompt_tokens": 1234,
+          "prompt_seconds": 3.6
         }
       ],
       "case": "disk_full",
@@ -548,50 +910,50 @@
       "expected": "disk_full",
       "final": "disk_full",
       "final_correct": true,
-      "model_first": "disk_full",
-      "model_first_correct": true,
-      "refused": 0,
-      "checks": 1,
-      "model_steps": 2,
+      "model_first": "many_startup_apps",
+      "model_first_correct": false,
+      "refused": 1,
+      "checks": 3,
+      "model_steps": 5,
       "rule_steps": 0,
-      "seconds": 14.1,
-      "model_seconds": 14.1,
-      "tok_per_s": 15.5,
+      "seconds": 60.2,
+      "model_seconds": 60.2,
+      "tok_per_s": 9.7,
       "fix_verified": false
     },
     {
       "trace": [
-        "model  -> check_disk   why: The user is experiencing hanging and lagging, so I need to investigate network issues.",
-        "          = Storage: C: 61.4 GB free of 237.0 GB. Space is fine.",
-        "model  -> check_memory   why: The disk space is sufficient, so I will move on to checking the memory.",
+        "model  -> check_startup   why: Let's start with the basics of the network connection.",
+        "          = 2 apps start automatically with Windows: Discord, OneDrive.",
+        "model  -> check_memory   why: Discord and OneDrive can sometimes cause performance issues.",
         "          = Memory: 0.5 GB free of 7.9 GB. Memory is nearly full. Biggest users: chrome 4120 MB, Teams 1310 MB, Code 980 MB.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => low_memory   says: The computer's memory is almost full. This is causing the lagging and hanging you're experiencing."
+        "model  => low_memory   says: Your PC is running out of memory, which is causing the lagging and hangs you're experiencing."
       ],
       "model_calls": [
         {
-          "action": "check_disk",
-          "seconds": 10.24,
-          "tokens": 62,
-          "gen_seconds": 4.16,
-          "prompt_tokens": 683,
-          "prompt_seconds": 6.07
+          "action": "check_startup",
+          "seconds": 23.89,
+          "tokens": 57,
+          "gen_seconds": 6.01,
+          "prompt_tokens": 837,
+          "prompt_seconds": 17.87
         },
         {
           "action": "check_memory",
-          "seconds": 5.68,
-          "tokens": 59,
-          "gen_seconds": 4.11,
-          "prompt_tokens": 786,
-          "prompt_seconds": 1.57
+          "seconds": 9.02,
+          "tokens": 50,
+          "gen_seconds": 5.25,
+          "prompt_tokens": 921,
+          "prompt_seconds": 3.76
         },
         {
           "action": "conclude",
-          "seconds": 7.3,
-          "tokens": 74,
-          "gen_seconds": 5.23,
-          "prompt_tokens": 922,
-          "prompt_seconds": 2.06
+          "seconds": 11.64,
+          "tokens": 59,
+          "gen_seconds": 6.42,
+          "prompt_tokens": 1048,
+          "prompt_seconds": 5.2
         }
       ],
       "case": "low_memory",
@@ -605,34 +967,34 @@
       "checks": 2,
       "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 23.2,
-      "model_seconds": 23.2,
-      "tok_per_s": 14.1,
+      "seconds": 44.5,
+      "model_seconds": 44.5,
+      "tok_per_s": 9.2,
       "fix_verified": false
     },
     {
       "trace": [
-        "model  -> check_startup   why: The user's problem is slow startup, not network connectivity.",
+        "model  -> check_startup   why: The user's problem is slow startup, not network connectivity. Let's check the PC's startup apps.",
         "          = 10 apps start automatically with Windows: Discord, OneDrive, Steam, Spotify, Teams, Zoom, EpicGames, Skype. That is a lot and slows start-up.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => many_startup_apps   says: Too many applications are starting when your computer begins. This is slowing down the startup process."
+        "model  => many_startup_apps   says: Too many applications are starting automatically when your computer begins. This is slowing down the startup process."
       ],
       "model_calls": [
         {
           "action": "check_startup",
-          "seconds": 9.58,
-          "tokens": 49,
-          "gen_seconds": 3.43,
-          "prompt_tokens": 684,
-          "prompt_seconds": 6.15
+          "seconds": 25.69,
+          "tokens": 71,
+          "gen_seconds": 7.63,
+          "prompt_tokens": 838,
+          "prompt_seconds": 18.05
         },
         {
           "action": "conclude",
-          "seconds": 5.48,
-          "tokens": 55,
-          "gen_seconds": 3.76,
-          "prompt_tokens": 800,
-          "prompt_seconds": 1.7
+          "seconds": 12.65,
+          "tokens": 62,
+          "gen_seconds": 6.76,
+          "prompt_tokens": 976,
+          "prompt_seconds": 5.88
         }
       ],
       "case": "many_startup",
@@ -646,9 +1008,9 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 15.1,
-      "model_seconds": 15.1,
-      "tok_per_s": 14.6,
+      "seconds": 38.3,
+      "model_seconds": 38.3,
+      "tok_per_s": 9.2,
       "fix_verified": false
     },
     {
@@ -657,75 +1019,87 @@
         "          = Network adapters: Wi-Fi: connected.",
         "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's see if the PC has an IP address.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so let\u2019s check if the internet is reachable.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so let\u2019s check if it can reach the internet.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: Since the internet line is working, the problem must be with DNS resolution.",
+        "model  -> check_dns   why: The internet line is working, but DNS might be the issue.",
         "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.",
-        "model  -> check_proxy   why: The DNS servers are responding, and Windows can resolve names, so let's investigate if a proxy is interfering.",
+        "model  -> check_proxy   why: The DNS servers are responding, so let's check if a proxy is interfering.",
         "          = No proxy is set. A test page loads.",
-        "model  -> check_hosts   why: No proxy is interfering, so let\u2019s examine the hosts file.",
+        "model  -> check_hosts   why: No proxy is interfering, so let\u2019s check the hosts file.",
         "          = The hosts file has no extra entries. No website is blocked there.",
-        "REFUSED   The model's conclusion: \"No fault found\". Not proven yet, so the safety check runs what is missing before it decides.   why: All the checks have passed, so there is no apparent issue.",
+        "model  -> check_clock   why: The hosts file is clear, and no proxy is interfering, so let\u2019s check the time and date.",
+        "          = The PC's date and time are right.",
+        "REFUSED   The model's conclusion: \"No fault found\". Not proven yet, so the safety check runs what is missing before it decides.   why: All the checks are passing, so there is no fault found.",
+        "safety -> check_login_page",
+        "          = No sign-in page is in the way: the test page came back unchanged.",
         "safety -> test_website",
         "          = Opening http://www.msftconnecttest.com/connecttest.txt: it loads.",
-        "model  => no_fault_found   says: It appears there isn\u2019t a problem with your PC\u2019s network settings. The internet should be working as expected."
+        "model  => no_fault_found   says: It appears there is no immediate problem with your internet connection. Everything seems to be working as expected."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.19,
+          "seconds": 24.12,
           "tokens": 57,
-          "gen_seconds": 4.02,
-          "prompt_tokens": 682,
-          "prompt_seconds": 6.17
+          "gen_seconds": 6.12,
+          "prompt_tokens": 836,
+          "prompt_seconds": 17.99
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.8,
+          "seconds": 11.99,
           "tokens": 77,
-          "gen_seconds": 5.46,
-          "prompt_tokens": 765,
-          "prompt_seconds": 1.33
+          "gen_seconds": 8.25,
+          "prompt_tokens": 919,
+          "prompt_seconds": 3.72
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.22,
-          "tokens": 70,
-          "gen_seconds": 5.12,
-          "prompt_tokens": 902,
-          "prompt_seconds": 2.09
+          "seconds": 14.38,
+          "tokens": 76,
+          "gen_seconds": 8.47,
+          "prompt_tokens": 1056,
+          "prompt_seconds": 5.9
         },
         {
           "action": "check_dns",
-          "seconds": 6.89,
-          "tokens": 69,
-          "gen_seconds": 5.1,
-          "prompt_tokens": 1019,
-          "prompt_seconds": 1.79
+          "seconds": 11.14,
+          "tokens": 62,
+          "gen_seconds": 6.71,
+          "prompt_tokens": 1179,
+          "prompt_seconds": 4.42
         },
         {
           "action": "check_proxy",
-          "seconds": 6.61,
-          "tokens": 70,
-          "gen_seconds": 5.08,
-          "prompt_tokens": 1165,
-          "prompt_seconds": 1.52
+          "seconds": 11.08,
+          "tokens": 65,
+          "gen_seconds": 7.04,
+          "prompt_tokens": 1318,
+          "prompt_seconds": 4.02
         },
         {
           "action": "check_hosts",
-          "seconds": 5.5,
-          "tokens": 62,
-          "gen_seconds": 4.52,
-          "prompt_tokens": 1267,
-          "prompt_seconds": 0.97
+          "seconds": 9.65,
+          "tokens": 65,
+          "gen_seconds": 7.07,
+          "prompt_tokens": 1415,
+          "prompt_seconds": 2.56
+        },
+        {
+          "action": "check_clock",
+          "seconds": 13.05,
+          "tokens": 81,
+          "gen_seconds": 8.92,
+          "prompt_tokens": 1521,
+          "prompt_seconds": 4.11
         },
         {
           "action": "conclude",
-          "seconds": 6.2,
-          "tokens": 64,
-          "gen_seconds": 4.64,
-          "prompt_tokens": 1375,
-          "prompt_seconds": 1.54
+          "seconds": 11.07,
+          "tokens": 60,
+          "gen_seconds": 6.62,
+          "prompt_tokens": 1644,
+          "prompt_seconds": 4.43
         }
       ],
       "case": "healthy_network",
@@ -736,59 +1110,87 @@
       "model_first": "no_fault_found",
       "model_first_correct": true,
       "refused": 0,
-      "checks": 7,
-      "model_steps": 7,
+      "checks": 9,
+      "model_steps": 8,
       "rule_steps": 0,
-      "seconds": 49.4,
-      "model_seconds": 49.4,
-      "tok_per_s": 13.8,
+      "seconds": 106.5,
+      "model_seconds": 106.5,
+      "tok_per_s": 9.1,
       "fix_verified": false
     },
     {
       "trace": [
-        "model  -> check_disk   why: The user reports slowness, so I need to investigate network issues first.",
-        "          = Storage: C: 61.4 GB free of 237.0 GB. Space is fine.",
-        "model  -> check_memory   why: The disk space is normal, so let's move on to memory.",
-        "          = Memory: 6.2 GB free of 15.8 GB. Memory is fine. Biggest users: chrome 1840 MB, Code 910 MB, Discord 420 MB.",
-        "model  -> check_startup   why: Memory usage is normal, so let's check the adapters.",
+        "model  -> check_startup   why: Let's start with the basics of the network connection.",
         "          = 2 apps start automatically with Windows: Discord, OneDrive.",
+        "REFUSED   The model's conclusion: \"Too many apps start with Windows\". Refused: only a few apps start with Windows. Looking again.   why: Too many apps starting up can slow down a PC.",
+        "model  -> check_battery   why: The startup apps check didn't reveal a problem, so let's investigate the network connection.",
+        "          = Plugged in, or a PC without a battery. Power settings are not slowing it down. Battery at 86%.",
+        "model  -> check_disk   why: The battery check didn't reveal a problem, so let's investigate the network connection.",
+        "          = Storage: C: 61.4 GB free of 237.0 GB. Space is fine.",
+        "model  -> check_memory   why: The disk check didn't reveal a problem, so let's investigate the network connection.",
+        "          = Memory: 6.2 GB free of 15.8 GB. Memory is fine. Biggest users: chrome 1840 MB, Code 910 MB, Discord 420 MB.",
+        "model  -> check_uptime   why: The memory check didn't reveal a problem, so let's investigate the network connection.",
+        "          = Windows has been running for 1.6 days without a restart. That is fine.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "REFUSED   The model's conclusion: \"Too many apps start with Windows\". Refused: only a few apps start with Windows. Looking again.   why: Too many apps starting with Windows can slow down a PC.",
-        "note      The language model did not help on this step (the model's reply was not usable: {\"thought\": \"The previous conclusion was incorrect. Let's re-evaluate the checks.\", \"action\": \"conclude\", \"cause\": \"none). The built-in rules chose instead.",
+        "REFUSED   The model's conclusion: \"Windows needs a restart\". Refused: Windows was restarted recently. Looking again.   why: The PC has been running for a long time without a restart, which can cause slowdowns.",
         "rules  => pc_looks_healthy   says: (catalogue text)"
       ],
       "model_calls": [
         {
-          "action": "check_disk",
-          "seconds": 10.62,
-          "tokens": 59,
-          "gen_seconds": 4.06,
-          "prompt_tokens": 681,
-          "prompt_seconds": 6.23
-        },
-        {
-          "action": "check_memory",
-          "seconds": 5.6,
-          "tokens": 58,
-          "gen_seconds": 4.01,
-          "prompt_tokens": 781,
-          "prompt_seconds": 1.58
-        },
-        {
           "action": "check_startup",
-          "seconds": 6.23,
-          "tokens": 65,
-          "gen_seconds": 4.44,
-          "prompt_tokens": 901,
-          "prompt_seconds": 1.79
+          "seconds": 24.58,
+          "tokens": 54,
+          "gen_seconds": 5.81,
+          "prompt_tokens": 835,
+          "prompt_seconds": 18.07
         },
         {
           "action": "conclude",
-          "seconds": 6.0,
-          "tokens": 61,
-          "gen_seconds": 4.3,
-          "prompt_tokens": 1007,
-          "prompt_seconds": 1.69
+          "seconds": 10.0,
+          "tokens": 59,
+          "gen_seconds": 6.33,
+          "prompt_tokens": 916,
+          "prompt_seconds": 3.66
+        },
+        {
+          "action": "check_battery",
+          "seconds": 11.02,
+          "tokens": 57,
+          "gen_seconds": 6.41,
+          "prompt_tokens": 1022,
+          "prompt_seconds": 4.6
+        },
+        {
+          "action": "check_disk",
+          "seconds": 8.51,
+          "tokens": 58,
+          "gen_seconds": 6.21,
+          "prompt_tokens": 1121,
+          "prompt_seconds": 2.28
+        },
+        {
+          "action": "check_memory",
+          "seconds": 8.43,
+          "tokens": 58,
+          "gen_seconds": 6.18,
+          "prompt_tokens": 1220,
+          "prompt_seconds": 2.24
+        },
+        {
+          "action": "check_uptime",
+          "seconds": 9.17,
+          "tokens": 56,
+          "gen_seconds": 5.92,
+          "prompt_tokens": 1340,
+          "prompt_seconds": 3.23
+        },
+        {
+          "action": "conclude",
+          "seconds": 9.68,
+          "tokens": 65,
+          "gen_seconds": 7.02,
+          "prompt_tokens": 1445,
+          "prompt_seconds": 2.64
         }
       ],
       "case": "healthy_pc",
@@ -798,68 +1200,68 @@
       "final_correct": true,
       "model_first": "many_startup_apps",
       "model_first_correct": false,
-      "refused": 1,
-      "checks": 3,
-      "model_steps": 4,
+      "refused": 2,
+      "checks": 5,
+      "model_steps": 7,
       "rule_steps": 1,
-      "seconds": 33.1,
-      "model_seconds": 33.0,
-      "tok_per_s": 14.2,
+      "seconds": 81.4,
+      "model_seconds": 81.4,
+      "tok_per_s": 9.3,
       "fix_verified": false
     },
     {
       "trace": [
-        "model  -> check_adapters   why: The user reports websites not loading despite a connected Wi-Fi, so let's check the adapter and connection.",
+        "model  -> check_adapters   why: The user reports websites not loading despite a connected Wi-Fi. Let's check the adapter and IP address.",
         "          = Network adapters: Wi-Fi: connected.",
-        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's investigate the IP address and router connection.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, but that doesn't explain why websites aren't loading. Let's check the IP address and router.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, so let's check if the internet is reachable.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, but still no website loading. Let's investigate the internet connection itself.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: The internet line is working, but DNS is likely the issue.",
+        "model  -> check_dns   why: The internet line is working, but DNS is likely the issue. Let's check the DNS settings.",
         "          = DNS servers on 'Wi-Fi': 192.0.2.53, 2001:db8::53 (set manually). None of them answer. A public DNS server (1.1.1.1) answers when asked directly. Windows CANNOT turn website names into addresses.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => dns_misconfigured   says: You've manually set the DNS servers to incorrect addresses. This prevents your computer from translating website names into their correct internet addresses."
+        "model  => dns_misconfigured   says: It seems you've manually set the DNS servers to incorrect addresses. This prevents the PC from translating website names into internet addresses."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 11.02,
-          "tokens": 73,
-          "gen_seconds": 4.78,
-          "prompt_tokens": 691,
-          "prompt_seconds": 6.23
+          "seconds": 25.27,
+          "tokens": 65,
+          "gen_seconds": 6.88,
+          "prompt_tokens": 845,
+          "prompt_seconds": 18.38
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.17,
-          "tokens": 71,
-          "gen_seconds": 4.68,
-          "prompt_tokens": 790,
-          "prompt_seconds": 1.48
+          "seconds": 12.65,
+          "tokens": 80,
+          "gen_seconds": 8.59,
+          "prompt_tokens": 936,
+          "prompt_seconds": 4.05
         },
         {
           "action": "check_internet_reach",
-          "seconds": 6.96,
-          "tokens": 75,
-          "gen_seconds": 5.08,
-          "prompt_tokens": 916,
-          "prompt_seconds": 1.87
+          "seconds": 13.63,
+          "tokens": 72,
+          "gen_seconds": 7.81,
+          "prompt_tokens": 1071,
+          "prompt_seconds": 5.8
         },
         {
           "action": "check_dns",
-          "seconds": 5.53,
-          "tokens": 55,
-          "gen_seconds": 3.82,
-          "prompt_tokens": 1028,
-          "prompt_seconds": 1.7
+          "seconds": 9.04,
+          "tokens": 66,
+          "gen_seconds": 6.99,
+          "prompt_tokens": 1180,
+          "prompt_seconds": 2.03
         },
         {
           "action": "conclude",
-          "seconds": 7.32,
-          "tokens": 81,
-          "gen_seconds": 5.74,
-          "prompt_tokens": 1181,
-          "prompt_seconds": 1.57
+          "seconds": 12.38,
+          "tokens": 75,
+          "gen_seconds": 8.1,
+          "prompt_tokens": 1344,
+          "prompt_seconds": 4.26
         }
       ],
       "case": "wrong_dns#taglish",
@@ -873,62 +1275,44 @@
       "checks": 4,
       "model_steps": 5,
       "rule_steps": 0,
-      "seconds": 37.0,
-      "model_seconds": 37.0,
-      "tok_per_s": 14.1,
+      "seconds": 73.0,
+      "model_seconds": 73.0,
+      "tok_per_s": 9.3,
       "fix_verified": true
     },
     {
       "trace": [
-        "model  -> check_internet_reach   why: The user can't access websites but other apps work, so let's check the network connection.",
+        "model  -> check_internet_reach   why: The user can't access websites but other apps work, so let's check the basics.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: The internet line is working, but the user still can't access websites. Let's investigate the DNS settings.",
-        "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.",
-        "model  -> check_proxy   why: The user is reporting a problem, so let's check the browser settings.",
+        "model  -> check_proxy   why: The internet line is working, but the user can't access websites. Let's check the browser settings.",
         "          = A proxy is turned ON (127.0.0.1:9). Through the proxy a test page FAILS. Without the proxy the same page loads fine.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => proxy_blocking   says: The proxy settings are blocking access to websites. Please disable the proxy."
+        "model  => proxy_blocking   says: The proxy setting is blocking access to websites. Please disable it."
       ],
       "model_calls": [
         {
           "action": "check_internet_reach",
-          "seconds": 10.27,
+          "seconds": 24.79,
           "tokens": 59,
-          "gen_seconds": 3.88,
-          "prompt_tokens": 696,
-          "prompt_seconds": 6.38
-        },
-        {
-          "action": "check_dns",
-          "seconds": 5.75,
-          "tokens": 64,
-          "gen_seconds": 4.28,
-          "prompt_tokens": 792,
-          "prompt_seconds": 1.46
-        },
-        {
-          "action": "answer",
-          "seconds": 5.78,
-          "tokens": 55,
-          "gen_seconds": 3.73,
-          "prompt_tokens": 928,
-          "prompt_seconds": 2.03
+          "gen_seconds": 6.13,
+          "prompt_tokens": 850,
+          "prompt_seconds": 18.66
         },
         {
           "action": "check_proxy",
-          "seconds": 5.23,
-          "tokens": 56,
-          "gen_seconds": 3.86,
-          "prompt_tokens": 1011,
-          "prompt_seconds": 1.35
+          "seconds": 10.6,
+          "tokens": 61,
+          "gen_seconds": 6.44,
+          "prompt_tokens": 946,
+          "prompt_seconds": 4.15
         },
         {
           "action": "conclude",
-          "seconds": 4.77,
-          "tokens": 53,
-          "gen_seconds": 3.71,
-          "prompt_tokens": 1134,
-          "prompt_seconds": 1.05
+          "seconds": 11.15,
+          "tokens": 52,
+          "gen_seconds": 5.63,
+          "prompt_tokens": 1074,
+          "prompt_seconds": 5.5
         }
       ],
       "case": "proxy_on#taglish",
@@ -939,87 +1323,87 @@
       "model_first": "proxy_blocking",
       "model_first_correct": true,
       "refused": 0,
-      "checks": 3,
-      "model_steps": 5,
+      "checks": 2,
+      "model_steps": 3,
       "rule_steps": 0,
-      "seconds": 31.8,
-      "model_seconds": 31.8,
-      "tok_per_s": 14.3,
+      "seconds": 46.5,
+      "model_seconds": 46.5,
+      "tok_per_s": 9.2,
       "fix_verified": true
     },
     {
       "trace": [
-        "model  -> test_website   why: The user is experiencing an error with a specific website. Let's investigate the network connection to that site.",
-        "          = Opening http://example.com: it FAILS (connection refused).",
-        "model  -> check_ip_and_router   why: The test website failed with a connection refused error. This suggests a problem reaching the destination, not a general DNS issue.",
+        "model  -> check_adapters   why: Let's check if the Wi-Fi adapter is enabled and connected.",
+        "          = Network adapters: Wi-Fi: connected.",
+        "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's check the IP address and router.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has a valid IP address and the router is responding, so the problem isn't with the PC's network configuration itself.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, so let's test internet reachability.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: The internet line is working, but DNS is still a potential issue. Let's investigate DNS settings.",
+        "model  -> check_dns   why: Since the internet line is working, let's investigate DNS issues.",
         "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.",
-        "model  -> check_proxy   why: The router's DNS servers are working correctly, and Windows can resolve website names. This suggests a misconfiguration elsewhere.",
+        "model  -> check_proxy   why: The DNS servers are responding, so let's check for proxy settings.",
         "          = No proxy is set. A test page loads.",
-        "model  -> check_hosts   why: No proxy is active, and the problem persists. Let's investigate the hosts file.",
+        "model  -> check_hosts   why: No proxy is blocking the connection, so let's check the hosts file.",
         "          = The hosts file blocks these names by pointing them at a dead address: example.com, www.example.com. That includes example.com.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => hosts_block   says: The hosts file is blocking example.com, preventing you from accessing it."
+        "model  => hosts_block   says: The hosts file is blocking example.com, which is why you\u2019re seeing an error page. I\u2019ll fix that now."
       ],
       "model_calls": [
         {
-          "action": "test_website",
-          "seconds": 11.24,
-          "tokens": 69,
-          "gen_seconds": 4.76,
-          "prompt_tokens": 700,
-          "prompt_seconds": 6.47
+          "action": "check_adapters",
+          "seconds": 25.07,
+          "tokens": 62,
+          "gen_seconds": 6.42,
+          "prompt_tokens": 854,
+          "prompt_seconds": 18.64
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.44,
-          "tokens": 69,
-          "gen_seconds": 4.9,
-          "prompt_tokens": 800,
-          "prompt_seconds": 1.53
+          "seconds": 11.87,
+          "tokens": 75,
+          "gen_seconds": 7.93,
+          "prompt_tokens": 942,
+          "prompt_seconds": 3.92
         },
         {
           "action": "check_internet_reach",
-          "seconds": 6.85,
-          "tokens": 70,
-          "gen_seconds": 4.99,
-          "prompt_tokens": 924,
-          "prompt_seconds": 1.84
+          "seconds": 13.58,
+          "tokens": 72,
+          "gen_seconds": 7.79,
+          "prompt_tokens": 1077,
+          "prompt_seconds": 5.78
         },
         {
           "action": "check_dns",
-          "seconds": 6.19,
-          "tokens": 63,
-          "gen_seconds": 4.47,
-          "prompt_tokens": 1031,
-          "prompt_seconds": 1.71
+          "seconds": 8.69,
+          "tokens": 57,
+          "gen_seconds": 5.91,
+          "prompt_tokens": 1191,
+          "prompt_seconds": 2.76
         },
         {
           "action": "check_proxy",
-          "seconds": 6.08,
-          "tokens": 64,
-          "gen_seconds": 4.84,
-          "prompt_tokens": 1166,
-          "prompt_seconds": 1.23
+          "seconds": 10.19,
+          "tokens": 59,
+          "gen_seconds": 6.29,
+          "prompt_tokens": 1325,
+          "prompt_seconds": 3.89
         },
         {
           "action": "check_hosts",
-          "seconds": 5.53,
-          "tokens": 56,
-          "gen_seconds": 4.84,
-          "prompt_tokens": 1257,
-          "prompt_seconds": 0.68
+          "seconds": 9.26,
+          "tokens": 64,
+          "gen_seconds": 6.79,
+          "prompt_tokens": 1416,
+          "prompt_seconds": 2.44
         },
         {
           "action": "conclude",
-          "seconds": 5.79,
-          "tokens": 61,
-          "gen_seconds": 4.47,
-          "prompt_tokens": 1374,
-          "prompt_seconds": 1.31
+          "seconds": 10.41,
+          "tokens": 67,
+          "gen_seconds": 7.2,
+          "prompt_tokens": 1541,
+          "prompt_seconds": 3.19
         }
       ],
       "case": "hosts_block#vague",
@@ -1033,34 +1417,34 @@
       "checks": 6,
       "model_steps": 7,
       "rule_steps": 0,
-      "seconds": 48.1,
-      "model_seconds": 48.1,
-      "tok_per_s": 13.7,
+      "seconds": 89.1,
+      "model_seconds": 89.1,
+      "tok_per_s": 9.3,
       "fix_verified": true
     },
     {
       "trace": [
-        "model  -> check_adapters   why: The user reports wifi is gone, so I need to check the adapter status.",
+        "model  -> check_adapters   why: Let's start with the basics of the Wi-Fi connection.",
         "          = Network adapters: Wi-Fi: turned OFF in Windows.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
-        "model  => adapter_disabled   says: The Wi-Fi adapter is turned off. This is preventing you from connecting to Wi-Fi networks."
+        "model  => adapter_disabled   says: The Wi-Fi adapter is turned off. This is preventing you from connecting to the internet."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.78,
-          "tokens": 57,
-          "gen_seconds": 4.13,
-          "prompt_tokens": 679,
-          "prompt_seconds": 6.32
+          "seconds": 23.89,
+          "tokens": 56,
+          "gen_seconds": 5.87,
+          "prompt_tokens": 833,
+          "prompt_seconds": 18.01
         },
         {
           "action": "conclude",
-          "seconds": 6.79,
-          "tokens": 69,
-          "gen_seconds": 5.18,
-          "prompt_tokens": 779,
-          "prompt_seconds": 1.61
+          "seconds": 10.49,
+          "tokens": 59,
+          "gen_seconds": 6.23,
+          "prompt_tokens": 932,
+          "prompt_seconds": 4.25
         }
       ],
       "case": "adapter_off#short",
@@ -1074,17 +1458,18 @@
       "checks": 1,
       "model_steps": 2,
       "rule_steps": 0,
-      "seconds": 17.6,
-      "model_seconds": 17.6,
-      "tok_per_s": 13.3,
+      "seconds": 34.4,
+      "model_seconds": 34.4,
+      "tok_per_s": 9.5,
       "fix_verified": true
     },
     {
       "trace": [
-        "model  -> check_startup   why: The user is experiencing slow performance. Let's start with the basics of network connectivity.",
+        "model  -> check_startup   why: The user is reporting slow performance. Let's start with the basics of network connectivity.",
         "          = 2 apps start automatically with Windows: Discord, OneDrive.",
-        "REFUSED   The model's conclusion: \"Too many apps start with Windows\". Refused: only a few apps start with Windows. Looking again.   why: Discord and OneDrive running at startup are likely causing the slowdown.",
-        "model  -> check_disk   why: The safety check failed, indicating a different issue. Let's investigate the adapter.",
+        "model  -> check_memory   why: Discord and OneDrive running at startup could be slowing things down.",
+        "          = Memory: 6.2 GB free of 15.8 GB. Memory is fine. Biggest users: chrome 1840 MB, Code 910 MB, Discord 420 MB.",
+        "model  -> check_disk   why: Memory usage is normal, so let's investigate other potential causes of the slowdown.",
         "          = Storage: C: 3.1 GB free of 237.0 GB. Space is running low.",
         "note      The results are now enough to prove a cause, so no more checks are offered. The model has to name it.",
         "model  => disk_full   says: Your laptop's storage is almost full, which is causing the slow performance."
@@ -1092,35 +1477,35 @@
       "model_calls": [
         {
           "action": "check_startup",
-          "seconds": 11.01,
-          "tokens": 61,
-          "gen_seconds": 4.48,
-          "prompt_tokens": 689,
-          "prompt_seconds": 6.52
+          "seconds": 24.8,
+          "tokens": 60,
+          "gen_seconds": 6.33,
+          "prompt_tokens": 843,
+          "prompt_seconds": 18.46
         },
         {
-          "action": "conclude",
-          "seconds": 5.2,
-          "tokens": 52,
-          "gen_seconds": 3.75,
-          "prompt_tokens": 777,
-          "prompt_seconds": 1.44
+          "action": "check_memory",
+          "seconds": 9.38,
+          "tokens": 53,
+          "gen_seconds": 5.51,
+          "prompt_tokens": 930,
+          "prompt_seconds": 3.86
         },
         {
           "action": "check_disk",
-          "seconds": 5.71,
-          "tokens": 56,
-          "gen_seconds": 4.16,
-          "prompt_tokens": 876,
-          "prompt_seconds": 1.54
+          "seconds": 11.26,
+          "tokens": 59,
+          "gen_seconds": 6.37,
+          "prompt_tokens": 1045,
+          "prompt_seconds": 4.87
         },
         {
           "action": "conclude",
-          "seconds": 5.34,
-          "tokens": 50,
-          "gen_seconds": 3.61,
-          "prompt_tokens": 986,
-          "prompt_seconds": 1.72
+          "seconds": 8.67,
+          "tokens": 55,
+          "gen_seconds": 5.82,
+          "prompt_tokens": 1159,
+          "prompt_seconds": 2.83
         }
       ],
       "case": "disk_full#taglish",
@@ -1128,15 +1513,15 @@
       "expected": "disk_full",
       "final": "disk_full",
       "final_correct": true,
-      "model_first": "many_startup_apps",
-      "model_first_correct": false,
-      "refused": 1,
-      "checks": 2,
+      "model_first": "disk_full",
+      "model_first_correct": true,
+      "refused": 0,
+      "checks": 3,
       "model_steps": 4,
       "rule_steps": 0,
-      "seconds": 27.3,
-      "model_seconds": 27.3,
-      "tok_per_s": 13.8,
+      "seconds": 54.1,
+      "model_seconds": 54.1,
+      "tok_per_s": 9.5,
       "fix_verified": false
     },
     {
@@ -1145,75 +1530,87 @@
         "          = Network adapters: Wi-Fi: connected.",
         "model  -> check_ip_and_router   why: The Wi-Fi adapter is connected, so let's see if the PC has an IP address.",
         "          = IP address 192.168.1.23, router 192.168.1.1. The router answers.",
-        "model  -> check_internet_reach   why: The PC has an IP address and the router is responding, so let's check if it can reach the internet.",
+        "model  -> check_internet_reach   why: The PC has an IP address and the router responds, so let\u2019s test if it can reach the internet.",
         "          = Internet addresses can be reached directly by number, so the line to the internet is working.",
-        "model  -> check_dns   why: Since the internet line is working, the problem must be with DNS resolution.",
+        "model  -> check_dns   why: The internet line is working, so let\u2019s investigate DNS issues.",
         "          = DNS servers on 'Wi-Fi': 192.168.1.1 (automatic from the router). They answer. A public DNS server (1.1.1.1) answers when asked directly. Windows can turn website names into addresses.",
-        "model  -> check_proxy   why: The DNS servers are responding, so let's investigate if a proxy is interfering.",
+        "model  -> check_proxy   why: DNS is working correctly, so let's investigate if a proxy is interfering.",
         "          = No proxy is set. A test page loads.",
-        "model  -> check_hosts   why: With no proxy settings and DNS working, let's examine the hosts file.",
+        "model  -> check_hosts   why: No proxy is interfering, so let\u2019s check the hosts file.",
         "          = The hosts file has no extra entries. No website is blocked there.",
-        "REFUSED   The model's conclusion: \"No fault found\". Not proven yet, so the safety check runs what is missing before it decides.   why: All the checks have passed, so there is no fault found.",
+        "model  -> check_clock   why: The hosts file is clear, so let\u2019s check the time and date.",
+        "          = The PC's date and time are right.",
+        "REFUSED   The model's conclusion: \"No fault found\". Not proven yet, so the safety check runs what is missing before it decides.   why: All the checks are passing, so there is no fault found.",
+        "safety -> check_login_page",
+        "          = No sign-in page is in the way: the test page came back unchanged.",
         "safety -> test_website",
         "          = Opening http://www.msftconnecttest.com/connecttest.txt: it loads.",
-        "model  => no_fault_found   says: It appears everything is working correctly on your PC. The internet is functioning as expected."
+        "model  => no_fault_found   says: It seems there isn\u2019t a problem with your internet connection. Everything appears to be working correctly."
       ],
       "model_calls": [
         {
           "action": "check_adapters",
-          "seconds": 10.64,
-          "tokens": 57,
-          "gen_seconds": 4.2,
-          "prompt_tokens": 687,
-          "prompt_seconds": 6.43
+          "seconds": 24.51,
+          "tokens": 58,
+          "gen_seconds": 6.1,
+          "prompt_tokens": 841,
+          "prompt_seconds": 18.4
         },
         {
           "action": "check_ip_and_router",
-          "seconds": 6.79,
+          "seconds": 12.15,
           "tokens": 77,
-          "gen_seconds": 5.46,
-          "prompt_tokens": 770,
-          "prompt_seconds": 1.32
+          "gen_seconds": 8.36,
+          "prompt_tokens": 925,
+          "prompt_seconds": 3.78
         },
         {
           "action": "check_internet_reach",
-          "seconds": 7.35,
-          "tokens": 74,
-          "gen_seconds": 5.24,
-          "prompt_tokens": 907,
-          "prompt_seconds": 2.1
+          "seconds": 14.11,
+          "tokens": 75,
+          "gen_seconds": 8.22,
+          "prompt_tokens": 1062,
+          "prompt_seconds": 5.87
         },
         {
           "action": "check_dns",
-          "seconds": 6.48,
-          "tokens": 62,
-          "gen_seconds": 4.68,
-          "prompt_tokens": 1023,
-          "prompt_seconds": 1.79
+          "seconds": 10.66,
+          "tokens": 57,
+          "gen_seconds": 6.21,
+          "prompt_tokens": 1184,
+          "prompt_seconds": 4.43
         },
         {
           "action": "check_proxy",
-          "seconds": 6.23,
-          "tokens": 65,
-          "gen_seconds": 4.77,
-          "prompt_tokens": 1162,
-          "prompt_seconds": 1.45
+          "seconds": 12.0,
+          "tokens": 61,
+          "gen_seconds": 6.75,
+          "prompt_tokens": 1323,
+          "prompt_seconds": 5.23
         },
         {
           "action": "check_hosts",
-          "seconds": 6.1,
-          "tokens": 67,
-          "gen_seconds": 5.12,
-          "prompt_tokens": 1259,
-          "prompt_seconds": 0.97
+          "seconds": 9.28,
+          "tokens": 63,
+          "gen_seconds": 6.76,
+          "prompt_tokens": 1416,
+          "prompt_seconds": 2.5
+        },
+        {
+          "action": "check_clock",
+          "seconds": 11.94,
+          "tokens": 68,
+          "gen_seconds": 7.59,
+          "prompt_tokens": 1530,
+          "prompt_seconds": 4.33
         },
         {
           "action": "conclude",
-          "seconds": 5.36,
-          "tokens": 57,
-          "gen_seconds": 4.3,
-          "prompt_tokens": 1362,
-          "prompt_seconds": 1.05
+          "seconds": 10.78,
+          "tokens": 60,
+          "gen_seconds": 6.54,
+          "prompt_tokens": 1640,
+          "prompt_seconds": 4.22
         }
       ],
       "case": "healthy_network#site",
@@ -1224,12 +1621,12 @@
       "model_first": "no_fault_found",
       "model_first_correct": true,
       "refused": 0,
-      "checks": 7,
-      "model_steps": 7,
+      "checks": 9,
+      "model_steps": 8,
       "rule_steps": 0,
-      "seconds": 49.0,
-      "model_seconds": 49.0,
-      "tok_per_s": 13.3,
+      "seconds": 105.4,
+      "model_seconds": 105.4,
+      "tok_per_s": 9.2,
       "fix_verified": false
     }
   ]

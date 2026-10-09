@@ -55,6 +55,18 @@ def machine(folder: str) -> str:
     return ""
 
 
+def replay_times() -> str:
+    """How long the four practice-bench faults took in the recorded replay, read from the recording itself."""
+    with open(os.path.join(ROOT, "docs", "recording.json"), "r", encoding="utf-8") as f:
+        rec = json.load(f)
+    times = [e["t"] for s in rec["scenarios"] if s["fault"] in ("wrong_dns", "adapter_off", "proxy_on", "hosts_block")
+             for e in s["events"] if e["type"] == "diagnosis"]
+    return (
+        f"In the recorded replay, made on the same kind of machine, the four practice-bench faults took {min(times):.1f} to {max(times):.1f} seconds each "
+        f"with `{rec['model']}` running at {rec['speed']} tokens a second, from the question to a verified cause.\n"
+    )
+
+
 def build() -> str:
     first = load("first_measurement")
     cases = next((s["cases"] for runs in load("current").values() for s in runs.values()), 20)
@@ -62,7 +74,8 @@ def build() -> str:
         f"Measured by GitHub Actions on a 4-thread cloud CPU with no graphics card ({machine('current')}). "
         f"{cases} cases on the simulated PC: {cases - 8} faults, 2 healthy PCs, and 6 of the same problems said the way people say them, "
         "including Taglish. Simulated checks answer instantly, so the times are almost all model time. "
-        "Speed on another computer will differ; accuracy should be close.\n\n"
+        "Speed on another computer will differ; accuracy should be close. The cloud machines are not all equally fast, "
+        "so read each time next to that row's tokens per second.\n\n"
         "- **Model alone**: the first cause the model named was the right one.\n"
         "- **With safety check**: the final diagnosis was right, after plain code checked the model.\n"
         "- **With memory**: Ayos has seen this PC healthy before and can compare. This is the normal case.\n\n"
@@ -70,8 +83,7 @@ def build() -> str:
         + HEAD
         + "\n".join(row(m, runs) for m, runs in sorted(load("current").items(), key=lambda kv: -((kv[1].get("memory") or kv[1].get("nomemory"))["tokens_per_second"] or 0)))
         + "\n\n"
-        "In the recorded replay, made on the same kind of machine, the four practice-bench faults took 10.3 to 12.1 seconds each "
-        "with `gemma3:4b`, from the question to a verified cause.\n"
+        + replay_times()
     )
     if first:
         text += (

@@ -65,7 +65,7 @@ The only network traffic Ayos makes is the diagnosis itself: it tries to reach a
 You need Windows 10 or 11, Python 3.10 or newer, and Ollama.
 
 1. Install [Ollama](https://ollama.com), then in a terminal: `ollama pull gemma3:4b`
-2. Double-click **`start_ayos.bat`**. It asks for administrator rights (needed to change network settings) and opens `http://127.0.0.1:8020`.
+2. Double-click **`start_ayos.bat`**. It asks for administrator rights (needed to change network settings) and opens Ayos in its own window. Nothing is sent anywhere: the window shows a page served by Ayos on this PC (`http://127.0.0.1:8020`). It uses Microsoft Edge, which is part of Windows, to draw the window; `--browser` opens a normal browser tab instead.
 3. Type what is wrong, or use the **Practice bench** on the right to break one setting on purpose, then ask Ayos to find it.
 
 Other ways to start:
@@ -125,7 +125,7 @@ The simulated PC adds eleven more that cannot be staged safely on a real machine
 ## Measured results
 
 <!-- RESULTS -->
-Measured by GitHub Actions on a 4-thread cloud CPU with no graphics card (x86_64, Linux 6.17.0-1022-azure, measured 2026-10-09). 20 cases on the simulated PC: 12 faults, 2 healthy PCs, and 6 of the same problems said the way people say them, including Taglish. Simulated checks answer instantly, so the times are almost all model time. Speed on another computer will differ; accuracy should be close.
+Measured by GitHub Actions on a 4-thread cloud CPU with no graphics card (x86_64, Linux 6.17.0-1022-azure, measured 2026-10-09). 24 cases on the simulated PC: 16 faults, 2 healthy PCs, and 6 of the same problems said the way people say them, including Taglish. Simulated checks answer instantly, so the times are almost all model time. Speed on another computer will differ; accuracy should be close. The cloud machines are not all equally fast, so read each time next to that row's tokens per second.
 
 - **Model alone**: the first cause the model named was the right one.
 - **With safety check**: the final diagnosis was right, after plain code checked the model.
@@ -135,12 +135,12 @@ The first three columns after the model name describe the model; the next three 
 
 | Model | Size | Tokens/s | Model alone | With safety check | Median time | Model alone | With safety check | Median time |
 |---|---|---|---|---|---|---|---|---|
-| `gemma3:1b` | 0.8 GB | 27.6 | 10/20 | 20/20 | 8.9 s | 10/20 | 20/20 | 15.6 s |
-| `llama3.2:3b` | 2.0 GB | 18.7 | 15/20 | 20/20 | 7.8 s | 16/20 | 20/20 | 16.4 s |
-| `qwen2.5:3b` | 1.9 GB | 15.6 | 18/20 | 20/20 | 10.2 s | 14/20 | 20/20 | 15.1 s |
-| `gemma3:4b` | 3.3 GB | 15.1 | 17/20 | 20/20 | 16.1 s | 17/20 | 20/20 | 27.6 s |
+| `gemma3:1b` | 0.8 GB | 40.4 | 11/24 | 24/24 | 4.4 s | 14/24 | 24/24 | 8.7 s |
+| `qwen2.5:3b` | 1.9 GB | 13.4 | 17/24 | 24/24 | 10.9 s | 18/24 | 24/24 | 20.4 s |
+| `llama3.2:3b` | 2.0 GB | 10.9 | 17/24 | 24/24 | 15.4 s | 18/24 | 24/24 | 40.0 s |
+| `gemma3:4b` | 3.3 GB | 9.6 | 19/24 | 24/24 | 38.6 s | 19/24 | 24/24 | 61.9 s |
 
-In the recorded replay, made on the same kind of machine, the four practice-bench faults took 10.3 to 12.1 seconds each with `gemma3:4b`, from the question to a verified cause.
+In the recorded replay, made on the same kind of machine, the four practice-bench faults took 21.1 to 25.9 seconds each with `gemma3:4b` running at 9.6 tokens a second, from the question to a verified cause.
 
 ### What the first measurement taught us
 
@@ -155,6 +155,8 @@ The first time we measured, the small models reasoned correctly and then kept as
 So we changed the design, not the model. Once the check results already prove a cause, no more checks are offered and the model has to name it. An internet problem is only offered network checks. When memory shows a setting changed, Ayos looks there first. A refused conclusion comes back with the reason. The table at the top is the same models after those changes. The raw result files for both runs are in `docs/results/`, next to the output of the live test on real Windows.
 <!-- /RESULTS -->
 
+On a team member's home PC with a mid-range graphics card (AMD RX 6600, 16 GB RAM), the built-in self-test (`selftest.bat`) measured `gemma3:4b` at about 40 tokens a second, with the first decision in 3.6 seconds. That is one PC measured once, not a benchmark.
+
 To measure a model on your own computer:
 
 ```
@@ -168,7 +170,7 @@ It reports two scores. **Model alone** is how often the model's own first conclu
 
 ## How it is tested
 
-- `python -m unittest discover -s tests` runs 89 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the model client against a stand-in model server, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
+- `python -m unittest discover -s tests` runs 95 tests on any computer: every fault on the simulated PC, the safety check against wrong model conclusions, approval and undo, memory, the model client against a stand-in model server, the web server's token and host checks, and the Windows layer against a stand-in PowerShell.
 - `tests/windows_live_test.py` runs on real Windows as administrator. It breaks the DNS setting, the proxy and the hosts file for real, lets Ayos find and fix each one, and checks the internet is back. It also switches a network adapter off and on, runs the emergency reset script, and starts Ayos through `start_ayos.bat`.
 - `tests/ui_test.py` drives the whole interface in a browser.
 - GitHub Actions runs all of that on a real Windows machine (`.github/workflows/windows.yml`), runs the unit tests on Python 3.8 to 3.13, builds `Ayos.exe`, and measures real models on a CPU-only machine (`model-eval.yml`).
