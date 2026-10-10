@@ -24,6 +24,7 @@ class DesktopWindow(unittest.TestCase):
             used = start.open_window("http://127.0.0.1:8020/", "data", popen=lambda cmd, **kw: calls.append(cmd))
         self.assertEqual(used, "window (direct)")
         self.assertIn("--app=http://127.0.0.1:8020/", calls[0])
+        self.assertIn("--disable-extensions", calls[0])  # no dark-mode extension may recolour the window
         self.assertTrue(any(a.startswith("--user-data-dir=") and a.endswith("window") for a in calls[0]))
         tab.assert_not_called()
 

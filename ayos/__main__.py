@@ -44,7 +44,10 @@ def find_app_browser(env=None, exists=os.path.isfile, which=shutil.which):
 def window_command(exe: str, url: str, data_dir: str) -> list:
     # Its own profile folder: a clean window with no extensions, separate from the owner's everyday browser.
     return [exe, f"--app={url}", f"--user-data-dir={os.path.join(data_dir, 'window')}", "--window-size=1240,880",
-            "--no-first-run", "--no-default-browser-check"]
+            "--no-first-run", "--no-default-browser-check",
+            # A new browser profile can sign itself in and pull down the owner's extensions and settings. A dark-mode
+            # extension then recolours the page on the second start. Resolv's window loads none of that.
+            "--disable-extensions", "--disable-sync", "--disable-features=WebContentsForceDark"]
 
 
 def open_window(url: str, data_dir: str, plain_browser: bool = False, elevated: bool = False, loaded=lambda: False,
