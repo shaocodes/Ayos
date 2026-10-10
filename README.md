@@ -135,12 +135,12 @@ The first three columns after the model name describe the model; the next three 
 
 | Model | Size | Tokens/s | Model alone | With safety check | Median time | Model alone | With safety check | Median time |
 |---|---|---|---|---|---|---|---|---|
-| `gemma3:1b` | 0.8 GB | 40.4 | 11/24 | 24/24 | 4.4 s | 14/24 | 24/24 | 8.7 s |
-| `qwen2.5:3b` | 1.9 GB | 13.4 | 17/24 | 24/24 | 10.9 s | 18/24 | 24/24 | 20.4 s |
-| `llama3.2:3b` | 2.0 GB | 10.9 | 17/24 | 24/24 | 15.4 s | 18/24 | 24/24 | 40.0 s |
-| `gemma3:4b` | 3.3 GB | 9.6 | 19/24 | 24/24 | 38.6 s | 19/24 | 24/24 | 61.9 s |
+| `gemma3:1b` | 0.8 GB | 27.3 | 11/24 | 24/24 | 8.6 s | 14/24 | 24/24 | 14.7 s |
+| `qwen2.5:3b` | 1.9 GB | 13.7 | 19/24 | 24/24 | 12.3 s | 20/24 | 24/24 | 18.1 s |
+| `llama3.2:3b` | 2.0 GB | 10.4 | 17/24 | 24/24 | 15.5 s | 20/24 | 24/24 | 38.9 s |
+| `gemma3:4b` | 3.3 GB | 9.9 | 20/24 | 24/24 | 39.8 s | 18/24 | 24/24 | 63.5 s |
 
-In the recorded replay, made on the same kind of machine, the four practice-bench faults took 21.1 to 25.9 seconds each with `gemma3:4b` running at 9.6 tokens a second, from the question to a verified cause.
+In the recorded replay, made on the same kind of machine, the four practice-bench faults took 22.2 to 26.6 seconds each with `gemma3:4b` running at 10.2 tokens a second, from the question to a verified cause.
 
 ### What the first measurement taught us
 
@@ -156,8 +156,6 @@ So we changed the design, not the model. Once the check results already prove a 
 <!-- /RESULTS -->
 
 On a team member's home PC with a mid-range graphics card (AMD RX 6600, 16 GB RAM), the built-in self-test (`selftest.bat`) measured `gemma3:4b` at about 40 tokens a second, with the first decision in 3.6 seconds. That is one PC measured once, not a benchmark.
-
-<!-- RENAME-NOTE -->The table above was measured at commit `c73c5b0`, when the project was still called Ayos. The only thing the model reads that changed since then is the name. The measurement is running again with the new name.<!-- /RENAME-NOTE -->
 
 To measure a model on your own computer:
 

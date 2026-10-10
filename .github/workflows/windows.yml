@@ -148,5 +148,4 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AYOS_CI_BRANCH: "1"
         run: python tools/ci_publish.py "window" "ci_out/*.txt" "ci_out/*.png"
