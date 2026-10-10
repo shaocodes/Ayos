@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<meta name="darkreader-lock">
 <title>Resolv repair desk</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314232b'/%3E%3Cpath d='M17 34l10 10 20-24' fill='none' stroke='%23f0b400' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
@@ -19,6 +21,7 @@
     --head: "Bahnschrift", "DIN Alternate", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
     --body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   }
+  :root { color-scheme: only light; }  /* browsers and extensions that force pages dark must leave this one alone; night mode is our own switch */
   * { box-sizing: border-box; }
   html { font-size: 17px; }
   body { margin: 0; background: var(--bench); color: var(--ink); font-family: var(--body); line-height: 1.45; }
