@@ -217,7 +217,7 @@ Three things the real Windows machine taught us that the simulated PC could not:
 
 **Models.** Any open chat model that Ollama can run. Developed and measured with Google's Gemma 3 (`gemma3:4b`, `gemma3:1b`), Meta's Llama 3.2 (`llama3.2:3b`) and Alibaba's Qwen 2.5 (`qwen2.5:3b`). The models are used as published, each under its own licence. No model was trained or fine-tuned for this project. The default is `gemma3:4b`.
 
-**Frameworks and tools.** Python standard library only for Resolv itself. Ollama serves the model. Windows PowerShell networking cmdlets are used for checks and fixes. Playwright is used in one optional interface test and for the screenshots. PyInstaller builds `Resolv.exe`. GitHub Actions runs the tests, the measurements and the build. The interface embeds one font, Space Grotesk Bold (SIL Open Font License 1.1), inside the page so it needs no internet.
+**Frameworks and tools.** Python standard library only for Resolv itself. Ollama serves the model. Windows PowerShell networking cmdlets are used for checks and fixes. Playwright is used in one optional interface test and for the screenshots. PyInstaller builds `Resolv.exe`. GitHub Actions runs the tests, the measurements and the build. The interface embeds three fonts inside the page so it needs no internet: Barlow, Barlow Condensed and Caveat, all under the SIL Open Font License 1.1.
 
 **External APIs.** None. No cloud AI, no online service.
 
