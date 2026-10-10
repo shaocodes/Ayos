@@ -160,6 +160,21 @@
   .bench-btns button[disabled] { opacity: .5; cursor: default; }
   .bench-msg { min-height: 1.4em; }
   .row-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  /* ---------- less clutter: more air, a compact practice bench ---------- */
+  main { gap: 28px; }
+  .rail { gap: 20px; }
+  .ticket, .panel { border-radius: 8px; }
+  .panel { padding: 18px 20px; border-color: var(--rule); }
+  .btn, .ask-row input, .picks button, .bench-btns button, select, .fixbox, .mode-btn { border-radius: 6px; }
+  .ledger > li { padding: 14px 0; }
+  .why { font-size: .88rem; }
+  .path-caption { font-size: .82rem; }
+  header.top .promise { max-width: none; }
+  .bench-btns { grid-template-columns: 1fr 1fr; }
+  .bench-btns button { padding: 9px 12px; }
+  .bench-btns button span { display: none; }
+  .bench-btns p { grid-column: 1 / -1; margin: 4px 0 0; }
+  @media (max-width: 980px) { .bench-btns { grid-template-columns: 1fr; } }
   /* ---------- night mode: the same desk with the lights down ---------- */
   .mode-btn { border: 1px solid var(--ink-2); background: transparent; color: var(--ink); border-radius: 3px; padding: 5px 12px; font-size: .9rem; cursor: pointer; align-self: center; white-space: nowrap; }
   .mode-btn:hover { border-color: var(--ink); }
@@ -204,7 +219,7 @@
 <header class="top">
   <h1>Resolv</h1>
   <span class="sub">repair desk for this PC</span>
-  <span class="promise">The AI runs on this PC. Your question and your settings never leave it, so it still works when the internet does not.</span>
+  <span class="promise">The AI runs on this PC, so it works when the internet does not.</span>
   <button class="mode-btn" id="modeBtn" type="button">Night mode</button>
 </header>
 <main>
@@ -244,7 +259,7 @@
     <section class="panel"><h2>What Resolv remembers</h2><div id="memBody"></div></section>
     <section class="panel">
       <h2>Practice bench</h2>
-      <p class="muted" style="margin-top:0">Break one setting on purpose, then ask Resolv to find it. Every one of these is undone by "Put everything back".</p>
+      <p class="muted" style="margin-top:0">Break one setting on purpose, then ask Resolv to find it.</p>
       <div class="bench-btns" id="benchBtns" style="margin-top:10px"></div>
       <div class="row-acts"><button class="btn quiet small" id="restoreBtn" type="button">Put everything back</button></div>
       <p class="bench-msg" id="benchMsg" role="status"></p>
@@ -641,7 +656,7 @@ function renderBench(s) {
   let split = false;
   for (const f of s.faults) {
     if (!f.real && !split) { split = true; wrap.append(el("p", "muted", "Only on the simulated PC:")); }
-    const b = el("button"); b.type = "button"; b.append(el("b", "", f.title), el("span", "", f.desc)); b.disabled = f.needs_admin && !s.admin;
+    const b = el("button"); b.type = "button"; b.append(el("b", "", f.title), el("span", "", f.desc)); b.title = f.desc; b.disabled = f.needs_admin && !s.admin;
     b.onclick = async () => {
       $("benchMsg").className = "bench-msg"; $("benchMsg").textContent = "Breaking it…";
       try { const r = await api("/api/break", { fault: f.id }); $("benchMsg").textContent = r.message; if (f.say && !running) $("q").value = f.say; }
